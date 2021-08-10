@@ -8,7 +8,6 @@
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` ，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. 修改`http.py`文件中的`FILEHTTP`字符串，将地址改为自己的服务器IP或域名，`:{PORT}/map`请勿删除
 4. pip以下依赖：`pillow`
 5. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
 6. 重启HoshinoBot
