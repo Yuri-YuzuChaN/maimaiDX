@@ -21,7 +21,7 @@ XXXmaimaiXXX什么 随机一首歌
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 b40 <名字> 查B40'''
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=sv_help)
 
 static = os.path.join(os.path.dirname(__file__), 'static')
 
