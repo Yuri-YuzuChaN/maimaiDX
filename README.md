@@ -39,6 +39,7 @@
 ## 鸣谢
 
 感谢 [Diving-Fish](https://github.com/Diving-Fish) 提供的源码支持
+
 感谢 [BlueDeer233](https://github.com/BlueDeer233) 提供猜歌功能的源码支持
 
 ## License
