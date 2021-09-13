@@ -1,12 +1,14 @@
+from nonebot.typing import State_T
 from hoshino import Service, priv
 from hoshino.typing import CQEvent
 from collections import defaultdict
-import os, re
+import os, re, asyncio, json, traceback
 
 from .libraries.maimai_best_40 import generate
 from .libraries.image import *
 from .libraries.maimaidx_music import *
 from .libraries.tool import hash
+from .libraries.maimaidx_guess import GuessObject
 
 sv_help = '''
 可用命令如下：
@@ -19,9 +21,11 @@ XXXmaimaiXXX什么 随机一首歌
 定数查歌 <定数>  查询定数对应的乐曲
 定数查歌 <定数下限> <定数上限>
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
+开启/关闭mai猜歌 开关猜歌功能
+猜歌 顾名思义，识别id，歌名和别称
 b40 <名字> 查B40'''
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=sv_help)
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
 
 static = os.path.join(os.path.dirname(__file__), 'static')
 
@@ -83,7 +87,7 @@ async def random_song(bot, ev:CQEvent):
     except:
         await bot.send(ev, '随机命令错误，请检查语法', at_sender=True)
 
-@sv.on_rex(r'.*maimai.*什么')
+@sv.on_rex(r'.*mai.*什么')
 async def random_day_song(bot, ev:CQEvent):
     await bot.send(ev, random_music(total_list.random()))
 
@@ -182,7 +186,7 @@ f.close()
 for t in tmp:
     arr = t.strip().split('\t')
     for i in range(len(arr)):
-        if arr[i] != "":
+        if arr[i] != '':
             music_aliases[arr[i].lower()].append(arr[0])
 
 @sv.on_suffix('是什么歌')
@@ -256,3 +260,108 @@ async def best_40(bot, ev:CQEvent):
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(img).decode()}]', at_sender=True)
+
+guess_dict: Dict[Tuple[str], GuessObject] = {}
+
+async def guess_music_loop(bot, ev:CQEvent, state: State_T):
+    await asyncio.sleep(8)
+    guess: GuessObject = state['guess_object']
+    if guess.is_end:
+        return
+    cycle = state['cycle']
+    if cycle < 6:
+        await bot.send(ev, f'{cycle + 1}/7 这首歌{guess.guess_options[cycle]}')
+    else:
+        msg = f'''7/7 这首歌封面的一部分是：
+[CQ:image,file=base64://{str(guess.b64image, encoding='utf-8')}]
+答案将在30秒后揭晓'''
+        await bot.send(ev, msg)
+        await give_answer(bot, ev, state)
+    state['cycle'] += 1
+    await guess_music_loop(bot, ev, state)
+
+async def give_answer(bot, ev:CQEvent, state: State_T):
+    await asyncio.sleep(30)
+    guess: GuessObject = state['guess_object']
+    if guess.is_end:
+        return
+    msg = f'''答案是：{guess.music['id']}. {guess.music['title']}
+[CQ:image,file=https://www.diving-fish.com/covers/{guess.music['id']}.jpg]'''
+    del guess_dict[state['gid']]
+    await bot.finish(ev, msg)
+
+@sv.on_fullmatch('猜歌')
+async def guess_music(bot, ev:CQEvent):
+    gid = ev.group_id
+    if gid not in config['enable']:
+        await bot.finish(ev, '该群已关闭猜歌功能，开启请输入 开启mai猜歌')
+    if gid in guess_dict:
+        await bot.finish(ev, '当前已有正在进行的猜歌')
+
+    guess = GuessObject()
+    guess_dict[gid] = guess
+    state: State_T = {'gid': gid, 'guess_object': guess, 'cycle': 0}
+    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
+    await guess_music_loop(bot, ev, state)
+
+@sv.on_message()
+async def guess_music_solve(bot, ev:CQEvent):
+    gid = ev.group_id
+    if gid not in guess_dict:
+        return
+    ans = ev.message.extract_plain_text().strip()
+    guess = guess_dict[gid]
+    title = re.compile(guess.music['title'], re.I)
+    an = False
+    if ans in music_aliases:
+        result = music_aliases[ans]
+        for i in result:
+            if i == guess.music['title']:
+                an = True
+    if ans == guess.music['id'] or title.search(ans) or an:
+        guess.is_end = True
+        del guess_dict[gid]
+        msg = f'''猜对了，答案是：
+{guess.music['id']}. {guess.music['title']}
+[CQ:image,file=https://www.diving-fish.com/covers/{guess.music['id']}.jpg]'''
+        await bot.send(ev, msg, at_sender=True)
+
+config_json = os.path.join(os.path.dirname(__file__), 'config.json')
+config: Dict[str, List[int]] = json.load(open(config_json, 'r', encoding='utf-8'))
+
+def change(gid: int, set: bool):
+    if set:
+        if gid not in config['enable']:
+            config['enable'].append(gid)
+        if gid in config['disable']:
+            config['disable'].remove(gid)
+    else:
+        if gid not in config['disable']:
+            config['disable'].append(gid)
+        if gid in config['enable']:
+            config['enable'].remove(gid)
+    try:
+        with open(config_json, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=True, indent=4)
+    except:
+        traceback.print_exc()
+
+@sv.on_fullmatch('开启mai猜歌')
+async def guess_on(bot, ev:CQEvent):
+    if not priv.ADMIN:
+        await bot.finish(ev, '仅允许管理员开启')
+    if ev.group_id in config['enable']:
+        await bot.send(ev, '该群已开启猜歌功能')
+    else:
+        change(ev.group_id, True)
+        await bot.send(ev, '已开启该群猜歌功能')
+
+@sv.on_fullmatch('关闭mai猜歌')
+async def guess_on(bot, ev:CQEvent):
+    if not priv.ADMIN:
+        await bot.finish(ev, '仅允许管理员关闭')
+    if ev.group_id in config['disable']:
+        await bot.send(ev, '该群已关闭猜歌功能')
+    else:
+        change(ev.group_id, False)
+        await bot.send(ev, '已关闭该群猜歌功能')
