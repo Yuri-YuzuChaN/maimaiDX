@@ -1,4 +1,5 @@
 from nonebot.typing import State_T
+import hoshino
 from hoshino import Service, priv
 from hoshino.typing import CQEvent
 from collections import defaultdict
@@ -348,7 +349,9 @@ def change(gid: int, set: bool):
 
 @sv.on_fullmatch('开启mai猜歌')
 async def guess_on(bot, ev:CQEvent):
-    if not priv.ADMIN:
+    is_su = hoshino.priv.check_priv(ev, hoshino.priv.SUPERUSER)
+    is_ad = hoshino.priv.check_priv(ev, hoshino.priv.ADMIN)
+    if not is_su or not is_ad:
         await bot.finish(ev, '仅允许管理员开启')
     if ev.group_id in config['enable']:
         await bot.send(ev, '该群已开启猜歌功能')
@@ -358,7 +361,9 @@ async def guess_on(bot, ev:CQEvent):
 
 @sv.on_fullmatch('关闭mai猜歌')
 async def guess_on(bot, ev:CQEvent):
-    if not priv.ADMIN:
+    is_su = hoshino.priv.check_priv(ev, hoshino.priv.SUPERUSER)
+    is_ad = hoshino.priv.check_priv(ev, hoshino.priv.ADMIN)
+    if not is_su or not is_ad:
         await bot.finish(ev, '仅允许管理员关闭')
     if ev.group_id in config['disable']:
         await bot.send(ev, '该群已关闭猜歌功能')
