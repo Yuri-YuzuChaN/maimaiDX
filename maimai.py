@@ -351,7 +351,7 @@ def change(gid: int, set: bool):
 async def guess_on(bot, ev:CQEvent):
     is_su = hoshino.priv.check_priv(ev, hoshino.priv.SUPERUSER)
     is_ad = hoshino.priv.check_priv(ev, hoshino.priv.ADMIN)
-    if not is_su or not is_ad:
+    if not is_su and not is_ad:
         await bot.finish(ev, '仅允许管理员开启')
     if ev.group_id in config['enable']:
         await bot.send(ev, '该群已开启猜歌功能')
@@ -363,7 +363,7 @@ async def guess_on(bot, ev:CQEvent):
 async def guess_on(bot, ev:CQEvent):
     is_su = hoshino.priv.check_priv(ev, hoshino.priv.SUPERUSER)
     is_ad = hoshino.priv.check_priv(ev, hoshino.priv.ADMIN)
-    if not is_su or not is_ad:
+    if not is_su and not is_ad:
         await bot.finish(ev, '仅允许管理员关闭')
     if ev.group_id in config['disable']:
         await bot.send(ev, '该群已关闭猜歌功能')
