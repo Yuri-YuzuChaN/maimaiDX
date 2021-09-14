@@ -7,7 +7,7 @@ import os, re, asyncio, json, traceback
 from .libraries.maimai_best_40 import generate
 from .libraries.image import *
 from .libraries.maimaidx_music import *
-from .libraries.tool import hash
+from .libraries.tool import hash, regular, search_dict
 from .libraries.maimaidx_guess import GuessObject
 
 sv_help = '''
@@ -192,9 +192,9 @@ for t in tmp:
 @sv.on_suffix('是什么歌')
 async def what_song(bot, ev:CQEvent):
     name = ev.message.extract_plain_text().strip()
-    if name not in music_aliases:
+    result = search_dict(music_aliases, name)
+    if len(result) == 0:
         await bot.finish(ev, '未找到此歌曲\n舞萌 DX 歌曲别名收集计划：https://docs.qq.com/sheet/DQ0pvUHh6b1hjcGpl', at_sender=True)
-    result = music_aliases[name]
     if len(result) == 1:
         music = total_list.by_title(result[0])
         await bot.send(ev, '您要找的是不是：' + random_music(music), at_sender=True)
@@ -301,7 +301,7 @@ async def guess_music(bot, ev:CQEvent):
     guess = GuessObject()
     guess_dict[gid] = guess
     state: State_T = {'gid': gid, 'guess_object': guess, 'cycle': 0}
-    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
+    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
     await guess_music_loop(bot, ev, state)
 
 @sv.on_message()
@@ -311,14 +311,12 @@ async def guess_music_solve(bot, ev:CQEvent):
         return
     ans = ev.message.extract_plain_text().strip()
     guess = guess_dict[gid]
-    title = re.compile(guess.music['title'], re.I)
     an = False
-    if ans in music_aliases:
-        result = music_aliases[ans]
-        for i in result:
-            if i == guess.music['title']:
-                an = True
-    if ans == guess.music['id'] or title.search(ans) or an:
+    result = search_dict(music_aliases, ans)
+    for i in result:
+        if i == guess.music['title']:
+            an = True
+    if ans == guess.music['id'] or an:
         guess.is_end = True
         del guess_dict[gid]
         msg = f'''猜对了，答案是：
