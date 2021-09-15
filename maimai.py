@@ -30,9 +30,9 @@ sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=
 static = os.path.join(os.path.dirname(__file__), 'static')
 
 def random_music(music: Music) -> str:
-    msg = f'''{music.id}. {music.title}
-[CQ:image,file=https://www.diving-fish.com/covers/{music.id}.jpg]
-{'/'.join(music.level)}'''
+    msg = f'''{music['id']}. {music['title']}
+[CQ:image,file=https://www.diving-fish.com/covers/{music['id']}.jpg]
+{'/'.join(music['level'])}'''
     return msg
 
 def song_level(ds1: float, ds2: float = None) -> list:
@@ -285,7 +285,7 @@ async def give_answer(bot, ev:CQEvent, state: State_T):
     guess: GuessObject = state['guess_object']
     if ev.group_id not in config['enable'] or guess.is_end:
         return
-    msg = f'''答案是：{guess.music['id']}. {guess.music['title']}
+    msg = f'''答案是：
 {random_music(guess.music)}'''
     del guess_dict[state['gid']]
     await bot.finish(ev, msg)
@@ -320,10 +320,9 @@ async def guess_music_solve(bot, ev:CQEvent):
                 break
     if ans == guess.music['id'] or ans.lower() == guess.music['title'].lower() or an:
         guess.is_end = True
-        del guess_dict[gid]
         msg = f'''猜对了，答案是：
-{guess.music['id']}. {guess.music['title']}
 {random_music(guess.music)}'''
+        del guess_dict[gid]
         await bot.send(ev, msg, at_sender=True)
 
 config_json = os.path.join(os.path.dirname(__file__), 'config.json')
