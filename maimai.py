@@ -273,7 +273,7 @@ async def guess_music_loop(bot, ev:CQEvent, state: State_T):
         await bot.send(ev, f'{cycle + 1}/7 这首歌{guess.guess_options[cycle]}')
     else:
         msg = f'''7/7 这首歌封面的一部分是：
-[CQ:image,file=base64://{str(guess.b64image, encoding='utf-8')}]
+[CQ:image,file=base64://{guess.b64image.decode()}]
 答案将在30秒后揭晓'''
         await bot.send(ev, msg)
         await give_answer(bot, ev, state)
@@ -312,12 +312,13 @@ async def guess_music_solve(bot, ev:CQEvent):
     ans = ev.message.extract_plain_text().strip().lower()
     guess = guess_dict[gid]
     an = False
-    result = music_aliases[ans]
-    for i in result:
-        if i == guess.music['title']:
-            an = True
-            break
-    if ans == guess.music['id'] or an:
+    if ans in music_aliases:
+        result = music_aliases[ans]
+        for i in result:
+            if i == guess.music['title']:
+                an = True
+                break
+    if ans == guess.music['id'] or ans.lower() == guess.music['title'].lower() or an:
         guess.is_end = True
         del guess_dict[gid]
         msg = f'''猜对了，答案是：
