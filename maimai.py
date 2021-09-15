@@ -147,7 +147,7 @@ BREAK: {chart['notes'][4]}
         try:
             name = match.group(2)
             music = total_list.by_id(name)
-            msg = f'''{music["id"]}. {music["title"]}
+            msg = f'''
 {random_music(music)}
 艺术家: {music['basic_info']['artist']}
 分类: {music['basic_info']['genre']}
