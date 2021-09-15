@@ -7,7 +7,7 @@ import os, re, asyncio, json, traceback
 from .libraries.maimai_best_40 import generate
 from .libraries.image import *
 from .libraries.maimaidx_music import *
-from .libraries.tool import hash, search_dict
+from .libraries.tool import hash
 from .libraries.maimaidx_guess import GuessObject
 
 sv_help = '''
@@ -191,10 +191,10 @@ for t in tmp:
 
 @sv.on_suffix('是什么歌')
 async def what_song(bot, ev:CQEvent):
-    name = ev.message.extract_plain_text().strip()
-    result = search_dict(music_aliases, name)
-    if len(result) == 0:
+    name = ev.message.extract_plain_text().strip().lower()
+    if name not in music_aliases:
         await bot.finish(ev, '未找到此歌曲\n舞萌 DX 歌曲别名收集计划：https://docs.qq.com/sheet/DQ0pvUHh6b1hjcGpl', at_sender=True)
+    result = music_aliases[name]
     if len(result) == 1:
         music = total_list.by_title(result[0])
         await bot.send(ev, '您要找的是不是：' + random_music(music), at_sender=True)
@@ -266,7 +266,7 @@ guess_dict: Dict[Tuple[str], GuessObject] = {}
 async def guess_music_loop(bot, ev:CQEvent, state: State_T):
     await asyncio.sleep(8)
     guess: GuessObject = state['guess_object']
-    if guess.is_end:
+    if ev.group_id not in config['enable'] or guess.is_end:
         return
     cycle = state['cycle']
     if cycle < 6:
@@ -283,7 +283,7 @@ async def guess_music_loop(bot, ev:CQEvent, state: State_T):
 async def give_answer(bot, ev:CQEvent, state: State_T):
     await asyncio.sleep(30)
     guess: GuessObject = state['guess_object']
-    if guess.is_end:
+    if ev.group_id not in config['enable'] or guess.is_end:
         return
     msg = f'''答案是：{guess.music['id']}. {guess.music['title']}
 [CQ:image,file=https://www.diving-fish.com/covers/{guess.music['id']}.jpg]'''
@@ -309,10 +309,10 @@ async def guess_music_solve(bot, ev:CQEvent):
     gid = ev.group_id
     if gid not in guess_dict:
         return
-    ans = ev.message.extract_plain_text().strip()
+    ans = ev.message.extract_plain_text().strip().lower()
     guess = guess_dict[gid]
     an = False
-    result = search_dict(music_aliases, ans)
+    result = music_aliases[ans]
     for i in result:
         if i == guess.music['title']:
             an = True
@@ -322,7 +322,7 @@ async def guess_music_solve(bot, ev:CQEvent):
         del guess_dict[gid]
         msg = f'''猜对了，答案是：
 {guess.music['id']}. {guess.music['title']}
-[CQ:image,file=https://www.diving-fish.com/covers/{guess.music['id']}.jpg]'''
+{random_music(guess.music)}'''
         await bot.send(ev, msg, at_sender=True)
 
 config_json = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -347,22 +347,26 @@ def change(gid: int, set: bool):
 
 @sv.on_fullmatch('开启mai猜歌')
 async def guess_on(bot, ev:CQEvent):
+    gid = ev.group_id
     is_ad = priv.check_priv(ev, priv.ADMIN)
     if not is_ad:
         await bot.finish(ev, '仅允许管理员开启')
-    if ev.group_id in config['enable']:
+    if gid in config['enable']:
         await bot.send(ev, '该群已开启猜歌功能')
     else:
-        change(ev.group_id, True)
+        change(gid, True)
         await bot.send(ev, '已开启该群猜歌功能')
 
 @sv.on_fullmatch('关闭mai猜歌')
 async def guess_on(bot, ev:CQEvent):
+    gid = ev.group_id
     is_ad = priv.check_priv(ev, priv.ADMIN)
     if not is_ad:
         await bot.finish(ev, '仅允许管理员关闭')
-    if ev.group_id in config['disable']:
+    if gid in config['disable']:
         await bot.send(ev, '该群已关闭猜歌功能')
     else:
-        change(ev.group_id, False)
+        change(gid, False)
+        if gid in guess_dict:
+            del guess_dict[gid]
         await bot.send(ev, '已关闭该群猜歌功能')
