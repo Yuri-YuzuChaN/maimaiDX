@@ -316,6 +316,7 @@ async def guess_music_solve(bot, ev:CQEvent):
     for i in result:
         if i == guess.music['title']:
             an = True
+            break
     if ans == guess.music['id'] or an:
         guess.is_end = True
         del guess_dict[gid]
