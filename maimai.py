@@ -30,9 +30,9 @@ sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=
 static = os.path.join(os.path.dirname(__file__), 'static')
 
 def random_music(music: Music) -> str:
-    msg = f'''{music['id']}. {music['title']}
-[CQ:image,file=https://www.diving-fish.com/covers/{music['id']}.jpg]
-{'/'.join(music['level'])}'''
+    msg = f'''{music.id}. {music.title}
+[CQ:image,file=https://www.diving-fish.com/covers/{music.id}.jpg]
+{'/'.join(music.level)}'''
     return msg
 
 def song_level(ds1: float, ds2: float = None) -> list:
@@ -315,10 +315,10 @@ async def guess_music_solve(bot, ev:CQEvent):
     if ans in music_aliases:
         result = music_aliases[ans]
         for i in result:
-            if i == guess.music['title']:
+            if i == guess.music.title:
                 an = True
                 break
-    if ans == guess.music['id'] or ans.lower() == guess.music['title'].lower() or an:
+    if ans == guess.music.id or ans.lower() == guess.music.title.lower() or an:
         guess.is_end = True
         msg = f'''猜对了，答案是：
 {random_music(guess.music)}'''
