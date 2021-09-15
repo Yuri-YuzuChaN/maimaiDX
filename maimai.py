@@ -147,8 +147,8 @@ BREAK: {chart['notes'][4]}
         try:
             name = match.group(2)
             music = total_list.by_id(name)
-            msg = f'''
-{random_music(music)}
+            msg = f'''{music["id"]}. {music["title"]}
+[CQ:image,file=https://www.diving-fish.com/covers/{music["id"]}.jpg]
 艺术家: {music['basic_info']['artist']}
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
