@@ -264,11 +264,12 @@ async def best_40(bot, ev:CQEvent):
 guess_dict: Dict[Tuple[str], GuessObject] = {}
 
 async def guess_music_loop(bot, ev:CQEvent, state: State_T):
-    await asyncio.sleep(8)
+    cycle = state['cycle']
+    if cycle != 0:
+        await asyncio.sleep(8)
     guess: GuessObject = state['guess_object']
     if ev.group_id not in config['enable'] or guess.is_end:
         return
-    cycle = state['cycle']
     if cycle < 6:
         await bot.send(ev, f'{cycle + 1}/7 这首歌{guess.guess_options[cycle]}')
     else:

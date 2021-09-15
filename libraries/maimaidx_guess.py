@@ -1,5 +1,5 @@
 import random, os, requests
-from typing import Dict, List
+from typing import List
 from PIL import Image
 from .image import image_to_base64
 from .. import static
@@ -11,7 +11,7 @@ my_data: List = list(filter(lambda x: x['id'] in hot_music_ids, requests.get('ht
 
 class GuessObject:
     def __init__(self, music_data=my_data) -> None:
-        self.music: Music = random.choice(music_data)
+        self.music = Music(random.choice(music_data))
         self.guess_options = [
             f'的 Expert 难度是 {self.music["level"][2]}',
             f'的 Master 难度是 {self.music["level"][3]}',
