@@ -301,7 +301,7 @@ async def guess_music(bot, ev:CQEvent):
     guess = GuessObject()
     guess_dict[gid] = guess
     state: State_T = {'gid': gid, 'guess_object': guess, 'cycle': 0}
-    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持，无需大小写）进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
+    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
     await guess_music_loop(bot, ev, state)
 
 @sv.on_message()
