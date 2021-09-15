@@ -7,7 +7,7 @@ import os, re, asyncio, json, traceback
 from .libraries.maimai_best_40 import generate
 from .libraries.image import *
 from .libraries.maimaidx_music import *
-from .libraries.tool import hash, regular, search_dict
+from .libraries.tool import hash, search_dict
 from .libraries.maimaidx_guess import GuessObject
 
 sv_help = '''
