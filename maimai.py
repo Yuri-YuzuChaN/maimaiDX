@@ -148,7 +148,7 @@ BREAK: {chart['notes'][4]}
             name = match.group(2)
             music = total_list.by_id(name)
             msg = f'''{music["id"]}. {music["title"]}
-[CQ:image,file=https://www.diving-fish.com/covers/{music["id"]}.jpg]
+{random_music(music)}
 艺术家: {music['basic_info']['artist']}
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
@@ -286,7 +286,7 @@ async def give_answer(bot, ev:CQEvent, state: State_T):
     if ev.group_id not in config['enable'] or guess.is_end:
         return
     msg = f'''答案是：{guess.music['id']}. {guess.music['title']}
-[CQ:image,file=https://www.diving-fish.com/covers/{guess.music['id']}.jpg]'''
+{random_music(guess.music)}'''
     del guess_dict[state['gid']]
     await bot.finish(ev, msg)
 
