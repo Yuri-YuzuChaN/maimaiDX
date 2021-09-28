@@ -13,7 +13,7 @@ from .libraries.tool import hash
 from .libraries.maimaidx_guess import GuessObject
 
 sv_help = '''可用命令如下：
-舞萌帮助 查看指令帮助
+帮助maimaiDX 查看指令帮助
 今日mai,今日舞萌,今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
 随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
@@ -51,7 +51,7 @@ def song_level(ds1: float, ds2: float = None) -> list:
             result.append((music['id'], music['title'], music['ds'][i], diff_label[i], music['level'][i]))
     return result
 
-@sv.on_prefix('舞萌帮助')
+@sv.on_prefix('帮助maimaiDX')
 async def dx_help(bot, ev: CQEvent):
     await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(sv_help)).decode()}]', at_sender=True)
 
