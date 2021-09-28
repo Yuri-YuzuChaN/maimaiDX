@@ -182,7 +182,7 @@ async def day_mai(bot, ev: CQEvent):
             msg += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             msg += f'忌 {wm_list[i]}\n'
-    msg += 'Blue Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
+    msg += f'{NICKNAME} Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
     music = total_list[h % len(total_list)]
     msg += random_music(music)
     await bot.send(ev, msg, at_sender=True)
