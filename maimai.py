@@ -27,6 +27,7 @@ XXXmaimaiXXX什么 随机一首歌
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别称
 b40 <名字> 查B40
+b50 <名字> 查B50
 我要(在<难度>)上<分数>分 <名字> 查看推荐的上分乐曲'''
 
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
@@ -182,7 +183,7 @@ async def day_mai(bot, ev: CQEvent):
             msg += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             msg += f'忌 {wm_list[i]}\n'
-    msg += 'Blue Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
+    msg += f'{NICKNAME} Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
     music = total_list[h % len(total_list)]
     msg += random_music(music)
     await bot.send(ev, msg, at_sender=True)
@@ -310,8 +311,8 @@ async def rise_score(bot, ev: CQEvent):
     elif success == 403:
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
-        dx_ra_set = set()
-        sd_ra_set = set()
+        dx_ra_lowest = 999
+        sd_ra_lowest = 999
         achievement_list = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
         rank = ['C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+']
         player_dx_list = []
@@ -319,24 +320,36 @@ async def rise_score(bot, ev: CQEvent):
         music_dx_list = []
         music_sd_list = []
         for dx in player_data['charts']['dx']:
-            dx_ra_set.add(dx['ra'])
-            player_dx_list.append([int(dx['song_id']), int(dx['ra'])])
+            dx_ra_lowest = min(dx_ra_lowest, dx['ra'])
+            player_dx_list.append([int(dx['song_id']), int(dx["level_index"]), int(dx['ra'])])
         for sd in player_data['charts']['sd']:
-            sd_ra_set.add(sd['ra'])
-            player_sd_list.append([int(sd['song_id']), int(sd['ra'])])
+            sd_ra_lowest = min(sd_ra_lowest, sd['ra'])
+            player_sd_list.append([int(sd['song_id']), int(sd["level_index"]), int(sd['ra'])])
+        player_dx_id_list = [[d[0], d[1]] for d in player_dx_list]
+        player_sd_id_list = [[s[0], s[1]] for s in player_sd_list]
         for music in total_list:
             for i, achievement in enumerate(achievement_list):
                 for j, ds in enumerate(music.ds):
                     if match.group(1) and music['level'][j] != match.group(1): continue
                     if music.version in ['maimai でらっくす PLUS', 'maimai でらっくす Splash']:
-                        for ra in dx_ra_set:
-                            music_ra = computeRa(ds, achievement)
-                            if music_ra - ra == int(match.group(2)) and [int(music.id), music_ra] not in player_dx_list:
+                        music_ra = computeRa(ds, achievement)
+                        if music_ra < dx_ra_lowest: continue
+                        if [int(music.id), j] in player_dx_id_list:
+                            player_ra = player_dx_list[player_dx_id_list.index([int(music.id), j])][2]
+                            if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
+                                music_dx_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                        else:
+                            if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
                                 music_dx_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
                     else:
-                        for ra in sd_ra_set:
-                            music_ra = computeRa(ds, achievement)
-                            if music_ra - ra == int(match.group(2)) and [int(music.id), music_ra] not in player_sd_list:
+                        music_ra = computeRa(ds, achievement)
+                        if music_ra < sd_ra_lowest: continue
+                        if [int(music.id), j] in player_sd_id_list:
+                            player_ra = player_sd_list[player_sd_id_list.index([int(music.id), j])][2]
+                            if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
+                                music_sd_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                        else:
+                            if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
                                 music_sd_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
         if len(music_dx_list) == 0 and len(music_sd_list) == 0:
             await bot.finish(ev, '没有找到这样的乐曲', at_sender=True)
