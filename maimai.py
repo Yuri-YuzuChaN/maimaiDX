@@ -162,6 +162,7 @@ BREAK: {chart['notes'][4]}
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
 版本: {music['basic_info']['from']}
+定数: {'/'.join([str(i) for i in music['ds']])}
 难度: {'/'.join(list(map(str, music["ds"])))}'''
             await bot.send(ev, msg, at_sender=True)
         except:
