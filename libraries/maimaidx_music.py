@@ -47,6 +47,28 @@ def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
         return checker == elem
 
 
+class Stats(Dict):
+    count: Optional[int] = None
+    avg: Optional[float] = None
+    sss_count: Optional[int] = None
+    difficulty: Optional[str] = None
+    rank: Optional[int] = None
+    total: Optional[int] = None
+
+    def __getattribute__(self, item):
+        if item == 'sss_count':
+            return self['sssp_count']
+        elif item == 'rank':
+            return self['v'] + 1
+        elif item == 'total':
+            return self['t']
+        elif item == 'difficulty':
+            return self['tag']
+        elif item in self:
+            return self[item]
+        return super().__getattribute__(item)
+
+
 class Chart(Dict):
     tap: Optional[int] = None
     slide: Optional[int] = None
@@ -66,8 +88,8 @@ class Chart(Dict):
             return self['notes'][3] if len(self['notes']) == 5 else 0
         elif item == 'brk':
             return self['notes'][-1]
-        elif item == 'charter':
-            return self['charter']
+        elif item in self:
+            return self[item]
         return super().__getattribute__(item)
 
 
@@ -80,14 +102,16 @@ class Music(Dict):
     type: Optional[str] = None
     bpm: Optional[float] = None
     version: Optional[str] = None
-    charts: Optional[Chart] = None
+    is_new: Optional[bool] = None
+    charts: Optional[List[Chart]] = None
+    stats: Optional[List[Stats]] = None
     release_date: Optional[str] = None
     artist: Optional[str] = None
 
     diff: List[int] = []
 
     def __getattribute__(self, item):
-        if item in {'genre', 'artist', 'release_date', 'bpm', 'version'}:
+        if item in {'genre', 'artist', 'release_date', 'bpm', 'version', 'is_new'}:
             if item == 'version':
                 return self['basic_info']['from']
             return self['basic_info'][item]
@@ -145,9 +169,17 @@ class MusicList(List[Music]):
         return new_list
 
 
-obj = requests.get('https://www.diving-fish.com/api/maimaidxprober/music_data').json()
-total_list: MusicList = MusicList(obj)
-for __i in range(len(total_list)):
-    total_list[__i] = Music(total_list[__i])
-    for __j in range(len(total_list[__i].charts)):
-        total_list[__i].charts[__j] = Chart(total_list[__i].charts[__j])
+def get_music_list():
+    obj_data = requests.get('https://www.diving-fish.com/api/maimaidxprober/music_data').json()
+    obj_stats = requests.get('https://www.diving-fish.com/api/maimaidxprober/chart_stats').json()
+    _total_list: MusicList = MusicList(obj_data)
+    for __i in range(len(_total_list)):
+        _total_list[__i] = Music(_total_list[__i])
+        _total_list[__i]['stats'] = obj_stats[_total_list[__i].id]
+        for __j in range(len(_total_list[__i].charts)):
+            _total_list[__i].charts[__j] = Chart(_total_list[__i].charts[__j])
+            _total_list[__i].stats[__j] = Stats(_total_list[__i].stats[__j])
+    return _total_list
+
+
+total_list = get_music_list()
