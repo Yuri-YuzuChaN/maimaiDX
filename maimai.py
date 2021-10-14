@@ -7,12 +7,14 @@ from collections import defaultdict
 import os, re, asyncio, json, traceback
 
 from .libraries.maimai_best_40 import *
+from .libraries.maimai_plate import *
 from .libraries.image import *
 from .libraries.maimaidx_music import *
 from .libraries.tool import hash
-from .libraries.maimaidx_guess import GuessObject
+from .libraries.maimaidx_guess import *
 
-sv_help = '''可用命令如下：
+sv_help = '''
+可用命令如下：
 帮助maimaiDX 查看指令帮助
 今日mai,今日舞萌,今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
@@ -28,11 +30,16 @@ XXXmaimaiXXX什么 随机一首歌
 猜歌 顾名思义，识别id，歌名和别称
 b40 <名字> 查B40
 b50 <名字> 查B50
-我要(在<难度>)上<分数>分 <名字> 查看推荐的上分乐曲'''
+我要(在<难度>)上<分数>分 <名字> 查看推荐的上分乐曲
+<牌子名称>进度 <名字> 查看牌子完成进度
+<等级><评价>进度 <名字> 查看等级评价完成进度
+查看排名,查看排行 查看水鱼网站的用户ra排行
+'''.strip()
 
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
 
 static = os.path.join(os.path.dirname(__file__), 'static')
+
 
 def random_music(music: Music) -> str:
     msg = f'''{music.id}. {music.title}
@@ -40,21 +47,34 @@ def random_music(music: Music) -> str:
 {'/'.join(list(map(str, music.ds)))}'''
     return msg
 
+
 def song_level(ds1: float, ds2: float = None) -> list:
     result = []
-    diff_label = ['Bas', 'Adv', 'Exp', 'Mst', 'ReM']
+    # diff_label = ['Bas', 'Adv', 'Exp', 'Mst', 'ReM']
     if ds2 is not None:
         music_data = total_list.filter(ds=(ds1, ds2))
     else:
         music_data = total_list.filter(ds=ds1)
     for music in sorted(music_data, key = lambda i: int(i['id'])):
         for i in music.diff:
-            result.append((music['id'], music['title'], music['ds'][i], diff_label[i], music['level'][i]))
+            result.append((music['id'], music['title'], music['ds'][i], diffs[i], music['level'][i], music['stats'][i]['tag']))
     return result
 
-@sv.on_prefix('帮助maimaiDX')
+
+@sv.scheduled_job('cron', hour='5')
+async def date_change():
+    global total_list, guess_data
+    try:
+        total_list = get_music_list()
+    except:
+        return
+    guess_data = list(filter(lambda x: x['id'] in hot_music_ids, total_list))
+
+
+@sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 async def dx_help(bot, ev: CQEvent):
     await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(sv_help)).decode()}]', at_sender=True)
+
 
 @sv.on_prefix('定数查歌')
 async def search_dx_song_level(bot, ev: CQEvent):
@@ -69,8 +89,9 @@ async def search_dx_song_level(bot, ev: CQEvent):
         await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
     for i in result:
-        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]})\n'
+        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
     await bot.finish(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+
 
 @sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)')
 async def random_song(bot, ev: CQEvent):
@@ -96,9 +117,11 @@ async def random_song(bot, ev: CQEvent):
     except:
         await bot.send(ev, '随机命令错误，请检查语法', at_sender=True)
 
+
 @sv.on_rex(r'.*mai.*什么')
 async def random_day_song(bot, ev: CQEvent):
     await bot.send(ev, random_music(total_list.random()))
+
 
 @sv.on_prefix('查歌')
 async def search_song(bot, ev: CQEvent):
@@ -116,6 +139,7 @@ async def search_song(bot, ev: CQEvent):
     else:
         await bot.send(ev, f'结果过多（{len(result)} 条），请缩小查询范围。', at_sender=True)
 
+
 @sv.on_rex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)')
 async def query_chart(bot, ev: CQEvent):
     match = ev['match']
@@ -127,6 +151,7 @@ async def query_chart(bot, ev: CQEvent):
             name = match.group(2)
             music = total_list.by_id(name)
             chart = music['charts'][level_index]
+            stats = music['stats'][level_index]
             ds = music['ds'][level_index]
             level = music['level'][level_index]
             if len(chart['notes']) == 4:
@@ -135,7 +160,8 @@ TAP: {chart['notes'][0]}
 HOLD: {chart['notes'][1]}
 SLIDE: {chart['notes'][2]}
 BREAK: {chart['notes'][3]}
-谱师: {chart['charter']}'''
+谱师: {chart['charter']}
+难易度参考: {stats['tag']}'''
             else:
                 result = f'''{level_name[level_index]} {level}({ds})
 TAP: {chart['notes'][0]}
@@ -143,7 +169,8 @@ HOLD: {chart['notes'][1]}
 SLIDE: {chart['notes'][2]}
 TOUCH: {chart['notes'][3]}
 BREAK: {chart['notes'][4]}
-谱师: {chart['charter']}'''
+谱师: {chart['charter']}
+难易度参考: {stats['tag']}'''
 
             msg = f'''
 {music["id"]}. {music["title"]}
@@ -162,11 +189,11 @@ BREAK: {chart['notes'][4]}
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
 版本: {music['basic_info']['from']}
-定数: {'/'.join([str(i) for i in music['ds']])}
 难度: {'/'.join(list(map(str, music["ds"])))}'''
             await bot.send(ev, msg, at_sender=True)
         except:
             await bot.send(ev, '未找到该乐曲', at_sender=True)
+
 
 @sv.on_fullmatch(['今日mai', '今日舞萌', '今日运势'])
 async def day_mai(bot, ev: CQEvent):
@@ -199,6 +226,7 @@ for t in tmp:
         if arr[i] != '':
             music_aliases[arr[i].lower()].append(arr[0])
 
+
 @sv.on_suffix('是什么歌')
 async def what_song(bot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip().lower()
@@ -211,6 +239,7 @@ async def what_song(bot, ev: CQEvent):
     else:
         msg = '\n'.join(result)
         await bot.send(ev, f'您要找的可能是以下歌曲中的其中一首：\n{msg}', at_sender=True)
+
 
 @sv.on_suffix('有什么别称')
 async def how_song(bot, ev: CQEvent):
@@ -237,6 +266,7 @@ async def how_song(bot, ev: CQEvent):
         for r in result:
             msg += f'{r}\n'
         await bot.send(ev, msg, at_sender=True)
+
 
 @sv.on_prefix('分数线')
 async def quert_score(bot, ev: CQEvent):
@@ -283,7 +313,8 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
         except:
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
 
-@sv.on_rex('^[Bb]([45])0\s?(.+)?')
+
+@sv.on_rex(r'^[Bb]([45])0\s?(.+)?')
 async def best_40(bot, ev: CQEvent):
     match = ev['match']
     if not match.group(2):
@@ -299,9 +330,12 @@ async def best_40(bot, ev: CQEvent):
     else:
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(img).decode()}]', at_sender=True)
 
-@sv.on_rex('^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
+
+@sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot, ev: CQEvent):
     match = ev['match']
+    if match.group(1) and match.group(1) not in levelList:
+        await bot.finish(ev, '无此等级', at_sender=True)
     if not match.group(3):
         payload = {'qq': str(ev.user_id)}
     else:
@@ -314,8 +348,6 @@ async def rise_score(bot, ev: CQEvent):
     else:
         dx_ra_lowest = 999
         sd_ra_lowest = 999
-        achievement_list = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
-        rank = ['C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'S+', 'SS', 'SS+', 'SSS', 'SSS+']
         player_dx_list = []
         player_sd_list = []
         music_dx_list = []
@@ -329,29 +361,29 @@ async def rise_score(bot, ev: CQEvent):
         player_dx_id_list = [[d[0], d[1]] for d in player_dx_list]
         player_sd_id_list = [[s[0], s[1]] for s in player_sd_list]
         for music in total_list:
-            for i, achievement in enumerate(achievement_list):
+            for i, achievement in enumerate(achievementList):
                 for j, ds in enumerate(music.ds):
                     if match.group(1) and music['level'][j] != match.group(1): continue
-                    if music.version in ['maimai でらっくす PLUS', 'maimai でらっくす Splash']:
+                    if music.is_new:
                         music_ra = computeRa(ds, achievement)
                         if music_ra < dx_ra_lowest: continue
                         if [int(music.id), j] in player_dx_id_list:
                             player_ra = player_dx_list[player_dx_id_list.index([int(music.id), j])][2]
                             if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
-                                music_dx_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                                music_dx_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
                         else:
                             if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
-                                music_dx_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                                music_dx_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
                     else:
                         music_ra = computeRa(ds, achievement)
                         if music_ra < sd_ra_lowest: continue
                         if [int(music.id), j] in player_sd_id_list:
                             player_ra = player_sd_list[player_sd_id_list.index([int(music.id), j])][2]
                             if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
-                                music_sd_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                                music_sd_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
                         else:
                             if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
-                                music_sd_list.append([music, diffs[j], ds, achievement, rank[i], music_ra])
+                                music_sd_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
         if len(music_dx_list) == 0 and len(music_sd_list) == 0:
             await bot.finish(ev, '没有找到这样的乐曲', at_sender=True)
         elif len(music_dx_list) + len(music_sd_list) > 60:
@@ -359,16 +391,171 @@ async def rise_score(bot, ev: CQEvent):
         msg = ''
         if len(music_sd_list) != 0:
             msg += f'为您推荐以下标准乐曲：\n'
-            for music, diff, ds, achievement, rank, ra in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
-                msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
-        if len(music_sd_list) != 0:
+            for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
+                msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
+        if len(music_dx_list) != 0:
             msg += f'\n为您推荐以下2021乐曲：\n'
-            for music, diff, ds, achievement, rank, ra in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
-                msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
+            for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
+                msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+
+
+@sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?')
+async def plate_process(bot, ev: CQEvent):
+    match = ev['match']
+    if f'{match.group(1)}{match.group(2)}' == '真将':
+        await bot.finish(ev, '真系没有真将哦', at_sender=True)
+    if not match.group(3):
+        payload = {'qq': str(ev.user_id)}
+    else:
+        payload = {'username': match.group(3)}
+    if match.group(1) in ['舞', '霸']:
+        payload['version'] = list(set(version for version in plate_to_version.values()))
+    else:
+        payload['version'] = [plate_to_version[match.group(1)]]
+    player_data, success = await get_player_plate(payload)
+    if success == 400:
+        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+    elif success == 403:
+        await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
+    else:
+        song_played = []
+        song_remain_expert = []
+        song_remain_master = []
+        song_remain_re_master = []
+        song_remain_difficult = []
+        if match.group(2) in ['将', '者']:
+            for song in player_data['verlist']:
+                if song['level_index'] == 2 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+                    song_remain_expert.append([song['id'], song['level_index']])
+                if song['level_index'] == 3 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+                    song_remain_master.append([song['id'], song['level_index']])
+                if match.group(1) in ['舞', '霸'] and song['level_index'] == 4 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+                    song_remain_re_master.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        elif match.group(2) in ['極', '极']:
+            for song in player_data['verlist']:
+                if song['level_index'] == 2 and not song['fc']:
+                    song_remain_expert.append([song['id'], song['level_index']])
+                if song['level_index'] == 3 and not song['fc']:
+                    song_remain_master.append([song['id'], song['level_index']])
+                if match.group(1) == '舞' and song['level_index'] == 4 and not song['fc']:
+                    song_remain_re_master.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        elif match.group(2) == '舞舞':
+            for song in player_data['verlist']:
+                if song['level_index'] == 2 and song['fs'] not in ['fsd', 'fsdp']:
+                    song_remain_expert.append([song['id'], song['level_index']])
+                if song['level_index'] == 3 and song['fs'] not in ['fsd', 'fsdp']:
+                    song_remain_master.append([song['id'], song['level_index']])
+                if match.group(1) == '舞' and song['level_index'] == 4 and song['fs'] not in ['fsd', 'fsdp']:
+                    song_remain_re_master.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        elif match.group(2) == '神':
+            for song in player_data['verlist']:
+                if song['level_index'] == 2 and song['fc'] not in ['ap', 'app']:
+                    song_remain_expert.append([song['id'], song['level_index']])
+                if song['level_index'] == 3 and song['fc'] not in ['ap', 'app']:
+                    song_remain_master.append([song['id'], song['level_index']])
+                if match.group(1) == '舞' and song['level_index'] == 4 and song['fc'] not in ['ap', 'app']:
+                    song_remain_re_master.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        for music in total_list:
+            if music.version in payload['version']:
+                if [int(music.id), 2] not in song_played:
+                    song_remain_expert.append([int(music.id), 2])
+                if [int(music.id), 3] not in song_played:
+                    song_remain_master.append([int(music.id), 3])
+                if match.group(1) in ['舞', '霸'] and len(music.level) == 5 and [int(music.id), 4] not in song_played:
+                    song_remain_re_master.append([int(music.id), 4])
+        song_remain_expert = sorted(song_remain_expert, key=lambda i: int(i[0]))
+        song_remain_master = sorted(song_remain_master, key=lambda i: int(i[0]))
+        song_remain_re_master = sorted(song_remain_re_master, key=lambda i: int(i[0]))
+        for song in song_remain_expert + song_remain_master + song_remain_re_master:
+            music = total_list.by_id(str(song[0]))
+            if music.ds[song[1]] > 13.6:
+                song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty])
+        msg = f'''您的{match.group(1)}{match.group(2)}剩余进度如下：
+Expert剩余{len(song_remain_expert)}首
+Master剩余{len(song_remain_master)}首
+'''
+        if match.group(1) in ['舞', '霸']:
+            msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
+        if len(song_remain_difficult) > 0:
+            if len(song_remain_difficult) < 11:
+                msg += '剩余定数大于13.6的曲目有：\n'
+                for song in sorted(song_remain_difficult, key=lambda i: i[3]):
+                    msg += f'{song[0]}. {song[1]} {song[2]} {song[3]} {song[4]}\n'
+            else: msg += f'还有{len(song_remain_difficult)}首大于13.6定数的曲目，加油推分捏！\n'
+        elif len(song_remain_expert + song_remain_master + song_remain_re_master) > 0:
+            msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
+        else: msg += f'恭喜您完成{match.group(1)}{match.group(2)}！'
+        await bot.send(ev, msg.strip(), at_sender=True)
+
+
+@sv.on_rex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?')
+async def level_process(bot, ev: CQEvent):
+    match = ev['match']
+    if match.group(1) not in levelList:
+        await bot.finish(ev, '无此等级', at_sender=True)
+    if match.group(2).lower() not in scoreRank:
+        await bot.finish(ev, '无此评价等级', at_sender=True)
+    if levelList.index(match.group(1)) < 11 or scoreRank.index(match.group(2).lower()) < 8:
+        await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
+    if not match.group(3):
+        payload = {'qq': str(ev.user_id)}
+    else:
+        payload = {'username': match.group(3)}
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+    player_data, success = await get_player_plate(payload)
+    if success == 400:
+        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+    elif success == 403:
+        await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
+    else:
+        song_played = []
+        song_remain = []
+        achievements = achievementList[scoreRank.index(match.group(2).lower()) - 1]
+        for song in player_data['verlist']:
+            if song['level'] == match.group(1) and song['achievements'] < achievements:
+                song_remain.append([song['id'], song['level_index']])
+            song_played.append([song['id'], song['level_index']])
+        for music in total_list:
+            for i, lv in enumerate(music.level[2:]):
+                if lv == match.group(1) and [int(music.id), i + 2] not in song_played:
+                    song_remain.append([int(music.id), i + 2])
+        song_remain = sorted(song_remain, key=lambda i: int(i[1]))
+        song_remain = sorted(song_remain, key=lambda i: int(i[0]))
+        songs = []
+        for song in song_remain:
+            music = total_list.by_id(str(song[0]))
+            songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty])
+        msg = ''
+        if len(song_remain) > 0:
+            if len(song_remain) < 50:
+                msg += f'您的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
+                for song in sorted(songs, key=lambda i: i[3]):
+                    msg += f'{song[0]}. {song[1]} {song[2]} {song[3]} {song[4]}\n'
+            else:
+                await bot.finish(ev, f'您还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！', at_sender=True)
+        else:
+            await bot.finish(ev, f'恭喜您达成{match.group(1)}全谱面{match.group(2).upper()}！', at_sender=True)
+        await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+
+
+@sv.on_fullmatch(['查看排名', '查看排行'])
+async def level_process(bot, ev: CQEvent):
+    async with aiohttp.request("GET", "https://www.diving-fish.com/api/maimaidxprober/rating_ranking") as resp:
+        rank_data = await resp.json()
+        msg = f'截止 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}，Diving Fish网站已注册用户ra排行：\n'
+        for i, ranker in enumerate(sorted(rank_data, key=lambda r: r['ra'], reverse=True)[:50]):
+            msg += f'{i + 1}. {ranker["username"]} {ranker["ra"]}\n'
+        await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+
 
 guess_dict: Dict[Tuple[str], GuessObject] = {}
 guess_time_dict: Dict[Tuple[str], float] = {}
+
 
 async def guess_music_loop(bot, ev: CQEvent, state: State_T):
     cycle = state['cycle']
@@ -390,6 +577,7 @@ async def guess_music_loop(bot, ev: CQEvent, state: State_T):
     state['cycle'] += 1
     await guess_music_loop(bot, ev, state)
 
+
 async def give_answer(bot, ev: CQEvent, state: State_T):
     await asyncio.sleep(30)
     guess: GuessObject = state['guess_object']
@@ -400,6 +588,7 @@ async def give_answer(bot, ev: CQEvent, state: State_T):
     msg = f'''答案是：
 {random_music(guess.music)}'''
     await bot.finish(ev, msg)
+
 
 @sv.on_fullmatch('猜歌')
 async def guess_music(bot, ev: CQEvent):
@@ -418,6 +607,7 @@ async def guess_music(bot, ev: CQEvent):
     state: State_T = {'gid': gid, 'guess_object': guess, 'cycle': 0}
     await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
     await guess_music_loop(bot, ev, state)
+
 
 @sv.on_message()
 async def guess_music_solve(bot, ev: CQEvent):
@@ -443,6 +633,7 @@ async def guess_music_solve(bot, ev: CQEvent):
 config_json = os.path.join(os.path.dirname(__file__), 'config.json')
 config: Dict[str, List[int]] = json.load(open(config_json, 'r', encoding='utf-8'))
 
+
 def change(gid: int, set: bool):
     if set:
         if gid not in config['enable']:
@@ -460,6 +651,7 @@ def change(gid: int, set: bool):
     except:
         traceback.print_exc()
 
+
 @sv.on_fullmatch('开启mai猜歌')
 async def guess_on(bot, ev: CQEvent):
     gid = ev.group_id
@@ -471,6 +663,7 @@ async def guess_on(bot, ev: CQEvent):
     else:
         change(gid, True)
         await bot.send(ev, '已开启该群猜歌功能')
+
 
 @sv.on_fullmatch('关闭mai猜歌')
 async def guess_on(bot, ev: CQEvent):

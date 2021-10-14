@@ -13,9 +13,11 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from .maimaidx_music import total_list
 from .. import static
 
-scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.split(' ')
+scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.lower().split(' ')
 combo = ' FC FC+ AP AP+'.split(' ')
 diffs = 'Basic Advanced Expert Master Re:Master'.split(' ')
+levelList = '1 2 3 4 5 6 7 7+ 8 8+ 9 9+ 10 10+ 11 11+ 12 12+ 13 13+ 14 14+ 15'.split(' ')
+achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 adobe = os.path.join(static, 'adobe_simhei.otf')
 msyh = os.path.join(static, 'msyh.ttc')
 
