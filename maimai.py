@@ -34,6 +34,15 @@ b50 <名字> 查B50
 <牌子名称>进度 <名字> 查看牌子完成进度
 <等级><评价>进度 <名字> 查看等级评价完成进度
 查看排名,查看排行 查看水鱼网站的用户ra排行
+添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ... 添加机厅信息
+删除机厅 <名称> 删除机厅信息
+修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... 修改机厅信息
+订阅机厅 <名称> 订阅机厅，简化后续指令
+查看订阅 查看群组订阅机厅的信息
+取消订阅,取消订阅机厅 取消群组机厅订阅
+查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
+<名称>人数设置,设定,增加,加,+,减少,减,-<人数> 操作排卡人数
+<名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
 '''.strip()
 
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
@@ -320,7 +329,7 @@ async def best_40(bot, ev: CQEvent):
     if not match.group(2):
         payload = {'qq': str(ev.user_id)}
     else:
-        payload = {'username': match.group(2)}
+        payload = {'username': match.group(2).strip()}
     if match.group(1) == '5': payload['b50'] = True
     img, success = await generate(payload)
     if success == 400:
@@ -339,7 +348,7 @@ async def rise_score(bot, ev: CQEvent):
     if not match.group(3):
         payload = {'qq': str(ev.user_id)}
     else:
-        payload = {'username': match.group(3)}
+        payload = {'username': match.group(3).strip()}
     player_data, success = await get_player_data(payload)
     if success == 400:
         await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
@@ -408,7 +417,7 @@ async def plate_process(bot, ev: CQEvent):
     if not match.group(3):
         payload = {'qq': str(ev.user_id)}
     else:
-        payload = {'username': match.group(3)}
+        payload = {'username': match.group(3).strip()}
     if match.group(1) in ['舞', '霸']:
         payload['version'] = list(set(version for version in plate_to_version.values()))
     else:
@@ -474,22 +483,52 @@ async def plate_process(bot, ev: CQEvent):
         for song in song_remain_expert + song_remain_master + song_remain_re_master:
             music = total_list.by_id(str(song[0]))
             if music.ds[song[1]] > 13.6:
-                song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty])
-        msg = f'''您的{match.group(1)}{match.group(2)}剩余进度如下：
+                song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+        msg = f'''{"您" if not match.group(3) else match.group(3)}的{match.group(1)}{match.group(2)}剩余进度如下：
 Expert剩余{len(song_remain_expert)}首
 Master剩余{len(song_remain_master)}首
 '''
+        song_remain = song_remain_expert + song_remain_master + song_remain_re_master
+        song_record = [[s['id'], s['level_index']] for s in player_data['verlist']]
         if match.group(1) in ['舞', '霸']:
             msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
         if len(song_remain_difficult) > 0:
             if len(song_remain_difficult) < 11:
-                msg += '剩余定数大于13.6的曲目有：\n'
-                for song in sorted(song_remain_difficult, key=lambda i: i[3]):
-                    msg += f'{song[0]}. {song[1]} {song[2]} {song[3]} {song[4]}\n'
+                msg += '剩余定数大于13.6的曲目：\n'
+                for s in sorted(song_remain_difficult, key=lambda i: i[3]):
+                    self_record = ''
+                    if [int(s[0]), s[-1]] in song_record:
+                        record_index = song_record.index([int(s[0]), s[-1]])
+                        if match.group(2) in ['将', '者']:
+                            self_record = str(player_data['verlist'][record_index]['achievements']) + '%'
+                        elif match.group(2) in ['極', '极', '神']:
+                            if player_data['verlist'][record_index]['fc']:
+                                self_record = comboRank[combo_rank.index(player_data['verlist'][record_index]['fc'])].upper()
+                        elif match.group(2) == '舞舞':
+                            if player_data['verlist'][record_index]['fs']:
+                                self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
+                    msg += f'{s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
             else: msg += f'还有{len(song_remain_difficult)}首大于13.6定数的曲目，加油推分捏！\n'
-        elif len(song_remain_expert + song_remain_master + song_remain_re_master) > 0:
-            msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
-        else: msg += f'恭喜您完成{match.group(1)}{match.group(2)}！'
+        elif len(song_remain) > 0:
+            if len(song_remain) < 11:
+                msg += '剩余曲目：\n'
+                for s in sorted(song_remain, key=lambda i: i[3]):
+                    m = total_list.by_id(str(s[0]))
+                    self_record = ''
+                    if [int(s[0]), s[-1]] in song_record:
+                        record_index = song_record.index([int(s[0]), s[-1]])
+                        if match.group(2) in ['将', '者']:
+                            self_record = str(player_data['verlist'][record_index]['achievements']) + '%'
+                        elif match.group(2) in ['極', '极', '神']:
+                            if player_data['verlist'][record_index]['fc']:
+                                self_record = comboRank[combo_rank.index(player_data['verlist'][record_index]['fc'])].upper()
+                        elif match.group(2) == '舞舞':
+                            if player_data['verlist'][record_index]['fs']:
+                                self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
+                    msg += f'{m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
+            else:
+                msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
+        else: msg += f'恭喜{"您" if not match.group(3) else match.group(3)}完成{match.group(1)}{match.group(2)}！'
         await bot.send(ev, msg.strip(), at_sender=True)
 
 
@@ -498,14 +537,14 @@ async def level_process(bot, ev: CQEvent):
     match = ev['match']
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
-    if match.group(2).lower() not in scoreRank:
+    if match.group(2).lower() not in scoreRank + comboRank + syncRank:
         await bot.finish(ev, '无此评价等级', at_sender=True)
-    if levelList.index(match.group(1)) < 11 or scoreRank.index(match.group(2).lower()) < 8:
+    if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
     if not match.group(3):
         payload = {'qq': str(ev.user_id)}
     else:
-        payload = {'username': match.group(3)}
+        payload = {'username': match.group(3).strip()}
     payload['version'] = list(set(version for version in plate_to_version.values()))
     player_data, success = await get_player_plate(payload)
     if success == 400:
@@ -515,11 +554,24 @@ async def level_process(bot, ev: CQEvent):
     else:
         song_played = []
         song_remain = []
-        achievements = achievementList[scoreRank.index(match.group(2).lower()) - 1]
-        for song in player_data['verlist']:
-            if song['level'] == match.group(1) and song['achievements'] < achievements:
-                song_remain.append([song['id'], song['level_index']])
-            song_played.append([song['id'], song['level_index']])
+        if match.group(2).lower() in scoreRank:
+            achievement = achievementList[scoreRank.index(match.group(2).lower()) - 1]
+            for song in player_data['verlist']:
+                if song['level'] == match.group(1) and song['achievements'] < achievement:
+                    song_remain.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        elif match.group(2).lower() in comboRank:
+            combo_index = comboRank.index(match.group(2).lower())
+            for song in player_data['verlist']:
+                if song['level'] == match.group(1) and ((song['fc'] and combo_rank.index(song['fc']) < combo_index) or not song['fc']):
+                    song_remain.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
+        elif match.group(2).lower() in syncRank:
+            sync_index = syncRank.index(match.group(2).lower())
+            for song in player_data['verlist']:
+                if song['level'] == match.group(1) and ((song['fs'] and sync_rank.index(song['fs']) < sync_index) or not song['fs']):
+                    song_remain.append([song['id'], song['level_index']])
+                song_played.append([song['id'], song['level_index']])
         for music in total_list:
             for i, lv in enumerate(music.level[2:]):
                 if lv == match.group(1) and [int(music.id), i + 2] not in song_played:
@@ -529,17 +581,29 @@ async def level_process(bot, ev: CQEvent):
         songs = []
         for song in song_remain:
             music = total_list.by_id(str(song[0]))
-            songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty])
+            songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
         msg = ''
         if len(song_remain) > 0:
             if len(song_remain) < 50:
-                msg += f'您的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
-                for song in sorted(songs, key=lambda i: i[3]):
-                    msg += f'{song[0]}. {song[1]} {song[2]} {song[3]} {song[4]}\n'
+                song_record = [[s['id'], s['level_index']] for s in player_data['verlist']]
+                msg += f'{"您" if not match.group(3) else match.group(3)}的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
+                for s in sorted(songs, key=lambda i: i[3]):
+                    self_record = ''
+                    if [int(s[0]), s[-1]] in song_record:
+                        record_index = song_record.index([int(s[0]), s[-1]])
+                        if match.group(2).lower() in scoreRank:
+                            self_record = str(player_data['verlist'][record_index]['achievements']) + '%'
+                        elif match.group(2).lower() in comboRank:
+                            if player_data['verlist'][record_index]['fc']:
+                                self_record = comboRank[combo_rank.index(player_data['verlist'][record_index]['fc'])].upper()
+                        elif match.group(2).lower() in syncRank:
+                            if player_data['verlist'][record_index]['fs']:
+                                self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
+                    msg += f'{s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
             else:
-                await bot.finish(ev, f'您还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！', at_sender=True)
+                await bot.finish(ev, f'{"您" if not match.group(3) else match.group(3)}还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！', at_sender=True)
         else:
-            await bot.finish(ev, f'恭喜您达成{match.group(1)}全谱面{match.group(2).upper()}！', at_sender=True)
+            await bot.finish(ev, f'恭喜{"您" if not match.group(3) else match.group(3)}达成{match.group(1)}全谱面{match.group(2).upper()}！', at_sender=True)
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
 
 
@@ -630,7 +694,11 @@ async def guess_music_solve(bot, ev: CQEvent):
 {random_music(guess.music)}'''
         await bot.finish(ev, msg, at_sender=True)
 
+
 config_json = os.path.join(os.path.dirname(__file__), 'config.json')
+if not os.path.exists('config.json'):
+    with open('config.json', 'w', encoding='utf-8') as f:
+        json.dump({'enable': [], 'disable': []}, f)
 config: Dict[str, List[int]] = json.load(open(config_json, 'r', encoding='utf-8'))
 
 
@@ -678,3 +746,320 @@ async def guess_on(bot, ev: CQEvent):
         if gid in guess_dict:
             del guess_dict[gid]
         await bot.send(ev, '已关闭该群猜歌功能')
+
+
+arcades_json = os.path.join(os.path.dirname(__file__), 'arcades.json')
+if not os.path.exists(arcades_json):
+    raise '请安装arcades.json文件'
+arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
+
+
+def modify(operate, arg, input_dict):
+    msg = ''
+    if operate == 'add':
+        if input_dict['name'] in [a['name'] for a in arcades]:
+            return '该机厅已存在'
+        else:
+            arcades.append(input_dict)
+            msg = f'添加了机厅：{input_dict["name"]}'
+    elif operate == 'delete':
+        if input_dict['name'] in [a['name'] for a in arcades]:
+            arcades.remove(arcades[[a['name'] for a in arcades].index(input_dict['name'])])
+            msg = f'删除了机厅：{input_dict["name"]}'
+        else:
+            return '无此机厅'
+    elif operate == 'modify':
+        if arg == 'num':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcades[[a['name'] for a in arcades].index(input_dict['name'])]['num'] = int(input_dict['num'])
+                msg = f'现在的机台数量：{input_dict["num"]}'
+            else:
+                return '无此机厅'
+        elif arg == 'alias_add':
+            for i_a in input_dict['alias']:
+                for a in arcades:
+                    if i_a in a['alias']:
+                        return f'已存在别称：{i_a}'
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                arcade['alias'] = list(set(arcade['alias'] + input_dict['alias']))
+                msg = f'当前别称：{" ".join(arcade["alias"])}'
+            else:
+                return '无此机厅'
+        elif arg == 'alias_delete':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                if input_dict['alias'] in arcade['alias']:
+                    arcade['alias'].remove(input_dict['alias'])
+                    if len(arcade['alias']) > 0:
+                        msg = f'当前别称：{" ".join(arcade["alias"])}'
+                    else:
+                        msg = '当前该机厅没有别称'
+                else:
+                    return f'{arcade["name"]}无此别称'
+            else:
+                return '无此机厅'
+        elif arg == 'subscribe':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                arcade['group'].append(input_dict['gid'])
+                msg = f'订阅了机厅：{input_dict["name"]}'
+            else:
+                return '无此机厅'
+        elif arg == 'unsubscribe':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                arcade['group'].remove(input_dict['gid'])
+                msg = f'取消订阅了机厅：{input_dict["name"]}'
+            else:
+                return '无此机厅'
+        elif arg == 'person_set':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                if abs(int(input_dict['person']) - arcade['person']) > 10:
+                    return '一次最多改变10卡！'
+                arcade['person'] = int(input_dict['person'])
+                arcade['time'] = input_dict['time']
+                arcade['by'] = input_dict['by']
+                msg = f'现在有{arcade["person"]}卡'
+            else:
+                return '无此机厅'
+        elif arg == 'person_add':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                if int(input_dict['person']) > 10:
+                    return '一次最多改变10卡！'
+                arcade['person'] += int(input_dict['person'])
+                arcade['time'] = input_dict['time']
+                arcade['by'] = input_dict['by']
+                msg = f'现在有{arcade["person"]}卡'
+            else:
+                return '无此机厅'
+        elif arg == 'person_minus':
+            if input_dict['name'] in [a['name'] for a in arcades]:
+                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
+                if int(input_dict['person']) > 10:
+                    return '一次最多改变10卡！'
+                if arcade['person'] < int(input_dict['person']):
+                    return f'现在{arcade["person"]}卡，不够减！'
+                else:
+                    arcade['person'] -= int(input_dict['person'])
+                    arcade['time'] = input_dict['time']
+                    arcade['by'] = input_dict['by']
+                    msg = f'现在有{arcade["person"]}卡'
+            else:
+                return '无此机厅'
+    else:
+        return '内部错误，请联系维护组'
+    try:
+        with open(arcades_json, 'w', encoding='utf-8') as f:
+            json.dump(arcades, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        traceback.print_exc()
+        return f'操作失败，错误代码：{e}'
+    return '操作成功！' + msg
+
+
+@sv.on_prefix('添加机厅')
+async def add_arcade(bot, ev: CQEvent):
+    args = ev.message.extract_plain_text().lower().strip().split()
+    is_su = priv.check_priv(ev, priv.SUPERUSER)
+    if not is_su:
+        await bot.finish(ev, '仅允许主人添加机厅\n请使用 来杯咖啡+内容 联系主人')
+    if len(args) == 1 and args[0] in ['帮助', 'help', '指令帮助']:
+        await bot.send(ev, '添加机厅指令格式：添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ...', at_sender=True)
+    elif len(args) > 1:
+        if len(args) > 3 and not args[2].isdigit():
+            await bot.send(ev, '格式错误：添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ...', at_sender=True)
+        else:
+            arcade_dict = {'name': args[0], 'location': args[1],
+                           'num': int(args[2]) if len(args) > 2 else 1,
+                           'alias': args[3:] if len(args) > 3 else [],
+                           'group': [], 'person': 0}
+            await bot.send(ev, modify('add', None, arcade_dict), at_sender=True)
+    else:
+        await bot.send(ev, '格式错误：添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ...', at_sender=True)
+
+
+@sv.on_prefix('删除机厅')
+async def delele_arcade(bot, ev: CQEvent):
+    args = ev.message.extract_plain_text().lower().strip().split()
+    is_su = priv.check_priv(ev, priv.SUPERUSER)
+    if not is_su:
+        await bot.finish(ev, '仅允许主人删除机厅\n请使用 来杯咖啡+内容 联系主人')
+    if len(args) == 1:
+        await bot.send(ev, modify('delete', None, {'name': args[0]}), at_sender=True)
+    else:
+        await bot.send(ev, '格式错误：删除机厅 <名称>', at_sender=True)
+
+
+@sv.on_prefix('修改机厅')
+async def modify_arcade(bot, ev: CQEvent):
+    args = ev.message.extract_plain_text().lower().strip().split()
+    is_ad = priv.check_priv(ev, priv.ADMIN)
+    if not is_ad:
+        await bot.finish(ev, '仅允许管理员修改机厅信息')
+    if len(args) == 1 and args[0] in ['帮助', 'help', '指令帮助']:
+        await bot.send(ev, '修改机厅指令格式：修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ...', at_sender=True)
+    elif args[1] == '数量':
+        if len(args) == 3 and args[2].isdigit():
+            await bot.send(ev, modify('modify', 'num', {'name': args[0], 'num': args[2]}), at_sender=True)
+        else:
+            await bot.send(ev, '格式错误：修改机厅 <名称> 数量 <数量>', at_sender=True)
+    elif args[1] == '别称':
+        if args[2] in ['添加', '删除'] and len(args) > 3:
+            await bot.send(ev, modify('modify', 'alias_delete' if args[2] == '删除' else 'alias_add',
+                                      {'name': args[0], 'alias': args[3] if args[2] == '删除' else args[3:]}), at_sender=True)
+        else:
+            await bot.send(ev, '格式错误：修改机厅 <名称> 别称 [添加/删除] <别称1> <别称2> ...', at_sender=True)
+    else:
+        await bot.send(ev, '格式错误：修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ...', at_sender=True)
+
+
+@sv.on_prefix('订阅机厅')
+async def subscribe_arcade(bot, ev: CQEvent):
+    gid = ev.group_id
+    args = ev.message.extract_plain_text().lower().strip().split()
+    is_ad = priv.check_priv(ev, priv.ADMIN)
+    if not is_ad:
+        await bot.finish(ev, '仅允许管理员订阅')
+    for a in arcades:
+        if gid in a['group']:
+            await bot.finish(ev, f'该群已订阅机厅：{a["name"]}', at_sender=True)
+    if len(args) == 1:
+        await bot.send(ev, modify('modify', 'subscribe', {'name': args[0], 'gid': gid}), at_sender=True)
+    else:
+        await bot.send(ev, '格式错误：订阅机厅 <名称>', at_sender=True)
+
+
+@sv.on_fullmatch('查看订阅')
+async def check_subscribe(bot, ev: CQEvent):
+    gid = ev.group_id
+    result = None
+    for a in arcades:
+        if gid in a['group']:
+            result = a
+            break
+    if result:
+        await bot.send(ev, f'''群{gid}订阅机厅信息如下：
+{result["name"]} {result["location"]} {result["num"]} {"/".join(result["alias"])}'''.strip(), at_sender=True)
+    else:
+        await bot.send(ev, '该群未订阅任何机厅', at_sender=True)
+
+
+@sv.on_fullmatch(['取消订阅', '取消订阅机厅'])
+async def unsubscribe_arcade(bot, ev: CQEvent):
+    gid = ev.group_id
+    is_ad = priv.check_priv(ev, priv.ADMIN)
+    if not is_ad:
+        await bot.finish(ev, '仅允许管理员订阅')
+    result = None
+    for a in arcades:
+        if gid in a['group']:
+            result = a
+            break
+    if result:
+        await bot.send(ev, modify('modify', 'unsubscribe', {'name': result['name'], 'gid': gid}), at_sender=True)
+    else:
+        await bot.send(ev, '该群未订阅任何机厅，请使用 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
+
+
+@sv.on_prefix(['查找机厅', '查询机厅', '机厅查找', '机厅查询'])
+async def search_arcade(bot, ev: CQEvent):
+    args = ev.message.extract_plain_text().lower().strip().split()
+    if len(args) == 1:
+        result = []
+        for a in arcades:
+            match = False
+            if args[0] in a['name']:
+                match = True
+            if args[0] in a['location']:
+                match = True
+            for alias in a['alias']:
+                if args[0] in alias:
+                    match = True
+                    break
+            if match:
+                result.append(a)
+        if len(result) == 0:
+            await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
+        msg = '为您找到以下机厅：\n'
+        for r in result:
+            msg += f'{r["name"]} {r["location"]} {r["num"]} {"/".join(r["alias"])}'.strip() + '\n'
+        if len(result) < 5:
+            await bot.send(ev, msg.strip(), at_sender=True)
+        else:
+            await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+    else:
+        await bot.send(ev, '格式错误：查找机厅 <关键词>', at_sender=True)
+
+
+@sv.on_rex(r'^(.+)?\s?人数(设置|设定|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+)')
+async def arcade_person(bot, ev: CQEvent):
+    match = ev['match']
+    gid = ev.group_id
+    sender = ev.sender["nickname"]
+    if not match.group(3).isdigit():
+        await bot.finish(ev, '请输入正确的数字', at_sender=True)
+    result = None
+    if match.group(1):
+        for a in arcades:
+            if match.group(1).lower() == a['name']:
+                result = a
+                break
+            if match.group(1).lower() in a['alias']:
+                result = a
+                break
+        if not result:
+            await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
+    if not result:
+        for a in arcades:
+            if gid in a['group']:
+                result = a
+                break
+    if not result:
+        await bot.send(ev, '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
+    else:
+        if match.group(2) in ['设置', '设定']:
+            await bot.send(ev, modify('modify', 'person_set', {'name': result['name'], 'person': match.group(3),
+                                                               'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                                                               'by': sender}), at_sender=True)
+        elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
+            await bot.send(ev, modify('modify', 'person_add', {'name': result['name'], 'person': match.group(3),
+                                                               'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                                                               'by': sender}), at_sender=True)
+        elif match.group(2) in ['减少', '降低', '减', '－', '-']:
+            await bot.send(ev, modify('modify', 'person_minus', {'name': result['name'], 'person': match.group(3),
+                                                                 'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                                                                 'by': sender}), at_sender=True)
+
+
+@sv.on_suffix(['有多少人', '有几人', '有几卡', '几人', '几卡'])
+async def arcade_query_person(bot, ev: CQEvent):
+    gid = ev.group_id
+    arg = ev.message.extract_plain_text().strip().lower()
+    result = None
+    if arg:
+        for a in arcades:
+            if arg == a['name']:
+                result = a
+                break
+            if arg in a['alias']:
+                result = a
+                break
+        if not result:
+            await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
+    if not result:
+        for a in arcades:
+            if gid in a['group']:
+                result = a
+                break
+    if result:
+        msg = f'{arg}有{result["person"]}人\n'
+        if result['num'] > 1:
+            msg += f'机均{result["person"]/result["num"]:.2f}人\n'
+        if result['by']:
+            msg += f'由{result["by"]}更新于{result["time"]}'
+        await bot.send(ev, msg.strip(), at_sender=True)
+    else:
+        await bot.send(ev, '该群未订阅任何机厅，请使用 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
