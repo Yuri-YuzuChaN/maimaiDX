@@ -37,6 +37,10 @@
 
 ## 更新说明
 
+### 2021-10-18
+
+1.添加排卡功能，感谢 [CrazyKid](https://github.com/CrazyKid)
+
 ### 2021-10-14
 
 1.更新查看推荐的上分乐曲
@@ -57,6 +61,8 @@
 
 
 ## 鸣谢
+
+感谢 [CrazyKid](https://github.com/CrazyKid) 提供的源码支持
 
 感谢 [Diving-Fish](https://github.com/Diving-Fish) 提供的源码支持
 
