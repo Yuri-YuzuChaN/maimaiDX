@@ -39,7 +39,7 @@
 
 ### 2021-10-18
 
-1.添加排卡功能，感谢 [CrazyKid](https://github.com/CrazyKid)
+1.添加排卡功能，感谢 [CrazyKid](https://github.com/CrazyKidCN)
 
 ### 2021-10-14
 
@@ -62,7 +62,7 @@
 
 ## 鸣谢
 
-感谢 [CrazyKid](https://github.com/CrazyKid) 提供的源码支持
+感谢 [CrazyKid](https://github.com/CrazyKidCN) 提供的源码支持
 
 感谢 [Diving-Fish](https://github.com/Diving-Fish) 提供的源码支持
 
