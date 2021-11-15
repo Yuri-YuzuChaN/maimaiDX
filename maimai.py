@@ -322,6 +322,10 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
         except:
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
 
+player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
+↓ 如未绑定，请前往查分器官网进行绑定 ↓
+https://www.diving-fish.com/maimaidx/prober/
+'''
 
 @sv.on_rex(r'^[Bb]([45])0\s?(.+)?')
 async def best_40(bot, ev: CQEvent):
@@ -333,7 +337,7 @@ async def best_40(bot, ev: CQEvent):
     if match.group(1) == '5': payload['b50'] = True
     img, success = await generate(payload)
     if success == 400:
-        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+        await bot.send(ev, player_error, at_sender=True)
     elif success == 403:
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
@@ -351,7 +355,7 @@ async def rise_score(bot, ev: CQEvent):
         payload = {'username': match.group(3).strip()}
     player_data, success = await get_player_data(payload)
     if success == 400:
-        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+        await bot.send(ev, player_error, at_sender=True)
     elif success == 403:
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
@@ -424,7 +428,7 @@ async def plate_process(bot, ev: CQEvent):
         payload['version'] = [plate_to_version[match.group(1)]]
     player_data, success = await get_player_plate(payload)
     if success == 400:
-        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+        await bot.send(ev, player_error, at_sender=True)
     elif success == 403:
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
@@ -548,7 +552,7 @@ async def level_process(bot, ev: CQEvent):
     payload['version'] = list(set(version for version in plate_to_version.values()))
     player_data, success = await get_player_plate(payload)
     if success == 400:
-        await bot.send(ev, '未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。', at_sender=True)
+        await bot.send(ev, player_error, at_sender=True)
     elif success == 403:
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
