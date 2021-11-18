@@ -1,6 +1,8 @@
 import time
 
 from nonebot.typing import State_T
+
+import hoshino.util
 from hoshino import Service, priv
 from hoshino.typing import CQEvent
 from collections import defaultdict
@@ -16,6 +18,7 @@ from .libraries.maimaidx_guess import *
 sv_help = '''
 可用命令如下：
 帮助maimaiDX 查看指令帮助
+项目地址maimaiDX 查看项目地址
 今日mai,今日舞萌,今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
 随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
@@ -28,12 +31,13 @@ XXXmaimaiXXX什么 随机一首歌
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别称
-b40 <名字> 查B40
-b50 <名字> 查B50
-我要(在<难度>)上<分数>分 <名字> 查看推荐的上分乐曲
-<牌子名称>进度 <名字> 查看牌子完成进度
-<等级><评价>进度 <名字> 查看等级评价完成进度
-查看排名,查看排行 查看水鱼网站的用户ra排行
+b40 <名字> 或 @某人 查B40
+b50 <名字> 或 @某人 查B50
+我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
+<牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
+<等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
+<等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
+查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
 添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ... 添加机厅信息
 删除机厅 <名称> 删除机厅信息
 修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... 修改机厅信息
@@ -41,13 +45,17 @@ b50 <名字> 查B50
 查看订阅 查看群组订阅机厅的信息
 取消订阅,取消订阅机厅 取消群组机厅订阅
 查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
-<名称>人数设置,设定,增加,加,+,减少,减,-<人数> 操作排卡人数
+<名称>人数设置,设定,=,增加,加,+,减少,减,-<人数> 操作排卡人数
 <名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
 '''.strip()
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help)
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help, bundle='maimai')
 
 static = os.path.join(os.path.dirname(__file__), 'static')
+player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
+↓ 如未绑定，请前往查分器官网进行绑定 ↓
+https://www.diving-fish.com/maimaidx/prober/
+'''
 
 
 def random_music(music: Music) -> str:
@@ -72,8 +80,14 @@ def song_level(ds1: float, ds2: float = None) -> list:
 
 @sv.scheduled_job('cron', hour='5')
 async def date_change():
-    global total_list, guess_data
+    global total_list, guess_data, arcades
     try:
+        for a in arcades:
+            a['person'] = 0
+            a['by'] = '自动清零'
+            a['time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        with open(arcades_json, 'w', encoding='utf-8') as f:
+            json.dump(arcades, f, ensure_ascii=False, indent=4)
         total_list = get_music_list()
     except:
         return
@@ -85,7 +99,12 @@ async def dx_help(bot, ev: CQEvent):
     await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(sv_help)).decode()}]', at_sender=True)
 
 
-@sv.on_prefix('定数查歌')
+@sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
+async def dx_help(bot, ev: CQEvent):
+    await bot.send(ev, f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', at_sender=True)
+
+
+@sv.on_prefix(['定数查歌', 'search base'])
 async def search_dx_song_level(bot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().split()
     if len(args) > 2 or len(args) == 0:
@@ -102,7 +121,7 @@ async def search_dx_song_level(bot, ev: CQEvent):
     await bot.finish(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
 
 
-@sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)')
+@sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
 async def random_song(bot, ev: CQEvent):
     try:
         match = ev['match']
@@ -132,7 +151,7 @@ async def random_day_song(bot, ev: CQEvent):
     await bot.send(ev, random_music(total_list.random()))
 
 
-@sv.on_prefix('查歌')
+@sv.on_prefix(['查歌', 'search'])
 async def search_song(bot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip()
     if not name:
@@ -149,7 +168,7 @@ async def search_song(bot, ev: CQEvent):
         await bot.send(ev, f'结果过多（{len(result)} 条），请缩小查询范围。', at_sender=True)
 
 
-@sv.on_rex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)')
+@sv.on_rex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$')
 async def query_chart(bot, ev: CQEvent):
     match = ev['match']
     level_labels = ['绿', '黄', '红', '紫', '白']
@@ -236,7 +255,7 @@ for t in tmp:
             music_aliases[arr[i].lower()].append(arr[0])
 
 
-@sv.on_suffix('是什么歌')
+@sv.on_suffix(['是什么歌', '是啥歌'])
 async def what_song(bot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip().lower()
     if name not in music_aliases:
@@ -322,16 +341,18 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
         except:
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
 
-player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
-↓ 如未绑定，请前往查分器官网进行绑定 ↓
-https://www.diving-fish.com/maimaidx/prober/
-'''
 
-@sv.on_rex(r'^[Bb]([45])0\s?(.+)?')
+@sv.on_rex(r'^[Bb]([45])0\s?(.+)?$')
 async def best_40(bot, ev: CQEvent):
+    ret = re.search(r"\[CQ:at,qq=(.*)\]", str(ev.raw_message))
     match = ev['match']
-    if not match.group(2):
-        payload = {'qq': str(ev.user_id)}
+    if match.group(2) and ret:
+        await bot.finish(ev, '搁着卡bug呢？', at_sender=True)
+    elif not match.group(2) or ret:
+        if ret:
+            payload = {'qq': ret.group(1)}
+        else:
+            payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(2).strip()}
     if match.group(1) == '5': payload['b50'] = True
@@ -346,11 +367,17 @@ async def best_40(bot, ev: CQEvent):
 
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot, ev: CQEvent):
+    ret = re.search(r"\[CQ:at,qq=(.*)\]", str(ev.raw_message))
     match = ev['match']
     if match.group(1) and match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
-    if not match.group(3):
-        payload = {'qq': str(ev.user_id)}
+    if match.group(2) and ret:
+        await bot.finish(ev, '搁着卡bug呢？', at_sender=True)
+    elif not match.group(3) or ret:
+        if ret:
+            payload = {'qq': ret.group(1)}
+        else:
+            payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(3).strip()}
     player_data, success = await get_player_data(payload)
@@ -401,13 +428,14 @@ async def rise_score(bot, ev: CQEvent):
             await bot.finish(ev, '没有找到这样的乐曲', at_sender=True)
         elif len(music_dx_list) + len(music_sd_list) > 60:
             await bot.finish(ev, f'结果过多（{len(music_dx_list) + len(music_sd_list)} 条），请缩小查询范围。', at_sender=True)
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
         msg = ''
         if len(music_sd_list) != 0:
-            msg += f'为您推荐以下标准乐曲：\n'
+            msg += f'为{appellation}推荐以下标准乐曲：\n'
             for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
                 msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
         if len(music_dx_list) != 0:
-            msg += f'\n为您推荐以下2021乐曲：\n'
+            msg += f'\n为{appellation}推荐以下2021乐曲：\n'
             for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
                 msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
@@ -415,11 +443,17 @@ async def rise_score(bot, ev: CQEvent):
 
 @sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?')
 async def plate_process(bot, ev: CQEvent):
+    ret = re.search(r"\[CQ:at,qq=(.*)\]", str(ev.raw_message))
     match = ev['match']
     if f'{match.group(1)}{match.group(2)}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
-    if not match.group(3):
-        payload = {'qq': str(ev.user_id)}
+    if match.group(2) and ret:
+        await bot.finish(ev, '搁着卡bug呢？', at_sender=True)
+    elif not match.group(3) or ret:
+        if ret:
+            payload = {'qq': ret.group(1)}
+        else:
+            payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(3).strip()}
     if match.group(1) in ['舞', '霸']:
@@ -488,7 +522,8 @@ async def plate_process(bot, ev: CQEvent):
             music = total_list.by_id(str(song[0]))
             if music.ds[song[1]] > 13.6:
                 song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
-        msg = f'''{"您" if not match.group(3) else match.group(3)}的{match.group(1)}{match.group(2)}剩余进度如下：
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        msg = f'''{appellation}的{match.group(1)}{match.group(2)}剩余进度如下：
 Expert剩余{len(song_remain_expert)}首
 Master剩余{len(song_remain_master)}首
 '''
@@ -499,7 +534,7 @@ Master剩余{len(song_remain_master)}首
         if len(song_remain_difficult) > 0:
             if len(song_remain_difficult) < 11:
                 msg += '剩余定数大于13.6的曲目：\n'
-                for s in sorted(song_remain_difficult, key=lambda i: i[3]):
+                for i, s in enumerate(sorted(song_remain_difficult, key=lambda i: i[3])):
                     self_record = ''
                     if [int(s[0]), s[-1]] in song_record:
                         record_index = song_record.index([int(s[0]), s[-1]])
@@ -511,12 +546,12 @@ Master剩余{len(song_remain_master)}首
                         elif match.group(2) == '舞舞':
                             if player_data['verlist'][record_index]['fs']:
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
-                    msg += f'{s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+                    msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
             else: msg += f'还有{len(song_remain_difficult)}首大于13.6定数的曲目，加油推分捏！\n'
         elif len(song_remain) > 0:
             if len(song_remain) < 11:
                 msg += '剩余曲目：\n'
-                for s in sorted(song_remain, key=lambda i: i[3]):
+                for i, s in enumerate(sorted(song_remain, key=lambda i: i[3])):
                     m = total_list.by_id(str(s[0]))
                     self_record = ''
                     if [int(s[0]), s[-1]] in song_record:
@@ -529,15 +564,16 @@ Master剩余{len(song_remain_master)}首
                         elif match.group(2) == '舞舞':
                             if player_data['verlist'][record_index]['fs']:
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
-                    msg += f'{m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
+                    msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
             else:
                 msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
-        else: msg += f'恭喜{"您" if not match.group(3) else match.group(3)}完成{match.group(1)}{match.group(2)}！'
+        else: msg += f'恭喜{appellation}完成{match.group(1)}{match.group(2)}！'
         await bot.send(ev, msg.strip(), at_sender=True)
 
 
 @sv.on_rex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?')
 async def level_process(bot, ev: CQEvent):
+    ret = re.search(r"\[CQ:at,qq=(.*)\]", str(ev.raw_message))
     match = ev['match']
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
@@ -545,8 +581,13 @@ async def level_process(bot, ev: CQEvent):
         await bot.finish(ev, '无此评价等级', at_sender=True)
     if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
-    if not match.group(3):
-        payload = {'qq': str(ev.user_id)}
+    if match.group(2) and ret:
+        await bot.finish(ev, '搁着卡bug呢？', at_sender=True)
+    elif not match.group(3) or ret:
+        if ret:
+            payload = {'qq': ret.group(1)}
+        else:
+            payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(3).strip()}
     payload['version'] = list(set(version for version in plate_to_version.values()))
@@ -586,12 +627,13 @@ async def level_process(bot, ev: CQEvent):
         for song in song_remain:
             music = total_list.by_id(str(song[0]))
             songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
         msg = ''
         if len(song_remain) > 0:
             if len(song_remain) < 50:
                 song_record = [[s['id'], s['level_index']] for s in player_data['verlist']]
-                msg += f'{"您" if not match.group(3) else match.group(3)}的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
-                for s in sorted(songs, key=lambda i: i[3]):
+                msg += f'{appellation}的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
+                for i, s in enumerate(sorted(songs, key=lambda i: i[3])):
                     self_record = ''
                     if [int(s[0]), s[-1]] in song_record:
                         record_index = song_record.index([int(s[0]), s[-1]])
@@ -603,22 +645,86 @@ async def level_process(bot, ev: CQEvent):
                         elif match.group(2).lower() in syncRank:
                             if player_data['verlist'][record_index]['fs']:
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
-                    msg += f'{s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+                    msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
             else:
-                await bot.finish(ev, f'{"您" if not match.group(3) else match.group(3)}还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！', at_sender=True)
+                await bot.finish(ev, f'{appellation}还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！', at_sender=True)
         else:
-            await bot.finish(ev, f'恭喜{"您" if not match.group(3) else match.group(3)}达成{match.group(1)}全谱面{match.group(2).upper()}！', at_sender=True)
+            await bot.finish(ev, f'恭喜{appellation}达成{match.group(1)}全谱面{match.group(2).upper()}！', at_sender=True)
         await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
 
 
-@sv.on_fullmatch(['查看排名', '查看排行'])
+@sv.on_rex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?')
+async def level_achievement_list(bot, ev: CQEvent):
+    ret = re.search(r"\[CQ:at,qq=(.*)\]", str(ev.raw_message))
+    match = ev['match']
+    if match.group(1) not in levelList:
+        await bot.finish(ev, '无此等级', at_sender=True)
+    if match.group(2) and ret:
+        await bot.finish(ev, '搁着卡bug呢？', at_sender=True)
+    elif not match.group(3) or ret:
+        if ret:
+            payload = {'qq': ret.group(1)}
+        else:
+            payload = {'qq': str(ev.user_id)}
+    else:
+        payload = {'username': match.group(3).strip()}
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+    player_data, success = await get_player_plate(payload)
+    if success == 400:
+        await bot.send(ev, player_error, at_sender=True)
+    elif success == 403:
+        await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
+    else:
+        song_list = []
+        for song in player_data['verlist']:
+            if song['level'] == match.group(1):
+                song_list.append(song)
+        SONGS_PER_PAGE = 25
+        if match.group(2): page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1)
+        else: page = 1
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        msg = f'{appellation}的{match.group(1)}分数列表（从高至低）：\n'
+        for i, s in enumerate(sorted(song_list, key=lambda i: i['achievements'], reverse=True)):
+            if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
+                m = total_list.by_id(str(s['id']))
+                msg += f'No.{(page - 1) * SONGS_PER_PAGE + i + 1} {s["achievements"]:.4f} {m.id}. {m.title} {diffs[s["level_index"]]} {m.ds[s["level_index"]]} {m.stats[s["level_index"]].difficulty}'
+                if s["fc"]: msg += f' {comboRank[combo_rank.index(s["fc"])].upper()}'
+                if s["fs"]: msg += f' {syncRank[sync_rank.index(s["fs"])].upper()}'
+                msg += '\n'
+        msg += f'第{page}页，共{len(song_list) // SONGS_PER_PAGE + 1}页'
+        await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+
+
+@sv.on_prefix(['查看排名', '查看排行'])
 async def level_process(bot, ev: CQEvent):
+    args = ev.message.extract_plain_text().strip().split()
+    page = 1
+    name = ''
+    if len(args) == 1:
+        if args[0].isdigit():
+            page = int(args[0])
+        else:
+            name = args[0].lower()
     async with aiohttp.request("GET", "https://www.diving-fish.com/api/maimaidxprober/rating_ranking") as resp:
         rank_data = await resp.json()
-        msg = f'截止 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}，Diving Fish网站已注册用户ra排行：\n'
-        for i, ranker in enumerate(sorted(rank_data, key=lambda r: r['ra'], reverse=True)[:50]):
-            msg += f'{i + 1}. {ranker["username"]} {ranker["ra"]}\n'
-        await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
+        sorted_rank_data = sorted(rank_data, key=lambda r: r['ra'], reverse=True)
+        if name:
+            if name in [r['username'].lower() for r in sorted_rank_data]:
+                rank_index = [r['username'].lower() for r in sorted_rank_data].index(name) + 1
+                nickname = sorted_rank_data[rank_index - 1]['username']
+                await bot.send(ev, f'截止至 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}\n玩家 {nickname} 在Diving Fish网站已注册用户ra排行第{rank_index}', at_sender=True)
+            else:
+                await bot.send(ev, '未找到该玩家', at_sender=True)
+        else:
+            user_num = len(sorted_rank_data)
+            msg = f'截止至 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}，Diving Fish网站已注册用户ra排行：\n'
+            if page * 50 > user_num:
+                page = user_num // 50 + 1
+            end = page * 50 if page * 50 < user_num else user_num
+            for i, ranker in enumerate(sorted_rank_data[(page - 1) * 50:end]):
+                msg += f'{i + 1 + (page - 1) * 50}. {ranker["username"]} {ranker["ra"]}\n'
+            msg += f'第{page}页，共{user_num // 50 + 1}页'
+            await bot.send(ev, f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]', at_sender=True)
 
 
 guess_dict: Dict[Tuple[str], GuessObject] = {}
@@ -773,6 +879,7 @@ def modify(operate, arg, input_dict):
         else:
             return '无此机厅'
     elif operate == 'modify':
+        MAX_CARDS = 30
         if arg == 'num':
             if input_dict['name'] in [a['name'] for a in arcades]:
                 arcades[[a['name'] for a in arcades].index(input_dict['name'])]['num'] = int(input_dict['num'])
@@ -820,8 +927,10 @@ def modify(operate, arg, input_dict):
         elif arg == 'person_set':
             if input_dict['name'] in [a['name'] for a in arcades]:
                 arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if abs(int(input_dict['person']) - arcade['person']) > 10:
-                    return '一次最多改变10卡！'
+                if abs(int(input_dict['person']) - arcade['person']) > MAX_CARDS:
+                    return f'一次最多改变{MAX_CARDS}卡！'
+                if int(input_dict['person']) == arcade["person"]:
+                    return f'无变化，现在有{arcade["person"]}卡'
                 arcade['person'] = int(input_dict['person'])
                 arcade['time'] = input_dict['time']
                 arcade['by'] = input_dict['by']
@@ -831,8 +940,10 @@ def modify(operate, arg, input_dict):
         elif arg == 'person_add':
             if input_dict['name'] in [a['name'] for a in arcades]:
                 arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > 10:
-                    return '一次最多改变10卡！'
+                if int(input_dict['person']) > MAX_CARDS:
+                    return f'一次最多改变{MAX_CARDS}卡！'
+                if int(input_dict['person']) == 0:
+                    return f'无变化，现在有{arcade["person"]}卡'
                 arcade['person'] += int(input_dict['person'])
                 arcade['time'] = input_dict['time']
                 arcade['by'] = input_dict['by']
@@ -842,8 +953,10 @@ def modify(operate, arg, input_dict):
         elif arg == 'person_minus':
             if input_dict['name'] in [a['name'] for a in arcades]:
                 arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > 10:
-                    return '一次最多改变10卡！'
+                if int(input_dict['person']) > MAX_CARDS:
+                    return f'一次最多改变{MAX_CARDS}卡！'
+                if int(input_dict['person']) == 0:
+                    return f'无变化，现在有{arcade["person"]}卡'
                 if arcade['person'] < int(input_dict['person']):
                     return f'现在{arcade["person"]}卡，不够减！'
                 else:
@@ -861,7 +974,7 @@ def modify(operate, arg, input_dict):
     except Exception as e:
         traceback.print_exc()
         return f'操作失败，错误代码：{e}'
-    return '操作成功！' + msg
+    return '修改成功！' + msg
 
 
 @sv.on_prefix('添加机厅')
@@ -879,7 +992,8 @@ async def add_arcade(bot, ev: CQEvent):
             arcade_dict = {'name': args[0], 'location': args[1],
                            'num': int(args[2]) if len(args) > 2 else 1,
                            'alias': args[3:] if len(args) > 3 else [],
-                           'group': [], 'person': 0}
+                           'group': [], 'person': 0,
+                           'by': '', 'time': ''}
             await bot.send(ev, modify('add', None, arcade_dict), at_sender=True)
     else:
         await bot.send(ev, '格式错误：添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ...', at_sender=True)
@@ -946,7 +1060,7 @@ async def check_subscribe(bot, ev: CQEvent):
             break
     if result:
         await bot.send(ev, f'''群{gid}订阅机厅信息如下：
-{result["name"]} {result["location"]} {result["num"]} {"/".join(result["alias"])}'''.strip(), at_sender=True)
+{result["name"]} {result["location"]} 机台数量 {result["num"]} {"别称：" if len(result["alias"]) > 0 else ""}{"/".join(result["alias"])}'''.strip(), at_sender=True)
     else:
         await bot.send(ev, '该群未订阅任何机厅', at_sender=True)
 
@@ -989,7 +1103,7 @@ async def search_arcade(bot, ev: CQEvent):
             await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
         msg = '为您找到以下机厅：\n'
         for r in result:
-            msg += f'{r["name"]} {r["location"]} {r["num"]} {"/".join(r["alias"])}'.strip() + '\n'
+            msg += f'{r["name"]} {r["location"]} 机台数量 {r["num"]} {"别称：" if len(r["alias"]) > 0 else ""}{"/".join(r["alias"])}'.strip() + '\n'
         if len(result) < 5:
             await bot.send(ev, msg.strip(), at_sender=True)
         else:
@@ -998,7 +1112,7 @@ async def search_arcade(bot, ev: CQEvent):
         await bot.send(ev, '格式错误：查找机厅 <关键词>', at_sender=True)
 
 
-@sv.on_rex(r'^(.+)?\s?人数(设置|设定|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+)')
+@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+)(人|卡)?$')
 async def arcade_person(bot, ev: CQEvent):
     match = ev['match']
     gid = ev.group_id
@@ -1006,36 +1120,61 @@ async def arcade_person(bot, ev: CQEvent):
     if not match.group(3).isdigit():
         await bot.finish(ev, '请输入正确的数字', at_sender=True)
     result = None
+    empty_name = False
     if match.group(1):
-        for a in arcades:
-            if match.group(1).lower() == a['name']:
-                result = a
-                break
-            if match.group(1).lower() in a['alias']:
-                result = a
-                break
-        if not result:
-            await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
-    if not result:
+        if '人数' in match.group(1) or '卡' in match.group(1):
+            search_key = match.group(1)[:-2] if '人数' in match.group(1) else match.group(1)[:-1]
+            if search_key:
+                for a in arcades:
+                    if search_key.lower() == a['name']:
+                        result = a
+                        break
+                    if search_key.lower() in a['alias']:
+                        result = a
+                        break
+                if not result:
+                    await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
+            else: empty_name = True
+        else:
+            for a in arcades:
+                if match.group(1).lower() == a['name']:
+                    result = a
+                    break
+                if match.group(1).lower() in a['alias']:
+                    result = a
+                    break
+            if not result:
+                return
+    else:
+        return
+    if not result or empty_name:
         for a in arcades:
             if gid in a['group']:
                 result = a
                 break
-    if not result:
-        await bot.send(ev, '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
-    else:
-        if match.group(2) in ['设置', '设定']:
-            await bot.send(ev, modify('modify', 'person_set', {'name': result['name'], 'person': match.group(3),
+    if result:
+        msg = ''
+        if match.group(2) in ['设置', '设定', '＝', '=']:
+            msg = modify('modify', 'person_set', {'name': result['name'], 'person': match.group(3),
                                                                'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                               'by': sender}), at_sender=True)
+                                                               'by': sender})
+            await bot.send(ev, msg.strip(), at_sender=True)
         elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
-            await bot.send(ev, modify('modify', 'person_add', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_add', {'name': result['name'], 'person': match.group(3),
                                                                'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                               'by': sender}), at_sender=True)
+                                                               'by': sender})
+            await bot.send(ev, msg.strip(), at_sender=True)
         elif match.group(2) in ['减少', '降低', '减', '－', '-']:
-            await bot.send(ev, modify('modify', 'person_minus', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': match.group(3),
                                                                  'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                                 'by': sender}), at_sender=True)
+                                                                 'by': sender})
+            await bot.send(ev, msg.strip(), at_sender=True)
+        if msg and '一次最多改变' in msg:
+            await hoshino.util.silence(ev, 5 * 60)
+            await bot.send(ev, '请勿乱玩bot，恼！', at_sender=True)
+    else:
+        await bot.send(ev, '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
+
 
 
 @sv.on_suffix(['有多少人', '有几人', '有几卡', '几人', '几卡'])
