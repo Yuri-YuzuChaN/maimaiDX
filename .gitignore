@@ -131,3 +131,11 @@ dmypy.json
 
 # static
 .static/
+static.zip
+arcades.json
+
+# idea
+*.iml
+.idea/
+*.ipr
+*.iws
