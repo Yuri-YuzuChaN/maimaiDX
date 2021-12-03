@@ -57,17 +57,20 @@ class Stats(Dict):
     total: Optional[int] = None
 
     def __getattribute__(self, item):
-        if item == 'sss_count':
-            return self['sssp_count']
-        elif item == 'rank':
-            return self['v'] + 1
-        elif item == 'total':
-            return self['t']
-        elif item == 'difficulty':
-            return self['tag']
-        elif item in self:
-            return self[item]
-        return super().__getattribute__(item)
+        try:
+            if item == 'sss_count':
+                return self['sssp_count']
+            elif item == 'rank':
+                return self['v'] + 1
+            elif item == 'total':
+                return self['t']
+            elif item == 'difficulty':
+                return self['tag']
+            elif item in self:
+                return self[item]
+            return super().__getattribute__(item)
+        except KeyError:
+            return 'Unknown'
 
 
 class Chart(Dict):
