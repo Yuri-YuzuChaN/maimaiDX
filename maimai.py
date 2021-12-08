@@ -49,7 +49,9 @@ b50 <名字> 或 @某人 查B50
 <名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
 '''.strip()
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=sv_help, bundle='maimai')
+SV_HELP = '请使用 帮助maimaiDX 查看帮助'
+
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 static = os.path.join(os.path.dirname(__file__), 'static')
 player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
@@ -74,7 +76,7 @@ def song_level(ds1: float, ds2: float = None) -> list:
         music_data = total_list.filter(ds=ds1)
     for music in sorted(music_data, key=lambda i: int(i['id'])):
         for i in music.diff:
-            result.append((music['id'], music['title'], music['ds'][i], diffs[i], music['level'][i], music['stats'][i]['tag']))
+            result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
 
 
@@ -457,8 +459,10 @@ async def plate_process(bot, ev: CQEvent):
             payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(3).strip()}
-    if match.group(1) in ['舞', '霸']:
+    if match.group(1) == '霸':
         payload['version'] = list(set(version for version in plate_to_version.values()))
+    elif match.group(1) == '舞':
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
     else:
         payload['version'] = [plate_to_version[match.group(1)]]
     player_data, success = await get_player_plate(payload)
@@ -468,12 +472,18 @@ async def plate_process(bot, ev: CQEvent):
         await bot.send(ev, '该用户禁止了其他人获取数据。', at_sender=True)
     else:
         song_played = []
+        song_remain_basic = []
+        song_remain_advanced = []
         song_remain_expert = []
         song_remain_master = []
         song_remain_re_master = []
         song_remain_difficult = []
         if match.group(2) in ['将', '者']:
             for song in player_data['verlist']:
+                if song['level_index'] == 0 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+                    song_remain_basic.append([song['id'], song['level_index']])
+                if song['level_index'] == 1 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+                    song_remain_advanced.append([song['id'], song['level_index']])
                 if song['level_index'] == 2 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
                     song_remain_expert.append([song['id'], song['level_index']])
                 if song['level_index'] == 3 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
@@ -483,6 +493,10 @@ async def plate_process(bot, ev: CQEvent):
                 song_played.append([song['id'], song['level_index']])
         elif match.group(2) in ['極', '极']:
             for song in player_data['verlist']:
+                if song['level_index'] == 0 and not song['fc']:
+                    song_remain_basic.append([song['id'], song['level_index']])
+                if song['level_index'] == 1 and not song['fc']:
+                    song_remain_advanced.append([song['id'], song['level_index']])
                 if song['level_index'] == 2 and not song['fc']:
                     song_remain_expert.append([song['id'], song['level_index']])
                 if song['level_index'] == 3 and not song['fc']:
@@ -492,6 +506,10 @@ async def plate_process(bot, ev: CQEvent):
                 song_played.append([song['id'], song['level_index']])
         elif match.group(2) == '舞舞':
             for song in player_data['verlist']:
+                if song['level_index'] == 0 and song['fs'] not in ['fsd', 'fsdp']:
+                    song_remain_basic.append([song['id'], song['level_index']])
+                if song['level_index'] == 1 and song['fs'] not in ['fsd', 'fsdp']:
+                    song_remain_advanced.append([song['id'], song['level_index']])
                 if song['level_index'] == 2 and song['fs'] not in ['fsd', 'fsdp']:
                     song_remain_expert.append([song['id'], song['level_index']])
                 if song['level_index'] == 3 and song['fs'] not in ['fsd', 'fsdp']:
@@ -501,6 +519,10 @@ async def plate_process(bot, ev: CQEvent):
                 song_played.append([song['id'], song['level_index']])
         elif match.group(2) == '神':
             for song in player_data['verlist']:
+                if song['level_index'] == 0 and song['fc'] not in ['ap', 'app']:
+                    song_remain_basic.append([song['id'], song['level_index']])
+                if song['level_index'] == 1 and song['fc'] not in ['ap', 'app']:
+                    song_remain_advanced.append([song['id'], song['level_index']])
                 if song['level_index'] == 2 and song['fc'] not in ['ap', 'app']:
                     song_remain_expert.append([song['id'], song['level_index']])
                 if song['level_index'] == 3 and song['fc'] not in ['ap', 'app']:
@@ -510,30 +532,38 @@ async def plate_process(bot, ev: CQEvent):
                 song_played.append([song['id'], song['level_index']])
         for music in total_list:
             if music.version in payload['version']:
+                if [int(music.id), 0] not in song_played:
+                    song_remain_basic.append([int(music.id), 0])
+                if [int(music.id), 1] not in song_played:
+                    song_remain_advanced.append([int(music.id), 1])
                 if [int(music.id), 2] not in song_played:
                     song_remain_expert.append([int(music.id), 2])
                 if [int(music.id), 3] not in song_played:
                     song_remain_master.append([int(music.id), 3])
                 if match.group(1) in ['舞', '霸'] and len(music.level) == 5 and [int(music.id), 4] not in song_played:
                     song_remain_re_master.append([int(music.id), 4])
+        song_remain_basic = sorted(song_remain_basic, key=lambda i: int(i[0]))
+        song_remain_advanced = sorted(song_remain_advanced, key=lambda i: int(i[0]))
         song_remain_expert = sorted(song_remain_expert, key=lambda i: int(i[0]))
         song_remain_master = sorted(song_remain_master, key=lambda i: int(i[0]))
         song_remain_re_master = sorted(song_remain_re_master, key=lambda i: int(i[0]))
-        for song in song_remain_expert + song_remain_master + song_remain_re_master:
+        for song in song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master:
             music = total_list.by_id(str(song[0]))
             if music.ds[song[1]] > 13.6:
                 song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
         appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
         msg = f'''{appellation}的{match.group(1)}{match.group(2)}剩余进度如下：
+Basic剩余{len(song_remain_basic)}首
+Advanced剩余{len(song_remain_advanced)}首
 Expert剩余{len(song_remain_expert)}首
 Master剩余{len(song_remain_master)}首
 '''
-        song_remain = song_remain_expert + song_remain_master + song_remain_re_master
+        song_remain = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
         song_record = [[s['id'], s['level_index']] for s in player_data['verlist']]
         if match.group(1) in ['舞', '霸']:
             msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
         if len(song_remain_difficult) > 0:
-            if len(song_remain_difficult) < 11:
+            if len(song_remain_difficult) < 60:
                 msg += '剩余定数大于13.6的曲目：\n'
                 for i, s in enumerate(sorted(song_remain_difficult, key=lambda i: i[3])):
                     self_record = ''
@@ -548,11 +578,17 @@ Master剩余{len(song_remain_master)}首
                             if player_data['verlist'][record_index]['fs']:
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
                     msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+                if len(song_remain_difficult) > 10:
+                    msg = image_to_base64(text_to_image(msg.strip())).decode()
             else: msg += f'还有{len(song_remain_difficult)}首大于13.6定数的曲目，加油推分捏！\n'
         elif len(song_remain) > 0:
-            if len(song_remain) < 11:
+            for i, s in enumerate(song_remain):
+                m = total_list.by_id(str(s[0]))
+                ds = m.ds[s[1]]
+                song_remain[i].append(ds)
+            if len(song_remain) < 60:
                 msg += '剩余曲目：\n'
-                for i, s in enumerate(sorted(song_remain, key=lambda i: i[3])):
+                for i, s in enumerate(sorted(song_remain, key=lambda i: i[2])):
                     m = total_list.by_id(str(s[0]))
                     self_record = ''
                     if [int(s[0]), s[-1]] in song_record:
@@ -566,6 +602,8 @@ Master剩余{len(song_remain_master)}首
                             if player_data['verlist'][record_index]['fs']:
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
                     msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
+                    if len(song_remain) > 10:
+                        msg = image_to_base64(text_to_image(msg.strip())).decode()
             else:
                 msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
         else: msg += f'恭喜{appellation}完成{match.group(1)}{match.group(2)}！'
@@ -958,6 +996,8 @@ def modify(operate, arg, input_dict):
                 if int(input_dict['person']) > MAX_CARDS:
                     return f'一次最多改变{MAX_CARDS}卡！'
                 if int(input_dict['person']) == 0:
+                    arcade['time'] = input_dict['time']
+                    arcade['by'] = input_dict['by']
                     return f'无变化，现在有{arcade["person"]}卡'
                 if arcade['person'] < int(input_dict['person']):
                     return f'现在{arcade["person"]}卡，不够减！'
