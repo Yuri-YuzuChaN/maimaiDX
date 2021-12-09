@@ -131,7 +131,7 @@ class DrawBest(object):
                 self.COLOUMS_IMG.append(2 + 172 * i)
             for i in range(4):
                 self.COLOUMS_IMG.append(888 + 172 * i)
-        self.draw()
+        # self.draw()
 
     def _Q2B(self, uchar):
         """单个字符 全角转半角"""
@@ -332,10 +332,12 @@ class DrawBest(object):
         drawObject.rectangle((x + r / 2, y, x + w - (r / 2), y + h), fill=color)
         drawObject.rectangle((x, y + r / 2, x + w, y + h - (r / 2)), fill=color)
 
-    def draw(self):
+    async def draw(self):
         if self.qqId:
-            resp = requests.get(f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100')
-            qqLogo = Image.open(BytesIO(resp.content))
+            async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
+                qqLogo = Image.open(BytesIO(await resp.read()))
+            # resp = requests.get(f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100')
+            # qqLogo = Image.open(BytesIO(resp.content))
             borderImg1 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             borderImg2 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             self._drawRoundRec(borderImg1, (255, 0, 80), 0, 0, 200, 200, 40)
@@ -398,6 +400,7 @@ class DrawBest(object):
         self.img.paste(sdImg, (758 if not self.b50 else 865, 65), mask=sdImg.split()[3])
 
         # self.img.show()
+        return self.img
 
     def getDir(self):
         return self.img
@@ -465,5 +468,6 @@ async def generate(payload: Dict) -> (Optional[Image.Image], bool):
         sd_best.push(ChartInfo.from_json(c))
     for c in dx:
         dx_best.push(ChartInfo.from_json(c))
-    pic = DrawBest(sd_best, dx_best, obj["nickname"], obj["rating"] + obj["additional_rating"], obj["rating"], qqId, b50).getDir()
+    draw_best = DrawBest(sd_best, dx_best, obj["nickname"], obj["rating"] + obj["additional_rating"], obj["rating"], qqId, b50)
+    pic = await draw_best.draw()
     return pic, 0
