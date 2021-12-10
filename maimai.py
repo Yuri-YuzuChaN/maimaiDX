@@ -90,7 +90,9 @@ async def date_change():
             a['time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         with open(arcades_json, 'w', encoding='utf-8') as f:
             json.dump(arcades, f, ensure_ascii=False, indent=4)
-        total_list = get_music_list()
+        total_list_temp = await get_music_list_async()
+        if total_list_temp:
+            total_list = total_list_temp
     except:
         return
     guess_data = list(filter(lambda x: x['id'] in hot_music_ids, total_list))
@@ -431,7 +433,10 @@ async def rise_score(bot, ev: CQEvent):
             await bot.finish(ev, '没有找到这样的乐曲', at_sender=True)
         elif len(music_dx_list) + len(music_sd_list) > 60:
             await bot.finish(ev, f'结果过多（{len(music_dx_list) + len(music_sd_list)} 条），请缩小查询范围。', at_sender=True)
-        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        qq_nickname = ''
+        if ret:
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = ''
         if len(music_sd_list) != 0:
             msg += f'为{appellation}推荐以下标准乐曲：\n'
@@ -459,9 +464,7 @@ async def plate_process(bot, ev: CQEvent):
             payload = {'qq': str(ev.user_id)}
     else:
         payload = {'username': match.group(3).strip()}
-    if match.group(1) == '霸':
-        payload['version'] = list(set(version for version in plate_to_version.values()))
-    elif match.group(1) == '舞':
+    if match.group(1) in ['霸', '舞']:
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
     else:
         payload['version'] = [plate_to_version[match.group(1)]]
@@ -551,7 +554,10 @@ async def plate_process(bot, ev: CQEvent):
             music = total_list.by_id(str(song[0]))
             if music.ds[song[1]] > 13.6:
                 song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
-        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        qq_nickname = ''
+        if ret:
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = f'''{appellation}的{match.group(1)}{match.group(2)}剩余进度如下：
 Basic剩余{len(song_remain_basic)}首
 Advanced剩余{len(song_remain_advanced)}首
@@ -579,7 +585,7 @@ Master剩余{len(song_remain_master)}首
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
                     msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
                 if len(song_remain_difficult) > 10:
-                    msg = image_to_base64(text_to_image(msg.strip())).decode()
+                    msg = f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]'
             else: msg += f'还有{len(song_remain_difficult)}首大于13.6定数的曲目，加油推分捏！\n'
         elif len(song_remain) > 0:
             for i, s in enumerate(song_remain):
@@ -603,7 +609,7 @@ Master剩余{len(song_remain_master)}首
                                 self_record = syncRank[sync_rank.index(player_data['verlist'][record_index]['fs'])].upper()
                     msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
                     if len(song_remain) > 10:
-                        msg = image_to_base64(text_to_image(msg.strip())).decode()
+                        msg = f'[CQ:image,file=base64://{image_to_base64(text_to_image(msg.strip())).decode()}]'
             else:
                 msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
         else: msg += f'恭喜{appellation}完成{match.group(1)}{match.group(2)}！'
@@ -666,7 +672,10 @@ async def level_process(bot, ev: CQEvent):
         for song in song_remain:
             music = total_list.by_id(str(song[0]))
             songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
-        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        qq_nickname = ''
+        if ret:
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = ''
         if len(song_remain) > 0:
             if len(song_remain) < 50:
@@ -721,7 +730,10 @@ async def level_achievement_list(bot, ev: CQEvent):
         SONGS_PER_PAGE = 25
         if match.group(2): page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1)
         else: page = 1
-        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else ret.group(1)
+        qq_nickname = ''
+        if ret:
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
+        appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = f'{appellation}的{match.group(1)}分数列表（从高至低）：\n'
         for i, s in enumerate(sorted(song_list, key=lambda i: i['achievements'], reverse=True)):
             if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:

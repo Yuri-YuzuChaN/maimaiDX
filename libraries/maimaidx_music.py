@@ -4,6 +4,7 @@ from copy import deepcopy
 from retrying import retry
 
 import requests
+import aiohttp
 
 
 def cross(checker: List[Any], elem: Optional[Union[Any, List[Any]]], diff):
@@ -189,6 +190,24 @@ def get_music_list():
             _total_list[__i].charts[__j] = Chart(_total_list[__i].charts[__j])
             _total_list[__i].stats[__j] = Stats(_total_list[__i].stats[__j])
     return _total_list
+
+
+@retry(stop_max_attempt_number=3)
+async def get_music_list_async():
+    async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/music_data') as obj_data:
+        async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/chart_stats') as obj_stats:
+            if obj_data.status != 200 and obj_stats.status != 200:
+                return None
+            data = await obj_data.json()
+            stats = await obj_stats.json()
+            _total_list: MusicList = MusicList(data)
+            for __i in range(len(_total_list)):
+                _total_list[__i] = Music(_total_list[__i])
+                _total_list[__i]['stats'] = stats[_total_list[__i].id]
+                for __j in range(len(_total_list[__i].charts)):
+                    _total_list[__i].charts[__j] = Chart(_total_list[__i].charts[__j])
+                    _total_list[__i].stats[__j] = Stats(_total_list[__i].stats[__j])
+            return _total_list
 
 
 total_list = get_music_list()
