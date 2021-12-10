@@ -435,12 +435,7 @@ async def rise_score(bot, ev: CQEvent):
             await bot.finish(ev, f'结果过多（{len(music_dx_list) + len(music_sd_list)} 条），请缩小查询范围。', at_sender=True)
         qq_nickname = ''
         if ret:
-            async with aiohttp.request("GET", f"https://r.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?g_tk=1518561325&uins={ret.group(1)}") as resp:
-                # qq_img_url = re.findall(r'":."(.*?)",', await resp.text())[0]
-                try:
-                    qq_nickname = re.findall(r',"(.*?)",0.}.', await resp.text())[0]
-                except:
-                    pass
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
         appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = ''
         if len(music_sd_list) != 0:
@@ -559,12 +554,9 @@ async def plate_process(bot, ev: CQEvent):
             music = total_list.by_id(str(song[0]))
             if music.ds[song[1]] > 13.6:
                 song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+        qq_nickname = ''
         if ret:
-            async with aiohttp.request("GET", f"https://r.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?g_tk=1518561325&uins={ret.group(1)}") as resp:
-                try:
-                    qq_nickname = re.findall(r',"(.*?)",0.}.', await resp.text())[0]
-                except:
-                    pass
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
         appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = f'''{appellation}的{match.group(1)}{match.group(2)}剩余进度如下：
 Basic剩余{len(song_remain_basic)}首
@@ -680,12 +672,9 @@ async def level_process(bot, ev: CQEvent):
         for song in song_remain:
             music = total_list.by_id(str(song[0]))
             songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+        qq_nickname = ''
         if ret:
-            async with aiohttp.request("GET", f"https://r.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?g_tk=1518561325&uins={ret.group(1)}") as resp:
-                try:
-                    qq_nickname = re.findall(r',"(.*?)",0.}.', await resp.text())[0]
-                except:
-                    pass
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
         appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = ''
         if len(song_remain) > 0:
@@ -741,12 +730,9 @@ async def level_achievement_list(bot, ev: CQEvent):
         SONGS_PER_PAGE = 25
         if match.group(2): page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1)
         else: page = 1
+        qq_nickname = ''
         if ret:
-            async with aiohttp.request("GET", f"https://r.qzone.qq.com/fcg-bin/cgi_get_portrait.fcg?g_tk=1518561325&uins={ret.group(1)}") as resp:
-                try:
-                    qq_nickname = re.findall(r',"(.*?)",0.}.', await resp.text())[0]
-                except:
-                    pass
+            qq_nickname = (await bot.get_stranger_info(user_id=ret.group(1), self_id=ev.self_id))['nickname']
         appellation = ("您" if not match.group(3) else match.group(3)) if not ret else (ret.group(1) if not qq_nickname else qq_nickname)
         msg = f'{appellation}的{match.group(1)}分数列表（从高至低）：\n'
         for i, s in enumerate(sorted(song_list, key=lambda i: i['achievements'], reverse=True)):
