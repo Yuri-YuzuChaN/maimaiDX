@@ -25,12 +25,13 @@ XXXmaimaiXXX什么 随机一首歌
 查歌<乐曲标题的一部分> 查询符合条件的乐曲
 [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
 <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
-<id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别称
+<id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
+<id/歌曲别称> [添加|增加|增添|删除|删去|去除]别称 <歌曲别名> 添加或删除歌曲别名
 定数查歌 <定数>  查询定数对应的乐曲
 定数查歌 <定数下限> <定数上限>
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
-猜歌 顾名思义，识别id，歌名和别称
+猜歌 顾名思义，识别id，歌名和别名
 b40 <名字> 或 @某人 查B40
 b50 <名字> 或 @某人 查B50
 我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
@@ -104,7 +105,7 @@ async def dx_help(bot, ev: CQEvent):
 
 
 @sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
-async def dx_help(bot, ev: CQEvent):
+async def dx_github(bot, ev: CQEvent):
     await bot.send(ev, f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', at_sender=True)
 
 
@@ -249,56 +250,122 @@ async def day_mai(bot, ev: CQEvent):
     await bot.send(ev, msg, at_sender=True)
 
 
+def get_music_aliases():
+    _music_aliases = defaultdict(list)
+    _music_aliases_reverse = defaultdict(list)
+    with open(os.path.join(static, 'aliases.csv'), 'r', encoding='utf-8') as f:
+        _music_aliases_lines = f.readlines()
+    for l in _music_aliases_lines:
+        arr = l.strip().split('\t')
+        for i in range(len(arr)):
+            if arr[i] != '':
+                _music_aliases[arr[i].lower()].append(arr[0])
+                _music_aliases_reverse[arr[0]].append(arr[i].lower())
+    return _music_aliases, _music_aliases_reverse, _music_aliases_lines
+
+
 music_aliases = defaultdict(list)
-f = open(os.path.join(static, 'aliases.csv'), 'r', encoding='utf-8')
-tmp = f.readlines()
-f.close()
-for t in tmp:
-    arr = t.strip().split('\t')
-    for i in range(len(arr)):
-        if arr[i] != '':
-            music_aliases[arr[i].lower()].append(arr[0])
+music_aliases_reverse = defaultdict(list)
+music_aliases_lines = []
+music_aliases, music_aliases_reverse, music_aliases_lines = get_music_aliases()
 
 
 @sv.on_suffix(['是什么歌', '是啥歌'])
 async def what_song(bot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip().lower()
     if name not in music_aliases:
-        await bot.finish(ev, '未找到此歌曲\n舞萌 DX 歌曲别名收集计划：https://docs.qq.com/sheet/DQ0pvUHh6b1hjcGpl', at_sender=True)
+        await bot.finish(ev, '未找到此歌曲\n可以使用 添加别称 指令给该乐曲添加别名', at_sender=True)
     result = music_aliases[name]
     if len(result) == 1:
         music = total_list.by_title(result[0])
-        await bot.send(ev, '您要找的是不是：' + random_music(music), at_sender=True)
+        if music:
+            await bot.send(ev, '您要找的是不是：' + random_music(music), at_sender=True)
+        else:
+            await bot.send(ev, '这首歌可能消失了呢...', at_sender=True)
     else:
         msg = '\n'.join(result)
         await bot.send(ev, f'您要找的可能是以下歌曲中的其中一首：\n{msg}', at_sender=True)
 
 
-@sv.on_suffix('有什么别称')
+@sv.on_suffix(['有什么别称', '有什么别名'])
 async def how_song(bot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip().lower()
-    if name.isdigit():
+    titles = []
+    if name.isdigit() and name not in ['9', '135']:
         music = total_list.by_id(name)
         if music:
-            title = music_aliases[music.title.lower()]
-        else:
-            await bot.finish(ev, '未找到此歌曲', at_sender=True)
-    else:
+            titles = music_aliases[music.title.lower()]
+    if not titles:
         if name not in music_aliases:
+            await bot.finish(ev, '未找到此歌曲\n可以使用 添加别称 指令给该乐曲添加别名', at_sender=True)
+        else:
+            titles = music_aliases[name]
+    aliases = []
+    for t in titles:
+        aliases.extend(music_aliases_reverse[t])
+    if len(titles) == 0 or len(aliases) == 1:
+        await bot.finish(ev, '该曲目没有别名', at_sender=True)
+    msg = f'该曲目有以下别名：\n'
+    msg += '\n'.join(aliases)
+    await bot.send(ev, msg, at_sender=True)
+
+
+@sv.on_rex(r'^(.+)\s?(添加|增加|增添|删除|删去|去除)别(称|名)\s?(.+)$')
+async def add_aliase(bot, ev: CQEvent):
+    global music_aliases, music_aliases_reverse, music_aliases_lines
+    match = ev['match']
+    is_ad = priv.check_priv(ev, priv.ADMIN)
+    if not is_ad:
+        await bot.finish(ev, '仅允许管理员修改歌曲别名')
+    name = match.group(1).strip().lower()
+    titles = []
+    music = None
+    if name.isdigit() and name not in ['9', '135']:
+        music = total_list.by_id(name)
+        if music:
+            titles = music_aliases[music.title.lower()]
+    if not titles:
+        if name not in music_aliases and not music:
             await bot.finish(ev, '未找到此歌曲', at_sender=True)
-        title = music_aliases[name]
-    result = []
-    for key, value in music_aliases.items():
-        for t in title:
-            if t in value and key not in result:
-                result.append(key)
-    if len(result) == 0 or len(result) == 1:
-        await bot.finish(ev, '该曲目没有别称', at_sender=True)
-    else:
-        msg = f'该曲目有以下别称：\n'
-        for r in result:
-            msg += f'{r}\n'
-        await bot.send(ev, msg, at_sender=True)
+        elif name in music_aliases:
+            titles = music_aliases[name]
+    if len(titles) > 1:
+        await bot.finish(ev, '匹配到多首曲目，请缩小搜索范围', at_sender=True)
+
+    def write_aliases_file(text):
+        global music_aliases, music_aliases_reverse, music_aliases_lines
+        with open(os.path.join(static, 'aliases.csv'), 'w', encoding='utf-8') as f:
+            f.write(text)
+        music_aliases, music_aliases_reverse, music_aliases_lines = get_music_aliases()
+
+    addition = match.group(4).strip()
+    if match.group(2) in ['删除', '删去', '去除']:
+        if len(titles) == 0 or addition.lower() not in music_aliases_reverse[titles[0]][1:]:
+            await bot.finish(ev, f'该曲目无此别称', at_sender=True)
+        else:
+            for i, l in enumerate(music_aliases_lines):
+                if titles[0] in l:
+                    music_aliases_lines[i] = music_aliases_lines[i].replace(f'\t{addition}', '')
+            write_aliases_file(''.join(music_aliases_lines))
+            msg = '\n'.join(music_aliases_reverse[titles[0]][1:])
+            await bot.send(ev, f'操作成功，{titles[0]}有以下别名：\n{msg}', at_sender=True)
+    if match.group(2) in ['添加', '增加', '增添']:
+        if len(titles) == 0:
+            music = total_list.by_id(name)
+            write_aliases_file(''.join(music_aliases_lines) + f'\n{music.title}\t{addition}')
+            msg = '\n'.join(music_aliases_reverse[music.title][1:])
+            await bot.send(ev, f'操作成功，{music.title}有以下别名：\n{msg}', at_sender=True)
+        else:
+            if addition.lower() in music_aliases_reverse[titles[0]][1:]:
+                await bot.finish(ev, f'{titles[0]}已有别名{addition}', at_sender=True)
+            else:
+                for i, l in enumerate(music_aliases_lines):
+                    if titles[0] in l:
+                        ending = '\n' if l[-1] == '\n' else ''
+                        music_aliases_lines[i] = f'{l.strip()}\t{addition}{ending}'
+                write_aliases_file(''.join(music_aliases_lines))
+                msg = '\n'.join(music_aliases_reverse[titles[0]][1:])
+                await bot.send(ev, f'操作成功，{titles[0]}有以下别名：\n{msg}', at_sender=True)
 
 
 @sv.on_prefix('分数线')
@@ -831,7 +898,7 @@ async def guess_music(bot, ev: CQEvent):
     guess_dict[gid] = guess
     guess_time_dict[gid] = time.time()
     state: State_T = {'gid': gid, 'guess_object': guess, 'cycle': 0}
-    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别称（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
+    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别名（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
     await guess_music_loop(bot, ev, state)
 
 
@@ -1231,7 +1298,7 @@ async def arcade_person(bot, ev: CQEvent):
         await bot.send(ev, '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
 
 
-@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', '几卡'])
+@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
 async def arcade_query_person(bot, ev: CQEvent):
     gid = ev.group_id
     arg = ev.message.extract_plain_text().strip().lower()
