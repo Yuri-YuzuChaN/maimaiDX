@@ -1298,7 +1298,7 @@ async def arcade_person(bot, ev: CQEvent):
         await bot.send(ev, '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
 
 
-@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡', 'jk'])
+@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
 async def arcade_query_person(bot, ev: CQEvent):
     gid = ev.group_id
     arg = ev.message.extract_plain_text().strip().lower()
