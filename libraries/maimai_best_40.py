@@ -3,7 +3,7 @@ import asyncio
 import os
 import math
 import numpy as np
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 from io import BytesIO
 from hoshino.config.__bot__ import NICKNAME
 
@@ -242,7 +242,7 @@ class DrawBest(object):
             tempDraw.polygon(levelTriagle, Color[chartInfo.diff])
             font = ImageFont.truetype(titleFontName, 16 if not self.b50 else 14, encoding='utf-8')
             title = chartInfo.title
-            if self._coloumWidth(title) > 15 if not self.b50 else 13:
+            if self._coloumWidth(title) > (15 if not self.b50 else 13):
                 title = self._changeColumnWidth(title, 14 if not self.b50 else 12) + '...'
             tempDraw.text((8, 8), title, 'white', font)
             font = ImageFont.truetype(titleFontName, 14 if not self.b50 else 12, encoding='utf-8')
@@ -291,7 +291,7 @@ class DrawBest(object):
             tempDraw.polygon(levelTriagle, Color[chartInfo.diff])
             font = ImageFont.truetype(titleFontName, 16 if not self.b50 else 14, encoding='utf-8')
             title = chartInfo.title
-            if self._coloumWidth(title) > 15 if not self.b50 else 13:
+            if self._coloumWidth(title) > (15 if not self.b50 else 13):
                 title = self._changeColumnWidth(title, 14 if not self.b50 else 12) + '...'
             tempDraw.text((8, 8), title, 'white', font)
             font = ImageFont.truetype(titleFontName, 14 if not self.b50 else 12, encoding='utf-8')
@@ -448,7 +448,7 @@ async def get_player_data(payload: Dict):
         return player_data, 0
 
 
-async def generate(payload: Dict) -> (Optional[Image.Image], bool):
+async def generate(payload: Dict) -> Union[Optional[Image.Image], bool]:
     obj, success = await get_player_data(payload)
     if success != 0: return None, success
     qqId = None
