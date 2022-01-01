@@ -409,7 +409,7 @@ class DrawBest(object):
 def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
     baseRa = 22.4 if spp else 14.0
     if achievement < 50:
-        baseRa = 5.0 if spp else 0.0
+        baseRa = 7.0 if spp else 0.0
     elif achievement < 60:
         baseRa = 8.0 if spp else 5.0
     elif achievement < 70:
