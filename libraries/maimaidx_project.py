@@ -610,7 +610,7 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> str:
                         result = a
                         break
                 if not result:
-                    msg = '没有这样的机厅哦'
+                    return '没有这样的机厅哦'
             else:
                 empty_name = True
         else:
@@ -648,3 +648,5 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> str:
             msg = '请勿乱玩bot，恼！'
     else:
         msg = '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅'
+
+    return msg
