@@ -1,17 +1,17 @@
 # Author: xyb, Diving_Fish
-import asyncio
-import os
-import math
 import numpy as np
-from typing import Optional, Dict, List, Union
+from typing import Dict, List, Union
 from io import BytesIO
-from hoshino.config.__bot__ import NICKNAME
-
-import requests
-import aiohttp
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from .maimaidx_music import total_list
+
+from hoshino.config import NICKNAME
+from hoshino.typing import MessageSegment
+from .image import image_to_base64
+from .maimaidx_api_data import get_player_data
+from .maimaidx_music import mai
 from .. import static
+
+import os, math, aiohttp
 
 scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.lower().split(' ')
 comboRank = 'FC FC+ AP AP+'.lower().split(' ')
@@ -23,7 +23,6 @@ levelList = '1 2 3 4 5 6 7 7+ 8 8+ 9 9+ 10 10+ 11 11+ 12 12+ 13 13+ 14 14+ 15'.s
 achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 adobe = os.path.join(static, 'adobe_simhei.otf')
 msyh = os.path.join(static, 'msyh.ttc')
-
 
 class ChartInfo(object):
     def __init__(self, idNum: str, diff: int, tp: str, achievement: float, ra: int, comboId: int, scoreId: int,
@@ -51,20 +50,20 @@ class ChartInfo(object):
     @classmethod
     def from_json(cls, data):
         rate = ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 'sp', 'ss', 'ssp', 'sss', 'sssp']
-        ri = rate.index(data["rate"])
+        ri = rate.index(data['rate'])
         fc = ['', 'fc', 'fcp', 'ap', 'app']
-        fi = fc.index(data["fc"])
+        fi = fc.index(data['fc'])
         return cls(
-            idNum=total_list.by_title(data["title"]).id,
-            title=data["title"],
-            diff=data["level_index"],
-            ra=data["ra"],
-            ds=data["ds"],
-            comboId=fi,
-            scoreId=ri,
-            lv=data["level"],
-            achievement=data["achievements"],
-            tp=data["type"]
+            idNum = mai.total_list.by_title(data['title']).id,
+            title = data['title'],
+            diff = data['level_index'],
+            ra = data['ra'],
+            ds = data['ds'],
+            comboId = fi,
+            scoreId = ri,
+            lv = data['level'],
+            achievement = data['achievements'],
+            tp = data['type']
         )
 
 
@@ -228,7 +227,7 @@ class DrawBest(object):
         for num in range(0, len(sdBest)):
             i = num // 5 if not self.b50 else num // 7
             j = num % 5 if not self.b50 else num % 7
-            chartInfo = sdBest[num]
+            chartInfo: ChartInfo = sdBest[num]
             pngPath = os.path.join(self.cover_dir, f'{chartInfo.idNum}.jpg')
             if not os.path.exists(pngPath):
                 pngPath = os.path.join(self.cover_dir, '1000.png')
@@ -336,8 +335,6 @@ class DrawBest(object):
         if self.qqId:
             async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
                 qqLogo = Image.open(BytesIO(await resp.read()))
-            # resp = requests.get(f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100')
-            # qqLogo = Image.open(BytesIO(resp.content))
             borderImg1 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             borderImg2 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             self._drawRoundRec(borderImg1, (255, 0, 80), 0, 0, 200, 200, 40)
@@ -399,12 +396,10 @@ class DrawBest(object):
         sdImg = Image.open(os.path.join(self.pic_dir, 'UI_RSL_MBase_Parts_02.png')).convert('RGBA')
         self.img.paste(sdImg, (758 if not self.b50 else 865, 65), mask=sdImg.split()[3])
 
-        # self.img.show()
         return self.img
 
     def getDir(self):
         return self.img
-
 
 def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
     baseRa = 22.4 if spp else 14.0
@@ -437,20 +432,10 @@ def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
 
     return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
 
-
-async def get_player_data(payload: Dict):
-    async with aiohttp.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload) as resp:
-        if resp.status == 400:
-            return None, 400
-        elif resp.status == 403:
-            return None, 403
-        player_data = await resp.json()
-        return player_data, 0
-
-
-async def generate(payload: Dict) -> Union[Optional[Image.Image], bool]:
-    obj, success = await get_player_data(payload)
-    if success != 0: return None, success
+async def generate(payload: dict) -> Union[MessageSegment, str]:
+    obj = await get_player_data('best', payload)
+    if isinstance(obj, str):
+        return obj
     qqId = None
     b50 = False
     if 'qq' in payload:
@@ -462,12 +447,12 @@ async def generate(payload: Dict) -> Union[Optional[Image.Image], bool]:
         sd_best = BestList(25)
     dx_best = BestList(15)
 
-    dx: List[Dict] = obj["charts"]["dx"]
-    sd: List[Dict] = obj["charts"]["sd"]
+    dx: List[Dict] = obj['charts']['dx']
+    sd: List[Dict] = obj['charts']['sd']
     for c in sd:
         sd_best.push(ChartInfo.from_json(c))
     for c in dx:
         dx_best.push(ChartInfo.from_json(c))
-    draw_best = DrawBest(sd_best, dx_best, obj["nickname"], obj["rating"] + obj["additional_rating"], obj["rating"], qqId, b50)
+    draw_best = DrawBest(sd_best, dx_best, obj['nickname'], obj['rating'] + obj['additional_rating'], obj['rating'], qqId, b50)
     pic = await draw_best.draw()
-    return pic, 0
+    return MessageSegment.image(image_to_base64(pic))

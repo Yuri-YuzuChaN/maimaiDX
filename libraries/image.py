@@ -7,7 +7,7 @@ path = os.path.join(static, 'high_eq_image.png')
 fontpath = os.path.join(static, 'msyh.ttc')
 
 
-def draw_text(img_pil, text, offset_x):
+def draw_text(img_pil: Image.Image, text: str, offset_x: float):
     draw = ImageDraw.Draw(img_pil)
     font = ImageFont.truetype(fontpath, 48)
     width, height = draw.textsize(text, font)
@@ -21,7 +21,7 @@ def draw_text(img_pil, text, offset_x):
     draw.text((x + offset_x, 360), text, font=font, fill=(255, 255, 255, 255))
 
 
-def text_to_image(text):
+def text_to_image(text: str) -> Image.Image:
     font = ImageFont.truetype(fontpath, 24)
     padding = 10
     margin = 4
@@ -40,9 +40,9 @@ def text_to_image(text):
     return i
 
 
-def image_to_base64(img, format='PNG'):
+def image_to_base64(img: Image.Image, format='PNG') -> str:
     output_buffer = BytesIO()
     img.save(output_buffer, format)
     byte_data = output_buffer.getvalue()
-    base64_str = base64.b64encode(byte_data)
-    return base64_str
+    base64_str = base64.b64encode(byte_data).decode()
+    return 'base64://' + base64_str
