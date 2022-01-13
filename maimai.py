@@ -138,7 +138,7 @@ async def search_song(bot: NoneBot, ev: CQEvent):
     if len(result) == 0:
         await bot.send(ev, '没有找到这样的乐曲。', at_sender=True)
     elif len(result) < 50:
-        search_result = ''
+        search_result = '\n'
         for music in sorted(result, key=lambda i: int(i['id'])):
             search_result += f'{music["id"]}. {music["title"]}\n'
         await bot.send(ev, search_result.strip(), at_sender=True)
