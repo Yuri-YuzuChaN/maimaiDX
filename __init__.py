@@ -1,6 +1,6 @@
 import os, json
 from typing import List, Dict
-from hoshino import new_logger
+from hoshino.log import new_logger
 
 log = new_logger('maimaiDX')
 
