@@ -267,20 +267,19 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
         except:
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
 
-@sv.on_rex(r'^[Bb]([45])0\s?(.+)?$')
+@sv.on_prefix(['b40', 'b50', 'B40', 'B50'])
 async def best_40(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
-    gid = ev.group_id
-    match: Match[str] = ev['match']
+    args: str = ev.message.extract_plain_text().strip()
     if ev.message[0].type == 'at':
         qqid = int(ev.message[0].data['qq'])
 
-    if match.group(2):
-        payload = {'username': match.group(2).strip()}
+    if args:
+        payload = {'username': args}
     else:
         payload = {'qq': qqid}
 
-    if match.group(1) == '5':
+    if ev.prefix.lower() == 'b50':
         payload['b50'] = True
 
     data = await generate(payload)
@@ -292,8 +291,9 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
-    if ev.message[0].type == 'at':
-        qqid = int(ev.message[0].data['qq'])
+    for i in ev.message:
+        if i.type == 'at':
+            qqid = int(i.data['qq'])
 
     if match.group(1) and match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
@@ -311,8 +311,9 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
-    if ev.message[0].type == 'at':
-        qqid = int(ev.message[0].data['qq'])
+    for i in ev.message:
+        if i.type == 'at':
+            qqid = int(i.data['qq'])
 
     if f'{match.group(1)}{match.group(2)}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
@@ -335,8 +336,9 @@ async def level_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
-    if ev.message[0].type == 'at':
-        qqid = int(ev.message[0].data['qq'])
+    for i in ev.message:
+        if i.type == 'at':
+            qqid = int(i.data['qq'])
 
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
@@ -360,8 +362,9 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
-    if ev.message[0].type == 'at':
-        qqid = int(ev.message[0].data['qq'])
+    for i in ev.message:
+        if i.type == 'at':
+            qqid = int(i.data['qq'])
         
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)

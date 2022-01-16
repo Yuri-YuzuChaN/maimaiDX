@@ -595,7 +595,7 @@ def modify(operate: str, arg: str, input_dict: dict) -> str:
         return f'操作失败，错误代码：{e}'
     return '修改成功！' + msg
 
-def arcade_person_data(match: Match, gid: int, nickname: str) -> str:
+def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool]:
     result = None
     empty_name = False
     if match.group(1):
@@ -622,9 +622,9 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> str:
                     result = a
                     break
             if not result:
-                return
+                return False
     else:
-        return
+        return False
     if not result or empty_name:
         for a in arcades:
             if gid in a['group']:
