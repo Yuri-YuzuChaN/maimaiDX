@@ -350,8 +350,8 @@ Master剩余{len(song_remain_master)}首
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
-                if len(song_remain) > 10:
-                    msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
+            if len(song_remain) > 10:
+                msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
             msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
     else:
