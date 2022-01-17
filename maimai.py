@@ -299,6 +299,7 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     if match.group(1) and match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
     else:
         payload = {'qq': qqid}
@@ -321,6 +322,7 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     if f'{match.group(1)}{match.group(2)}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
     else:
         payload = {'qq': qqid}
@@ -352,6 +354,7 @@ async def level_process(bot: NoneBot, ev: CQEvent):
     if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
     else:
         payload = {'qq': qqid}
@@ -376,6 +379,7 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
     else:
         payload = {'qq': qqid}
