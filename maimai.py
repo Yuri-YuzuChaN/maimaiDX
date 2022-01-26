@@ -271,8 +271,9 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
 async def best_40(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     args: str = ev.message.extract_plain_text().strip()
-    if ev.message[0].type == 'at':
-        qqid = int(ev.message[0].data['qq'])
+    for i in ev.message:
+        if i.type == 'at':
+            qqid = int(i.data['qq'])
 
     if args:
         payload = {'username': args}
@@ -298,10 +299,13 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     if match.group(1) and match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
-        nickname = await bot.get_stranger_info(user_id=qqid)['nickname']
     else:
         payload = {'qq': qqid}
+
+    if qqid != ev.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
         
     data = await rise_score_data(payload, match, nickname)
     await bot.send(ev, data, at_sender=True)
@@ -318,10 +322,13 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     if f'{match.group(1)}{match.group(2)}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
     elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
-        nickname = await bot.get_stranger_info(user_id=qqid)['nickname']
     else:
         payload = {'qq': qqid}
+
+    if qqid != ev.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
     
     if match.group(1) in ['霸', '舞']:
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
@@ -346,11 +353,14 @@ async def level_process(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, '无此评价等级', at_sender=True)
     if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
-    if match.group(3):
+    elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
-        nickname = await bot.get_stranger_info(user_id=qqid)['nickname']
     else:
         payload = {'qq': qqid}
+
+    if qqid != ev.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
 
     payload['version'] = list(set(version for version in plate_to_version.values()))
 
@@ -368,11 +378,14 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
         
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
-    if match.group(3):
+    elif match.group(3):
+        nickname = match.group(3)
         payload = {'username': match.group(3).strip()}
-        nickname = await bot.get_stranger_info(user_id=qqid)['nickname']
     else:
         payload = {'qq': qqid}
+
+    if qqid != ev.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
 
     payload['version'] = list(set(version for version in plate_to_version.values()))
 
