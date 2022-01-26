@@ -115,6 +115,8 @@ def aliases(name: str, match: Match) -> str:
             for i, l in enumerate(mai.music_aliases_lines):
                 if titles[0] in l:
                     mai.music_aliases_lines[i] = mai.music_aliases_lines[i].replace(f'\t{addition}', '')
+                    mai.music_aliases_reverse[titles[0]].remove(addition)
+                    break
             mai.save_aliases(''.join(mai.music_aliases_lines))
             msg = '\n'.join(mai.music_aliases_reverse[titles[0]][1:])
             data = f'操作成功，{titles[0]}有以下别名：\n{msg}'
@@ -132,6 +134,8 @@ def aliases(name: str, match: Match) -> str:
                     if titles[0] in l:
                         ending = '\n' if l[-1] == '\n' else ''
                         mai.music_aliases_lines[i] = f'{l.strip()}\t{addition}{ending}'
+                        mai.music_aliases_reverse[titles[0]].append(addition)
+                        break
                 mai.save_aliases(''.join(mai.music_aliases_lines))
                 msg = '\n'.join(mai.music_aliases_reverse[titles[0]][1:])
                 data = f'操作成功，{titles[0]}有以下别名：\n{msg}'
