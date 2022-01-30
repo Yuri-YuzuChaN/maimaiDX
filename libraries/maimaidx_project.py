@@ -421,12 +421,14 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+            if len(songs) > 10:
+                msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
             msg = f'{appellation}还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！'
     else:
         msg = f'恭喜{appellation}达成{match.group(1)}全谱面{match.group(2).upper()}！'
 
-    return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
+    return msg
 
 async def level_achievement_list_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
     song_list = []
