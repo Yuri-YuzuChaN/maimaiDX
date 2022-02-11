@@ -239,6 +239,7 @@ class MaiMusic:
     def save_aliases(self, data: str):
         with open(aliases_csv, 'w', encoding='utf-8') as f:
             f.write(data)
+        self.aliases()
 
     def guess(self):
         """
