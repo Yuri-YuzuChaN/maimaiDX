@@ -59,7 +59,7 @@ HOLD: {chart['notes'][1]}
 SLIDE: {chart['notes'][2]}
 BREAK: {chart['notes'][3]}
 谱师: {chart['charter']}
-难易度参考: {stats['tag']}'''
+难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
             else:
                 result = f'''{level_name[level_index]} {level}({ds})
 TAP: {chart['notes'][0]}
@@ -68,10 +68,9 @@ SLIDE: {chart['notes'][2]}
 TOUCH: {chart['notes'][3]}
 BREAK: {chart['notes'][4]}
 谱师: {chart['charter']}
-难易度参考: {stats['tag']}'''
+难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
 
-            msg = f'''
-{music["id"]}. {music["title"]}
+            msg = f'''{music["id"]}. {music["title"]}
 {MessageSegment.image(f"https://www.diving-fish.com/covers/{music['id']}.jpg")}
 {result}'''
         except:
