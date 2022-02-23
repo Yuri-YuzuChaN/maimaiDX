@@ -441,7 +441,7 @@ def generateAchievementList(ds: float, spp: bool=False):
             continue
         _achievementList.append(acc)
         c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
-        c_acc = float(f'{math.floor(c_acc * 10000) / 10000 + 0.0001:.4f}')
+        c_acc = math.floor(c_acc * 10000 + 1) / 10000
         if c_acc < achievementList[index + 1]:
             _achievementList.append(c_acc)
     _achievementList.append(100.5)
