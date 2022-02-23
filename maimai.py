@@ -293,7 +293,7 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     nickname = ''
     for i in ev.message:
-        if i.type == 'at':
+        if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
     if match.group(1) and match.group(1) not in levelList:
@@ -316,7 +316,7 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     nickname = ''
     for i in ev.message:
-        if i.type == 'at':
+        if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
     if f'{match.group(1)}{match.group(2)}' == '真将':
@@ -344,7 +344,7 @@ async def level_process(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     nickname = ''
     for i in ev.message:
-        if i.type == 'at':
+        if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
     if match.group(1) not in levelList:
@@ -373,7 +373,7 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     nickname = ''
     for i in ev.message:
-        if i.type == 'at':
+        if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
         
     if match.group(1) not in levelList:

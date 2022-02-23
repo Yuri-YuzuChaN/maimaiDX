@@ -21,6 +21,8 @@ sync_rank = 'fs fsp fsd fsdp'.split(' ')
 diffs = 'Basic Advanced Expert Master Re:Master'.split(' ')
 levelList = '1 2 3 4 5 6 7 7+ 8 8+ 9 9+ 10 10+ 11 11+ 12 12+ 13 13+ 14 14+ 15'.split(' ')
 achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
+BaseRa = [0.0, 5.0, 6.0, 7.0, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13.0, 13.2, 13.5, 14.0]
+BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 adobe = os.path.join(static, 'adobe_simhei.otf')
 msyh = os.path.join(static, 'msyh.ttc')
 
@@ -431,6 +433,19 @@ def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
         baseRa = 21.6 if spp else 13.5
 
     return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
+
+def generateAchievementList(ds: float, spp: bool=False):
+    _achievementList = []
+    for index, acc in enumerate(achievementList):
+        if index == len(achievementList) - 1:
+            continue
+        _achievementList.append(acc)
+        c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
+        c_acc = float(f'{math.floor(c_acc * 10000) / 10000 + 0.0001:.4f}')
+        if c_acc < achievementList[index + 1]:
+            _achievementList.append(c_acc)
+    _achievementList.append(100.5)
+    return _achievementList
 
 async def generate(payload: dict) -> Union[MessageSegment, str]:
     obj = await get_player_data('best', payload)

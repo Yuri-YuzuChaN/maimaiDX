@@ -12,7 +12,9 @@ from .. import arcades, arcades_json
 import time, json, traceback
 
 level_labels = ['绿', '黄', '红', '紫', '白']
-achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
+realAchievementList = {}
+for acc in [i / 10 for i in range(10, 151)]:
+    realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc)
 plate_to_version = {
     '初': 'maimai',
     '真': 'maimai PLUS',
@@ -170,29 +172,33 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
     player_sd_id_list = [[s[0], s[1]] for s in player_sd_list]
 
     for music in mai.total_list:
-        for i, achievement in enumerate(achievementList):
-            for j, ds in enumerate(music.ds):
-                if match.group(1) and music['level'][j] != match.group(1): continue
+        for i, ds in enumerate(music.ds):
+            for achievement in realAchievementList[f'{ds:.1f}']:
+                if match.group(1) and music['level'][i] != match.group(1): continue
+                if f'{achievement:.1f}' == '100.5':
+                    index_score = 12
+                else:
+                    index_score = [index for index, acc in enumerate(achievementList[:-1]) if acc <= achievement < achievementList[index + 1]][0]
                 if music.is_new:
                     music_ra = computeRa(ds, achievement)
                     if music_ra < dx_ra_lowest: continue
-                    if [int(music.id), j] in player_dx_id_list:
-                        player_ra = player_dx_list[player_dx_id_list.index([int(music.id), j])][2]
-                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
-                            music_dx_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
+                    if [int(music.id), i] in player_dx_id_list:
+                        player_ra = player_dx_list[player_dx_id_list.index([int(music.id), i])][2]
+                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
+                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                     else:
-                        if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_dx_list:
-                            music_dx_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
+                        if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
+                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                 else:
                     music_ra = computeRa(ds, achievement)
                     if music_ra < sd_ra_lowest: continue
-                    if [int(music.id), j] in player_sd_id_list:
-                        player_ra = player_sd_list[player_sd_id_list.index([int(music.id), j])][2]
-                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
-                            music_sd_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
+                    if [int(music.id), i] in player_sd_id_list:
+                        player_ra = player_sd_list[player_sd_id_list.index([int(music.id), i])][2]
+                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
+                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                     else:
-                        if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), j, music_ra] not in player_sd_list:
-                            music_sd_list.append([music, diffs[j], ds, achievement, scoreRank[i + 1].upper(), music_ra, music.stats[j].difficulty])
+                        if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
+                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
 
     if len(music_dx_list) == 0 and len(music_sd_list) == 0:
         return '没有找到这样的乐曲'
