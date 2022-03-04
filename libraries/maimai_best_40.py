@@ -203,6 +203,62 @@ class DrawBest(object):
         elif self.playerRating < (8500 if not self.b50 else 15000):
             num = '09'
         return f'UI_CMN_DXRating_S_{num}.png'
+    
+    def _findMatchLevel(self) -> str:
+        addrating = self.rankRating
+        t = "01"
+        if addrating >= 0 and addrating < 250:
+            t = "01"
+        elif addrating >= 250 and addrating < 500:
+            t = "02"
+        elif addrating >= 500 and addrating < 750:
+            t = "03"
+        elif addrating >= 750 and addrating < 1000:
+            t = "04"
+        elif addrating >= 1000 and addrating < 1200:
+            t = "05"
+        elif addrating >= 1200 and addrating < 1400:
+            t = "06"
+        elif addrating >= 1400 and addrating < 1500:
+            t = "07"
+        elif addrating >= 1500 and addrating < 1600:
+            t = "08"
+        elif addrating >= 1600 and addrating < 1700:
+            t = "09"
+        elif addrating >= 1700 and addrating < 1800:
+            t = "10"
+        elif addrating >= 1800 and addrating < 1850:
+            t = "11"
+        elif addrating >= 1850 and addrating < 1900:
+            t = "12"
+        elif addrating >= 1900 and addrating < 1950:
+            t = "13"
+        elif addrating >= 1950 and addrating < 2000:
+            t = "14"
+        elif addrating >= 2000 and addrating < 2010:
+            t = "15"
+        elif addrating >= 2010 and addrating < 2020:
+            t = "16"
+        elif addrating >= 2020 and addrating < 2030:
+            t = "17"
+        elif addrating >= 2030 and addrating < 2040:
+            t = "18"
+        elif addrating >= 2040 and addrating < 2050:
+            t = "19"
+        elif addrating >= 2050 and addrating < 2060:
+            t = "20"
+        elif addrating >= 2060 and addrating < 2070:
+            t = "21"
+        elif addrating >= 2070 and addrating < 2080:
+            t = "22"
+        elif addrating >= 2080 and addrating < 2090:
+            t = "23"
+        elif addrating >= 2090 and addrating < 2100:
+            t = "24"
+        elif addrating >= 2100:
+            t = "25"
+
+        return f'UI_CMN_MatchLevel_{t}.png'
 
     def _drawRating(self, ratingBaseImg: Image.Image):
         COLOUMS_RATING = [86, 100, 115, 130, 145]
@@ -355,6 +411,10 @@ class DrawBest(object):
         ratingBaseImg = self._drawRating(ratingBaseImg)
         ratingBaseImg = self._resizePic(ratingBaseImg, 0.85)
         self.img.paste(ratingBaseImg, (240 if not self.qqId else 140, 8), mask=ratingBaseImg.split()[3])
+
+        matchLevelBaseImg = Image.open(os.path.join(self.pic_dir, self._findMatchLevel())).convert('RGBA')
+        matchLevelBaseImg = self._resizePic(matchLevelBaseImg, 0.45)
+        self.img.paste(matchLevelBaseImg, (400 if not self.qqId else 300, 8), mask=matchLevelBaseImg.split()[3])
 
         namePlateImg = Image.open(os.path.join(self.pic_dir, 'UI_TST_PlateMask.png')).convert('RGBA')
         namePlateImg = namePlateImg.resize((285, 40))
