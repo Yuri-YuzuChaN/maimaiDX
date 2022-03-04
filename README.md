@@ -7,7 +7,7 @@
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
-2. ~~下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` ，[下载链接](https://www.diving-fish.com/maibot/static.zip)~~
+2. ~~下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` ，[下载链接](https://www.diving-fish.com/maibot/static.zip)~~  
    修改过的资源文件（包含段位图片）[下载链接](https://wwa.lanzouq.com/iYjEy010dlne)
 3. pip以下依赖：`pillow`, `retrying`
 4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
