@@ -57,15 +57,21 @@ def random_music(music: Music) -> str:
 {'/'.join(list(map(str, music.ds)))}'''
     return msg
 
-def song_level(ds1: float, ds2: float = None) -> list:
+def song_level(ds1: float, ds2: float,stats1: str = None,stats2: str = None) -> list:
     result = []
-    if ds2:
-        music_data = mai.total_list.filter(ds=(ds1, ds2))
+    music_data = mai.total_list.filter(ds=(ds1, ds2))
+    if stats1:
+        if stats2:
+            stats1 = stats1 + ' ' + stats2
+            stats1 = stats1.title()
+        for music in sorted(music_data, key=lambda i: int(i['id'])):
+            for i in music.diff:
+                if music.stats[i].difficulty == stats1:
+                    result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     else:
-        music_data = mai.total_list.filter(ds=ds1)
-    for music in sorted(music_data, key=lambda i: int(i['id'])):
-        for i in music.diff:
-            result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
+        for music in sorted(music_data, key=lambda i: int(i['id'])):
+            for i in music.diff:
+                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
 
 @on_startup
@@ -88,12 +94,22 @@ async def dx_github(bot: NoneBot, ev: CQEvent):
 @sv.on_prefix(['定数查歌', 'search base'])
 async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().split()
-    if len(args) > 2 or len(args) == 0:
+    if len(args) > 4 or len(args) == 0:
         await bot.finish(ev, '命令格式为\n定数查歌 <定数>\n定数查歌 <定数下限> <定数上限>', at_sender=True)
     if len(args) == 1:
-        result = song_level(float(args[0]))
+        result = song_level(float(args[0]), float(args[0]))
+    elif len(args) == 2:
+        try:
+            result = song_level(float(args[0]), float(args[1]))
+        except:
+            result = song_level(float(args[0]), float(args[0]), str(args[1]))
+    elif len(args) == 3:
+        try:
+            result = song_level(float(args[0]), float(args[1]), str(args[2]))
+        except:
+            result = song_level(float(args[0]), float(args[0]), str(args[1]), str(args[2]))
     else:
-        result = song_level(float(args[0]), float(args[1]))
+        result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
     if len(result) >= 60:
         await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
@@ -137,6 +153,8 @@ async def search_song(bot: NoneBot, ev: CQEvent):
     result = mai.total_list.filter(title_search=name)
     if len(result) == 0:
         await bot.send(ev, '没有找到这样的乐曲。', at_sender=True)
+    elif len(result) == 1:
+        await bot.send(ev, random_music(result.random()), at_sender=True)
     elif len(result) < 50:
         search_result = ''
         for music in sorted(result, key=lambda i: int(i['id'])):
