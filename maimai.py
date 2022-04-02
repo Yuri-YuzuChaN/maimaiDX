@@ -57,7 +57,7 @@ def random_music(music: Music) -> str:
 {'/'.join(list(map(str, music.ds)))}'''
     return msg
 
-def song_level(ds1: float, ds2: float,stats1: str = None,stats2: str = None) -> list:
+def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
     music_data = mai.total_list.filter(ds=(ds1, ds2))
     if stats1:
