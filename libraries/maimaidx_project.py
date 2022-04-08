@@ -83,7 +83,7 @@ BREAK: {chart['notes'][4]}
             music = mai.total_list.by_id(name)
             msg = f'''{music["id"]}. {music["title"]}
 {MessageSegment.image(f"https://www.diving-fish.com/covers/{music['id']}.jpg")}
-艺术家: {music['basic_info']['artist']}
+艺术家: {music['basic_info']['artist']} 
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}
 版本: {music['basic_info']['from']}
