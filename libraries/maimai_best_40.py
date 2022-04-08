@@ -412,9 +412,10 @@ class DrawBest(object):
         ratingBaseImg = self._resizePic(ratingBaseImg, 0.85)
         self.img.paste(ratingBaseImg, (240 if not self.qqId else 140, 8), mask=ratingBaseImg.split()[3])
 
-        matchLevelBaseImg = Image.open(os.path.join(self.pic_dir, self._findMatchLevel())).convert('RGBA')
-        matchLevelBaseImg = self._resizePic(matchLevelBaseImg, 0.45)
-        self.img.paste(matchLevelBaseImg, (400 if not self.qqId else 300, 8), mask=matchLevelBaseImg.split()[3])
+        if not self.b50:
+            matchLevelBaseImg = Image.open(os.path.join(self.pic_dir, self._findMatchLevel())).convert('RGBA')
+            matchLevelBaseImg = self._resizePic(matchLevelBaseImg, 0.45)
+            self.img.paste(matchLevelBaseImg, (400 if not self.qqId else 300, 8), mask=matchLevelBaseImg.split()[3])
 
         namePlateImg = Image.open(os.path.join(self.pic_dir, 'UI_TST_PlateMask.png')).convert('RGBA')
         namePlateImg = namePlateImg.resize((285, 40))
