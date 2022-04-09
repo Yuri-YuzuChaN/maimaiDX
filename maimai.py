@@ -66,7 +66,7 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
             stats1 = stats1.title()
         for music in sorted(music_data, key=lambda i: int(i['id'])):
             for i in music.diff:
-                if music.stats[i].difficulty == stats1:
+                if music.stats[i].difficulty.lower() == stats1.lower():
                     result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     else:
         for music in sorted(music_data, key=lambda i: int(i['id'])):
@@ -110,6 +110,8 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
             result = song_level(float(args[0]), float(args[0]), str(args[1]), str(args[2]))
     else:
         result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
+    if not result:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
     if len(result) >= 60:
         await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
