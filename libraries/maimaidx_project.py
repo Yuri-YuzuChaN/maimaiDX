@@ -643,16 +643,17 @@ def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool
                 break
     if result:
         msg = ''
+        num = match.group(3) if match.group(3).isdigit() else 1
         if match.group(2) in ['设置', '设定', '＝', '=']:
-            msg = modify('modify', 'person_set', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_set', {'name': result['name'], 'person': num,
                                                   'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                   'by': nickname})
         elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
-            msg = modify('modify', 'person_add', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_add', {'name': result['name'], 'person': num,
                                                   'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                   'by': nickname})
         elif match.group(2) in ['减少', '降低', '减', '－', '-']:
-            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': match.group(3),
+            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': num,
                                                     'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                                                     'by': nickname})
         if msg and '一次最多改变' in msg:

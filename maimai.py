@@ -677,12 +677,12 @@ async def search_arcade(bot: NoneBot, ev: CQEvent):
     else:
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
-@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+)(人|卡)?$')
+@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
 async def arcade_person(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     gid = ev.group_id
     nickname = ev.sender['nickname']
-    if not match.group(3).isdigit():
+    if not match.group(3).isdigit() and match.group(3) not in ['＋', '+', '－', '-']:
         await bot.finish(ev, '请输入正确的数字', at_sender=True)
 
     msg = arcade_person_data(match, gid, nickname)
