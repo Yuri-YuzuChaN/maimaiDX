@@ -19,13 +19,17 @@ sv_help = '''
 今日mai,今日舞萌,今日运势 查看今天的舞萌运势
 XXXmaimaiXXX什么 随机一首歌
 随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
-查歌<乐曲标题的一部分> 查询符合条件的乐曲
+[查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
 [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
 <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
 <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
 <id/歌曲别称> [添加|增加|增添|删除|删去|去除]别称 <歌曲别名> 添加或删除歌曲别名
-定数查歌 <定数>  查询定数对应的乐曲
-定数查歌 <定数下限> <定数上限>
+[定数查歌/search base] <定数>  查询定数对应的乐曲
+[定数查歌/search base] <定数下限> <定数上限>
+[bpm查歌/search bpm] <定数>  查询bpm对应的乐曲
+[bpm查歌/search bpm] <bpm下限> <bpm上限>
+[曲师查歌/search artist] <曲师名字的一部分>  查询曲师对应的乐曲
+[谱师查歌/search charter] <谱师名字的一部分>  查询名字对应的乐曲
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别名
@@ -117,6 +121,64 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
     msg = ''
     for i in result:
         msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['bpm查歌', 'search bpm'])
+async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    args = ev.message.extract_plain_text().strip().split()
+    if len(args) == 1:
+        music_data = mai.total_list.filter(bpm=int(args[0]))
+    elif len(args) == 2:
+        music_data = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
+    else:
+        await bot.finish(ev, '命令格式为\nbpm查歌 <bpm>\nbpm查歌 <bpm下限> <bpm上限>', at_sender=True)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    if len(music_data) >= 100:
+        await bot.finish(ev, f'结果过多（{len(music_data)} 条），请缩小搜索范围', at_sender=True)
+    msg = ''
+    for m in music_data:
+        msg += f'{m.id}. {m.title} bpm:{m.bpm}\n'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['曲师查歌', 'search artist'])
+async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    name: str = ev.message.extract_plain_text().strip()
+    if not name:
+        return
+    music_data = mai.total_list.filter(artist_search=name)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    if len(music_data) >= 100:
+        await bot.finish(ev, f'结果过多（{len(music_data)} 条），请缩小搜索范围', at_sender=True)
+    msg = ''
+    for m in music_data:
+        msg += f'{m.id}. {m.title} {m.artist}\n'
+    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+
+@sv.on_prefix(['谱师查歌', 'search charter'])
+async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if gid in guess_dict:
+        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
+    name: str = ev.message.extract_plain_text().strip()
+    if not name:
+        return
+    music_data = mai.total_list.filter(charter_search=name)
+    if not music_data:
+        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+    if len(music_data) >= 100:
+        await bot.finish(ev, f'结果过多（{len(music_data)} 条），请缩小搜索范围', at_sender=True)
+    msg = ''
+    for m in music_data:
+        for d in m.diff:
+            msg += f'{m.id}. {m.title} {diffs[d]} {m.charts[d].charter}\n'
     await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')

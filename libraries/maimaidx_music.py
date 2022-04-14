@@ -11,6 +11,7 @@ from .. import static, aliases_csv
 hot_music_ids = ['17', '56', '62', '66', '70', '71', '100', '101', '107', '109', '115', '117', '122', '143', '187', '188', '189', '193', '198', '199', '200', '201', '204', '223', '226', '227', '229', '230', '233', '258', '261', '268', '269', '282', '283', '295', '299', '315', '322', '324', '327', '337', '339', '348', '360', '364', '365', '366', '374', '379', '381', '384', '386', '387', '388', '389', '390', '399', '400', '411', '417', '419', '421', '422', '426', '427', '431', '432', '438', '439', '446', '447', '448', '456', '457', '462', '464', '465', '467', '471', '488', '490', '492', '494', '495', '496', '507', '508', '510', '511', '513', '520', '521', '531', '532', '535', '540', '541', '542', '548', '552', '553', '555', '556', '561', '566', '567', '568', '571', '573', '574', '580', '581', '587', '589', '592', '603', '606', '610', '614', '621', '625', '626', '627', '628', '631', '632', '643', '646', '647', '648', '649', '655', '664', '670', '672', '673', '674', '682', '688', '689', '690', '691', '693', '694', '699', '700', '701', '705', '707', '708', '709', '710', '711', '717', '719', '720', '725', '726', '731', '736', '738', '740', '741', '742', '746', '750', '756', '757', '759', '760', '763', '764', '766', '771', '772', '773', '777', '779', '781', '782', '786', '789', '791', '793', '794', '796', '797', '798', '799', '802', '803', '806', '809', '812', '815', '816', '818', '820', '823', '825', '829', '830', '832', '833', '834', '835', '836', '837', '838', '839', '840', '841', '844', '848', '849', '850', '852', '853', '10363', '11002', '11003', '11004', '11005', '11006', '11007', '11008', '11010', '11014', '11015', '11016', '11017', '11018', '11019', '11020', '11021', '11022', '11023', '11024', '11025', '11026', '11027', '11028', '11029', '11030', '11031', '11032', '11034', '11035', '11036', '11037', '11038', '11043', '11044', '11045', '11046', '11047', '11048', '11049', '11050', '11051', '11052', '11058', '11059', '11060', '11061', '11064', '11065', '11067', '11069', '11070', '11073', '11075', '11078', '11080', '11081', '11083', '11084', '11085', '11086', '11087', '11088', '11089', '11090', '11091', '11092', '11093', '11094', '11095', '11096', '11097', '11098', '11099', '11101', '11102', '11103', '11104', '11105', '11106', '11107', '11109', '11110', '11113', '11114', '11115', '11116', '11121', '11122', '11123', '11124', '11125', '11126', '11127', '11128', '11129', '11131', '11132', '11133', '11134', '11135', '11136', '11137', '11138', '11139', '11140', '11141', '11142', '11143', '11146', '11147', '11148', '11149', '11150', '11151', '11206']
 cover_dir = os.path.join(static, 'mai', 'cover')
 
+
 def cross(checker: List[Any], elem: Optional[Union[Any, List[Any]]], diff):
     ret = False
     diff_ret = []
@@ -84,7 +85,7 @@ class Chart(Dict):
     hold: Optional[int] = None
     touch: Optional[int] = None
     brk: Optional[int] = None
-    charter: Optional[int] = None
+    charter: Optional[str] = None
 
     def __getattribute__(self, item):
         if item == 'tap':
@@ -129,6 +130,18 @@ class Music(Dict):
         return super().__getattribute__(item)
 
 
+def search_charts(checker: List[Chart], elem: str):
+    ret = False
+    diff_ret = []
+    if not elem or elem is Ellipsis:
+        return True, None
+    for _j, chart in enumerate(checker):
+        if elem.lower() in chart.charter.lower():
+            diff_ret.append(_j)
+            ret = True
+    return ret, diff_ret
+
+
 class MusicList(List[Music]):
     def by_id(self, music_id: str) -> Optional[Music]:
         for music in self:
@@ -150,6 +163,8 @@ class MusicList(List[Music]):
                level: Optional[Union[str, List[str]]] = ...,
                ds: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
                title_search: Optional[str] = ...,
+               artist_search: Optional[str] = ...,
+               charter_search: Optional[str] = ...,
                genre: Optional[Union[str, List[str]]] = ...,
                bpm: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
                type: Optional[Union[str, List[str]]] = ...,
@@ -165,6 +180,9 @@ class MusicList(List[Music]):
             ret, diff2 = cross(music.ds, ds, diff2)
             if not ret:
                 continue
+            ret, diff2 = search_charts(music.charts, charter_search)
+            if not ret:
+                continue
             if not in_or_equal(music.genre, genre):
                 continue
             if not in_or_equal(music.type, type):
@@ -172,6 +190,8 @@ class MusicList(List[Music]):
             if not in_or_equal(music.bpm, bpm):
                 continue
             if title_search is not Ellipsis and title_search.lower() not in music.title.lower():
+                continue
+            if artist_search is not Ellipsis and artist_search.lower() not in music.artist.lower():
                 continue
             music.diff = diff2
             new_list.append(music)
