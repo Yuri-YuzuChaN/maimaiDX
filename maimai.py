@@ -140,8 +140,8 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
     if len(music_data) >= 100:
         await bot.finish(ev, f'结果过多（{len(music_data)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
-    for m in music_data:
-        msg += f'{m.id}. {m.title} bpm:{m.bpm}\n'
+    for m in sorted(music_data, key=lambda i: int(i.bpm)):
+        msg += f'{m.id}. {m.title} bpm {m.bpm}\n'
     await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['曲师查歌', 'search artist'])
