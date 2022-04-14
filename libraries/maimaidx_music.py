@@ -130,13 +130,13 @@ class Music(Dict):
         return super().__getattribute__(item)
 
 
-def search_charts(checker: List[Chart], elem: str):
+def search_charts(checker: List[Chart], elem: str, diff):
     ret = False
     diff_ret = []
     if not elem or elem is Ellipsis:
-        return True, None
-    for _j, chart in enumerate(checker):
-        if elem.lower() in chart.charter.lower():
+        return True, diff
+    for _j in (range(len(checker)) if diff is Ellipsis else diff):
+        if elem.lower() in checker[_j].charter.lower():
             diff_ret.append(_j)
             ret = True
     return ret, diff_ret
@@ -180,7 +180,7 @@ class MusicList(List[Music]):
             ret, diff2 = cross(music.ds, ds, diff2)
             if not ret:
                 continue
-            ret, diff2 = search_charts(music.charts, charter_search)
+            ret, diff2 = search_charts(music.charts, charter_search, diff2)
             if not ret:
                 continue
             if not in_or_equal(music.genre, genre):
