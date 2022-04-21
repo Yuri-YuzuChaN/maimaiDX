@@ -11,6 +11,7 @@ from .. import arcades, arcades_json
 
 import time, json, traceback
 
+SONGS_PER_PAGE = 25
 level_labels = ['绿', '黄', '红', '紫', '白']
 realAchievementList = {}
 for acc in [i / 10 for i in range(10, 151)]:
@@ -446,7 +447,6 @@ async def level_achievement_list_data(payload: dict, match: Match, nickname: Opt
     for song in data['verlist']:
         if song['level'] == match.group(1):
             song_list.append(song)
-    SONGS_PER_PAGE = 25
     if match.group(2): page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1)
     else: page = 1
 
