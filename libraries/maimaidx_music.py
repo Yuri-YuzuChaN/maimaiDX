@@ -197,6 +197,14 @@ class MusicList(List[Music]):
             new_list.append(music)
         return new_list
 
+def get_cover_len4_id(mid: str) -> str:
+    mid = int(mid)
+
+    if 10001 <= mid:
+        mid -= 10000
+    
+    return f'{mid:04d}'
+
 @retry(stop_max_attempt_number=3)
 async def get_music_list() -> MusicList:
     """

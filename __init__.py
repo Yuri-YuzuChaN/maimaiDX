@@ -2,13 +2,21 @@ import os, json
 from typing import List, Dict
 from hoshino.log import new_logger
 
+class FileNotFoundError(Exception):
+
+    def __init__(self):
+        self.err = '请安装arcades.json文件'
+
+    def __str__(self) -> str:
+        return self.err
+
 log = new_logger('maimaiDX')
 
 static = os.path.join(os.path.dirname(__file__), 'static')
 
 arcades_json = os.path.join(os.path.dirname(__file__), 'arcades.json')
 if not os.path.exists(arcades_json):
-    raise '请安装arcades.json文件'
+    raise FileNotFoundError
 arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
 
 

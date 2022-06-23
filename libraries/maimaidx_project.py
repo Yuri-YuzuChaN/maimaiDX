@@ -5,7 +5,7 @@ from hoshino.typing import MessageSegment
 
 from .maimai_best_40 import *
 from .maimaidx_api_data import *
-from .maimaidx_music import mai
+from .maimaidx_music import mai, get_cover_len4_id
 from .image import *
 from .. import arcades, arcades_json
 
@@ -74,7 +74,7 @@ BREAK: {chart['notes'][4]}
 难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
 
             msg = f'''{music["id"]}. {music["title"]}
-{MessageSegment.image(f"https://www.diving-fish.com/covers/{music['id']}.jpg")}
+{MessageSegment.image(f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png")}
 {result}'''
         except:
             msg = '未找到该谱面'
@@ -83,7 +83,7 @@ BREAK: {chart['notes'][4]}
             name = match.group(2)
             music = mai.total_list.by_id(name)
             msg = f'''{music["id"]}. {music["title"]}
-{MessageSegment.image(f"https://www.diving-fish.com/covers/{music['id']}.jpg")}
+{MessageSegment.image(f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png")}
 艺术家: {music['basic_info']['artist']} 
 分类: {music['basic_info']['genre']}
 BPM: {music['basic_info']['bpm']}

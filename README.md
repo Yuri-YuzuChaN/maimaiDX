@@ -4,13 +4,20 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
+## 2022说明
+
+现版本需重新下载静态文件，即[使用方法第二步](#使用方法)。
+请勿删除目录下现有的 `static/aliases.csv` 别名文件，静态压缩文件不再有该文件。
+如果您不小心删除了，可以单独下载别名文件 [aliases.csv](https://cloudreve.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)
+
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. pip以下依赖：`pillow`, `retrying`
-4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
-5. 重启HoshinoBot
+3. 下载别名文件 [aliases.csv](https://cloudreve.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
+4. pip以下依赖：`pillow`, `retrying`
+5. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
+6. 重启HoshinoBot
 
 **请务必将`nonebot`以及`aiocqhttp`依赖升级为最新版本，否则无法使用`b40/b50`指令**
 
@@ -62,6 +69,12 @@ ps: 更新前请做好备份，防止误操作导致数据丢失
 pps: 该功能不会覆盖原有机厅信息
 
 ## 更新说明
+
+**2022-06-23**
+
+1. 支持2022
+2. 修改所有曲绘后缀
+3. 修改获取在线文件的路径
 
 **2022-03-10**
 

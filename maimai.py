@@ -7,7 +7,7 @@ from typing import Dict, Tuple, Any
 from .libraries.image import *
 from .libraries.tool import hash
 from .libraries.maimaidx_project import *
-from .libraries.maimaidx_music import mai, Music, MaiMusic
+from .libraries.maimaidx_music import mai, Music, MaiMusic, get_cover_len4_id
 from . import *
 
 import re, asyncio, json, traceback, time
@@ -57,7 +57,7 @@ sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=
 
 def random_music(music: Music) -> str:
     msg = f'''{music.id}. {music.title}
-{MessageSegment.image(f"https://www.diving-fish.com/covers/{music.id}.jpg")}
+{MessageSegment.image(f"https://www.diving-fish.com/covers/{get_cover_len4_id(music.id)}.png")}
 {'/'.join(list(map(str, music.ds)))}'''
     return msg
 
@@ -121,7 +121,7 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
     msg = ''
     for i in result:
         msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
-    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['bpm查歌', 'search bpm'])
 async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
@@ -147,7 +147,7 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.bpm}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['曲师查歌', 'search artist'])
 async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
@@ -177,7 +177,7 @@ async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['谱师查歌', 'search charter'])
 async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
@@ -208,7 +208,7 @@ async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
             diff_charter = zip([diffs[d] for d in m.diff], [m.charts[d].charter for d in m.diff])
             msg += f'No.{i + 1} {m.id}. {m.title} {" ".join([f"{d}/{c}" for d, c in diff_charter])}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.finish(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_rex(r'^随个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
 async def random_song(bot: NoneBot, ev: CQEvent):
@@ -811,7 +811,7 @@ async def arcade_query_person(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, '该群未订阅任何机厅，请使用 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
 
 @sv.scheduled_job('cron', hour='5')
-async def date_change():
+async def Data_Update():
     try:
         for a in arcades:
             a['person'] = 0

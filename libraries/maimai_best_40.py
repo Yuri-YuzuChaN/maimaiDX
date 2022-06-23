@@ -8,7 +8,7 @@ from hoshino.config import NICKNAME
 from hoshino.typing import MessageSegment
 from .image import image_to_base64
 from .maimaidx_api_data import get_player_data
-from .maimaidx_music import mai
+from .maimaidx_music import mai, get_cover_len4_id
 from .. import static
 
 import os, math, aiohttp
@@ -286,7 +286,7 @@ class DrawBest(object):
             i = num // 5 if not self.b50 else num // 7
             j = num % 5 if not self.b50 else num % 7
             chartInfo: ChartInfo = sdBest[num]
-            pngPath = os.path.join(self.cover_dir, f'{chartInfo.idNum}.jpg')
+            pngPath = os.path.join(self.cover_dir, f'{get_cover_len4_id(chartInfo.idNum)}.png')
             if not os.path.exists(pngPath):
                 pngPath = os.path.join(self.cover_dir, '1000.png')
             temp = Image.open(pngPath).convert('RGB')
@@ -333,9 +333,9 @@ class DrawBest(object):
             i = num // 3
             j = num % 3
             chartInfo = dxBest[num]
-            pngPath = os.path.join(self.cover_dir, f'{int(chartInfo.idNum)}.jpg')
+            pngPath = os.path.join(self.cover_dir, f'{get_cover_len4_id(int(chartInfo.idNum))}.png')
             if not os.path.exists(pngPath):
-                pngPath = os.path.join(self.cover_dir, f'{int(chartInfo.idNum)}.png')
+                pngPath = os.path.join(self.cover_dir, f'{get_cover_len4_id(int(chartInfo.idNum))}.png')
             if not os.path.exists(pngPath):
                 pngPath = os.path.join(self.cover_dir, '1000.png')
             temp = Image.open(pngPath).convert('RGB')
