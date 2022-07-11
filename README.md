@@ -7,7 +7,9 @@
 ## 2022说明
 
 现版本需重新下载静态文件，即[使用方法第二步](#使用方法)。
+
 请勿删除目录下现有的 `static/aliases.csv` 别名文件，静态压缩文件不再有该文件。
+
 如果您不小心删除了，可以单独下载别名文件 [aliases.csv](https://cloudreve.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)
 
 ## 使用方法
@@ -69,6 +71,10 @@ ps: 更新前请做好备份，防止误操作导致数据丢失
 pps: 该功能不会覆盖原有机厅信息
 
 ## 更新说明
+
+**2022-07-11**
+
+1. 修复指令 `分数列表` 没有提供2022谱面的问题
 
 **2022-06-23**
 

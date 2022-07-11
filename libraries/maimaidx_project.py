@@ -35,13 +35,13 @@ plate_to_version = {
     '輝': 'maimai FiNALE',
     '辉': 'maimai FiNALE',
     '熊': 'maimai でらっくす',
-    # '華': 'maimai でらっくす PLUS',
     '華': 'maimai でらっくす',
-    # '华': 'maimai でらっくす PLUS',
     '华': 'maimai でらっくす',
+    '華': 'maimai でらっくす PLUS',
+    '华': 'maimai でらっくす PLUS',
     '爽': 'maimai でらっくす Splash',
-    # '煌': 'maimai でらっくす Splash PLUS',
     '煌': 'maimai でらっくす Splash',
+    '煌': 'maimai でらっくす Splash PLUS',
 }
 
 def query_chart_data(match: Match) -> str:
