@@ -3,7 +3,7 @@ from re import Match
 
 from hoshino.typing import MessageSegment
 
-from .maimai_best_40 import *
+from .maimai_best_50 import *
 from .maimaidx_api_data import *
 from .maimaidx_music import mai, get_cover_len4_id
 from .image import *
