@@ -254,12 +254,12 @@ class DrawBest:
             else:
                 title = i.title
             
-            p, s = str(i.achievement).split('.')
+            p, s = f'{i.achievement:.4f}'.split('.')
             r = self._fontb.get_box(p, 24)
 
             self._font.draw(x + 155, y + 18, 14, title, color[i.level], 'mm')
             self._fontb.draw(x + 140, y + 45, 24, p, tcolor, 'lm')
-            self._fontb.draw(x + 140 + r[2], y + 60, 15, f'.{int(s):04d}%', tcolor, 'ld')
+            self._fontb.draw(x + 140 + r[2], y + 60, 15, f'.{s}%', tcolor, 'ld')
             self._fontb.draw(x + 140, y + 70, 15, f'ID | {int(songid)}', tcolor, 'lm')
             self._fontb.draw(x + 140, y + 142, 15, f'Rating {i.ds} -> {i.ra}', tcolor, 'lm')
 
