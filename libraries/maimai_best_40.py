@@ -27,8 +27,8 @@ adobe = os.path.join(static, 'adobe_simhei.otf')
 msyh = os.path.join(static, 'msyh.ttc')
 
 class ChartInfo(object):
-    def __init__(self, idNum: str, diff: int, tp: str, achievement: float, ra: int, comboId: int, scoreId: int,
-                 title: str, ds: float, lv: str):
+    def __init__(self, idNum: str, diff: int, tp: str, achievement: float, ra: int,
+                 syncId: int, comboId: int, scoreId: int, title: str, ds: float, lv: str):
         self.idNum = idNum
         self.diff = diff
         self.tp = tp
@@ -36,6 +36,7 @@ class ChartInfo(object):
         self.ra = ra
         self.comboId = comboId
         self.scoreId = scoreId
+        self.syncId = syncId
         self.title = title
         self.ds = ds
         self.lv = lv
@@ -55,6 +56,8 @@ class ChartInfo(object):
         ri = rate.index(data['rate'])
         fc = ['', 'fc', 'fcp', 'ap', 'app']
         fi = fc.index(data['fc'])
+        fs = ['', 'fs', 'fsp', 'fsd', 'fsdp']
+        si = fs.index(data['fs'])
         return cls(
             idNum = mai.total_list.by_title(data['title']).id,
             title = data['title'],
@@ -63,6 +66,7 @@ class ChartInfo(object):
             ds = data['ds'],
             comboId = fi,
             scoreId = ri,
+            syncId=si,
             lv = data['level'],
             achievement = data['achievements'],
             tp = data['type']
@@ -280,6 +284,7 @@ class DrawBest(object):
         levelTriagle = [(itemW, 0), (itemW - 27, 0), (itemW, 27)]
         rankPic = 'D C B BB BBB A AA AAA S Sp SS SSp SSS SSSp'.split(' ')
         comboPic = ' FC FCp AP APp'.split(' ')
+        syncPic = ' FS FSp FSD FSDp'.split(' ')
         imgDraw = ImageDraw.Draw(img)
         titleFontName = adobe
         for num in range(0, len(sdBest)):
@@ -312,6 +317,10 @@ class DrawBest(object):
                 comboImg = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{comboPic[chartInfo.comboId]}_S.png')).convert('RGBA')
                 comboImg = self._resizePic(comboImg, 0.45)
                 temp.paste(comboImg, (119 if not self.b50 else 103, 27), comboImg.split()[3])
+            if chartInfo.syncId:
+                syncImg = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{syncPic[chartInfo.syncId]}_S.png')).convert('RGBA')
+                syncImg = self._resizePic(syncImg, 0.45)
+                temp.paste(syncImg, (139 if not self.b50 else 123, 27), syncImg.split()[3])
             font = ImageFont.truetype(adobe, 12, encoding='utf-8')
             tempDraw.text((8, 44), f'Base: {chartInfo.ds} -> {chartInfo.ra if not self.b50 else computeRa(chartInfo.ds, chartInfo.achievement, True)}', 'white', font)
             font = ImageFont.truetype(adobe, 18, encoding='utf-8')
@@ -361,6 +370,10 @@ class DrawBest(object):
                 comboImg = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{comboPic[chartInfo.comboId]}_S.png')).convert('RGBA')
                 comboImg = self._resizePic(comboImg, 0.45)
                 temp.paste(comboImg, (119 if not self.b50 else 103, 27), comboImg.split()[3])
+            if chartInfo.syncId:
+                syncImg = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{syncPic[chartInfo.syncId]}_S.png')).convert('RGBA')
+                syncImg = self._resizePic(syncImg, 0.45)
+                temp.paste(syncImg, (139 if not self.b50 else 123, 27), syncImg.split()[3])
             font = ImageFont.truetype(adobe, 12, encoding='utf-8')
             tempDraw.text((8, 44), f'Base: {chartInfo.ds} -> {chartInfo.ra if not self.b50 else computeRa(chartInfo.ds, chartInfo.achievement, True)}', 'white', font)
             font = ImageFont.truetype(adobe, 18, encoding='utf-8')
@@ -503,8 +516,10 @@ def generateAchievementList(ds: float, spp: bool=False):
         _achievementList.append(acc)
         c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
         c_acc = math.ceil(c_acc * 10000) / 10000
-        if c_acc < achievementList[index + 1]:
+        while c_acc < achievementList[index + 1]:
             _achievementList.append(c_acc)
+            c_acc = (computeRa(ds, c_acc + 0.0001) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
+            c_acc = math.ceil(c_acc * 10000) / 10000
     _achievementList.append(100.5)
     return _achievementList
 
