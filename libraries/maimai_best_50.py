@@ -270,7 +270,7 @@ class DrawBest:
             self._fontb.draw(x + 140, y + 45, 24, p, tcolor, 'lm')
             self._fontb.draw(x + 140 + r[2], y + 60, 15, f'.{s}%', tcolor, 'ld')
             self._fontb.draw(x + 140, y + 70, 15, f'ID | {int(songid)}', tcolor, 'lm')
-            self._fontb.draw(x + 140, y + 142, 15, f'Rating {i.ds} -> {computeRa(i.ds, i.achievement, True)}', tcolor, 'lm')
+            self._fontb.draw(x + 140, y + 142, 15, f'Rating {i.ds} -> {computeRa(i.ds, i.achievement, True) if self.b50 else i.ra}', tcolor, 'lm')
 
     async def draw(self):
         
