@@ -33,6 +33,7 @@ XXXmaimaiXXX什么 随机一首歌
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别名
+minfo<@> <id/别称/曲名> 查询单曲成绩
 b40 <名字> 或 @某人 查B40
 b50 <名字> 或 @某人 查B50
 我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
@@ -398,6 +399,40 @@ async def best_40(bot: NoneBot, ev: CQEvent):
 
     data = await generate(payload)
 
+    await bot.send(ev, data, at_sender=True)
+
+@sv.on_prefix(['minfo'])
+async def maiinfo(bot: NoneBot, ev: CQEvent):
+    qqid = ev.user_id
+    args: list[str] = ev.message.extract_plain_text().strip().split()
+    for i in ev.message:
+        if i.type == 'at' and i.data['qq'] != 'all':
+            qqid = int(i.data['qq'])
+    if not args:
+        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+    if len(args) != 1:
+        payload = {'username': args[0]}
+        song = args[1]
+    else:
+        payload = {'qq': qqid}
+        song = args[0]
+    
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+
+    if song.isdigit() and song not in ['9', '135']:
+        if music := mai.total_list.by_id(song):
+            id = music.id
+        else:
+            await bot.finish(ev, '未找到曲目', at_sender=True)
+    elif song in mai.music_aliases:
+        result = mai.music_aliases[song][0]
+        id = mai.total_list.by_title(result[0]).id
+    else:
+        await bot.finish(ev, '未找到曲目', at_sender=True)
+    
+    data = await music_play_data(payload, id)
+    if not data:
+        data = '您未游玩该曲目'
     await bot.send(ev, data, at_sender=True)
 
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能

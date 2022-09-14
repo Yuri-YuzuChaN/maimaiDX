@@ -1,6 +1,6 @@
 # Author: xyb, Diving_Fish
 import numpy as np
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -25,6 +25,47 @@ BaseRa = [0.0, 5.0, 6.0, 7.0, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13.0, 13.2, 13.5,
 BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 adobe = os.path.join(static, 'adobe_simhei.otf')
 msyh = os.path.join(static, 'msyh.ttc')
+
+class DrawText:
+
+    def __init__(self, image: ImageDraw.ImageDraw, font: str) -> None:
+        self._img = image
+        self._font = font
+
+    def get_box(self, text: str, size: int):
+        return ImageFont.truetype(self._font, size).getbbox(text)
+
+    def draw(self,
+            pos_x: int,
+            pos_y: int,
+            size: int,
+            text: str,
+            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
+            anchor: str = 'lt',
+            stroke_width: int = 0,
+            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0),
+            multiline: bool = False):
+
+        font = ImageFont.truetype(self._font, size)
+        if multiline:
+            self._img.multiline_text((pos_x, pos_y), '\n'.join([i for i in text]), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+        else:
+            self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    
+    def draw_partial_opacity(self,
+            pos_x: int,
+            pos_y: int,
+            size: int,
+            text: str,
+            po: int = 2,
+            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
+            anchor: str = 'lt',
+            stroke_width: int = 0,
+            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0)):
+
+        font = ImageFont.truetype(self._font, size)
+        self._img.text((pos_x + po, pos_y + po), str(text), (0, 0, 0, 128), font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+        self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
 
 class ChartInfo(object):
     def __init__(self, idNum: str, diff: int, tp: str, achievement: float, ra: int,
@@ -477,36 +518,55 @@ class DrawBest(object):
     def getDir(self):
         return self.img
 
-def computeRa(ds: float, achievement: float, spp: bool = False) -> int:
+def computeRa(ds: float, achievement: float, spp: bool = False, israte: bool = False) -> Union[int, Tuple[int, str]]:
     baseRa = 22.4 if spp else 14.0
+    rate = 'SSSp'
     if achievement < 50:
         baseRa = 7.0 if spp else 0.0
+        rate = 'D'
     elif achievement < 60:
         baseRa = 8.0 if spp else 5.0
+        rate = 'C'
     elif achievement < 70:
         baseRa = 9.6 if spp else 6.0
+        rate = 'B'
     elif achievement < 75:
         baseRa = 11.2 if spp else 7.0
+        rate = 'BB'
     elif achievement < 80:
         baseRa = 12.0 if spp else 7.5
+        rate = 'BBB'
     elif achievement < 90:
         baseRa = 13.6 if spp else 8.5
+        rate = 'A'
     elif achievement < 94:
         baseRa = 15.2 if spp else 9.5
+        rate = 'AA'
     elif achievement < 97:
         baseRa = 16.8 if spp else 10.5
+        rate = 'AAA'
     elif achievement < 98:
         baseRa = 20.0 if spp else 12.5
+        rate = 'S'
     elif achievement < 99:
         baseRa = 20.3 if spp else 12.7
+        rate = 'Sp'
     elif achievement < 99.5:
         baseRa = 20.8 if spp else 13.0
+        rate = 'SS'
     elif achievement < 100:
         baseRa = 21.1 if spp else 13.2
+        rate = 'SSp'
     elif achievement < 100.5:
         baseRa = 21.6 if spp else 13.5
+        rate = 'SSS'
+    
+    if israte:
+        data = (math.floor(ds * (min(100.5, achievement) / 100) * baseRa), rate)
+    else:
+        data = math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
 
-    return math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
+    return data
 
 def generateAchievementList(ds: float, spp: bool=False):
     _achievementList = []
