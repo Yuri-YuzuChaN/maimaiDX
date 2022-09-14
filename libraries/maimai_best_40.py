@@ -48,7 +48,7 @@ class DrawText:
 
         font = ImageFont.truetype(self._font, size)
         if multiline:
-            self._img.multiline_text((pos_x, pos_y), '\n'.join([i for i in text]), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+            self._img.multiline_text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
         else:
             self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
     
