@@ -1,15 +1,15 @@
-from typing import Optional
+from typing import Optional, Union
 from re import Match
-
+from PIL import Image, ImageDraw
 from hoshino.typing import MessageSegment
 
 from .maimai_best_50 import *
 from .maimaidx_api_data import *
-from .maimaidx_music import mai, get_cover_len4_id
+from .maimaidx_music import MusicList, mai, get_cover_len4_id
 from .image import *
-from .. import arcades, arcades_json
+from .. import arcades, arcades_json, static
 
-import time, json, traceback
+import time, json, traceback, io
 
 SONGS_PER_PAGE = 25
 level_labels = ['绿', '黄', '红', '紫', '白']
@@ -36,15 +36,176 @@ plate_to_version = {
     '辉': 'maimai FiNALE',
     '熊': 'maimai でらっくす',
     '華': 'maimai でらっくす',
-    '华': 'maimai でらっくす',
     '華': 'maimai でらっくす PLUS',
     '华': 'maimai でらっくす PLUS',
+    '华': 'maimai でらっくす',
     '爽': 'maimai でらっくす Splash',
     '煌': 'maimai でらっくす Splash',
     '煌': 'maimai でらっくす Splash PLUS',
 }
 
-def query_chart_data(match: Match) -> str:
+newdir = os.path.join(static, 'mai', 'new')
+meiryo = os.path.join(static, 'meiryo.ttc')
+meiryob = os.path.join(static, 'meiryob.ttc')
+category = {
+    'POPSアニメ': 'anime',
+    'maimai': 'maimai',
+    'niconicoボーカロイド': 'niconico',
+    '東方Project': 'touhou',
+    'ゲームバラエティ': 'game',
+    'オンゲキCHUNITHM': 'ongeki'
+}
+
+async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
+    try:
+        async with aiohttp.request('GET', f"https://www.diving-fish.com/covers/{get_cover_len4_id(id)}.png") as req:
+            data = await req.read()
+        return io.BytesIO(data)
+    except:
+        return os.path.join(static, 'mai', 'cover', '0000.png')
+
+async def draw_music_info(music: MusicList) -> MessageSegment:
+    im = Image.new('RGBA', (800, 1000))
+    genre = category[music['basic_info']['genre']]
+
+    music_bg = Image.open(os.path.join(newdir, 'music_bg.png')).convert('RGBA')
+    cover = Image.open(await download_music_pictrue(music['id'])).convert('RGBA').resize((500, 500))
+    anime = Image.open(os.path.join(newdir, f'{genre}.png')).convert('RGBA')
+    anime_bg = Image.open(os.path.join(newdir, f'{genre}_bg.png')).convert('RGBA')
+    music_title = Image.open(os.path.join(newdir, 'music_title.png')).convert('RGBA')
+    diff = Image.open(os.path.join(newdir, 'diff.png')).convert('RGBA').resize((530, 79))
+    line = Image.open(os.path.join(newdir, 'line.png')).convert('RGBA').resize((793, 14))
+    verbpm = Image.open(os.path.join(newdir, 'ver&bpm.png')).convert('RGBA')
+
+    im.alpha_composite(music_bg)
+    im.alpha_composite(music_title, (52, 14))
+    im.alpha_composite(anime_bg, (142, 175))
+    im.alpha_composite(cover, (150, 183))
+    im.alpha_composite(anime, (200, 135))
+    im.alpha_composite(line, (5, 785))
+    im.alpha_composite(diff, (135, 810))
+    im.alpha_composite(verbpm, (50, 915))
+
+    fontd = ImageDraw.Draw(im)
+
+    font = DrawText(fontd, meiryo)
+    font2 = DrawText(fontd, meiryob)
+
+    font2.draw(270, 170, 28, music['id'], anchor='mm')
+    font.draw_partial_opacity(400, 710, 20, music['basic_info']['artist'], anchor='mm')
+    font.draw_partial_opacity(400, 750, 38, music['title'], anchor='mm')
+    for n, i in enumerate(list(map(str, music["ds"]))):
+        if n == 4:
+            x = 615
+            color = (195, 70, 231, 255)
+        else:
+            x = 190 + 105 * n
+            color = (255, 255, 255, 255)
+        font2.draw(x, 850, 28, i, color, anchor='mm')
+
+    font.draw_partial_opacity(240, 940, 20, f'Ver:{music["basic_info"]["from"]}', anchor='mm')
+    font.draw_partial_opacity(580, 940, 20, f'BPM:{music["basic_info"]["bpm"]}', anchor='mm')
+
+    msg = MessageSegment.image(image_to_base64(im))
+
+    return msg
+
+async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment, None]:
+    data = await get_player_data('plate', payload)
+    if isinstance(data, str):
+        return data
+
+    player_data: list[dict[str, Union[float, str, int]]] = []
+    for i in data['verlist']:
+        if i['id'] == int(song):
+            player_data.append(i)
+    if not player_data:
+        return None
+    
+    player_data.sort(key=lambda a: a['level_index'])
+    music = mai.total_list.by_id(song)
+    diffnum = len(music.ds)
+
+    im = Image.new('RGBA', (1000, 1500))
+    bg = Image.open(os.path.join(newdir, 'musicscore.png')).convert('RGBA')
+    genre = Image.open(os.path.join(newdir, f'Score-{category[music.genre]}.png')).convert('RGBA')
+    cover = Image.open(await download_music_pictrue(music.id)).convert('RGBA').resize((300, 300))
+    ver = Image.open(os.path.join(newdir, f'{music.type}.png')).convert('RGBA').resize((140, 52))
+
+    im.alpha_composite(bg)
+    im.alpha_composite(genre, (45, 181))
+    im.alpha_composite(cover, (60, 240))
+    im.alpha_composite(ver, (800, 488))
+
+    fontd = ImageDraw.Draw(im)
+    font = DrawText(fontd, meiryo)
+    fontb = DrawText(fontd, meiryob)
+
+    if len(music.title) > 20:
+        title = f'{music.title[:19]}...'
+    else:
+        title = music.title
+
+    fontb.draw(515, 225, 28, song, anchor='mm')
+    font.draw(380, 300, 40, title, (0, 0, 0, 255), 'lm')
+    font.draw(380, 340, 20, f'Artist: {music.artist}', (0, 0, 0, 255), 'lm')
+    font.draw(380, 400, 30, f'BPM: {music.bpm}', (0, 0, 0, 255), 'lm')
+    font.draw(380, 450, 30, f'Version: {music.version}', (0, 0, 0, 255), 'lm')
+
+    num = 0
+    for z in range(diffnum):
+        if z < 3:
+            x = 305 * z
+            xl = [i + x for i in [90, 195, 250, 90, 90, 195]]
+            yl = [835, 730, 790, 815, 925]
+        else:
+            x = 330 * (z - 3)
+            xl = [i + x for i in [230, 335, 390, 230, 230, 335]]
+            yl = [1240, 1135, 1195, 1220, 1330]
+        if z == 4:
+            color = (103, 20, 141, 255)
+        else:
+            color = (255, 255, 255, 255)
+        try:
+            if z == player_data[num]['level_index']:
+                _data = player_data[num]
+                
+                ds = music.ds[_data['level_index']]
+                ra, rate = computeRa(ds, _data['achievements'], israte=True)
+
+                rank = Image.open(os.path.join(static, 'mai', 'pic', f'UI_GAM_Rank_{rate}.png'))
+                im.alpha_composite(rank, (xl[0], yl[0]))
+                if _data['fc']:
+                    fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
+                    fc = Image.open(os.path.join(static, 'mai', 'pic', f'UI_MSS_MBase_Icon_{fcl[_data["fc"]]}.png')).convert('RGBA')
+                    im.alpha_composite(fc, (xl[1], yl[0]))
+                if _data['fs']:
+                    fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
+                    fs = Image.open(os.path.join(static, 'mai', 'pic', f'UI_MSS_MBase_Icon_{fsl[_data["fs"]]}.png')).convert('RGBA')
+                    im.alpha_composite(fs, (xl[2], yl[0]))
+
+                p, s = f'{_data["achievements"]:.4f}'.split('.')
+                r = fontb.get_box(p, 40)
+                fontb.draw(xl[1], yl[1], 30, f'Base: {ds}', color, 'mm')
+                fontb.draw(xl[3], yl[2], 40, p, color, 'lm')
+                fontb.draw(xl[4] + r[2], yl[3], 27, f'.{s}%', color, 'ld')
+                fontb.draw(xl[5], yl[4], 25, f'Rating: {ra}', color, 'mm')
+
+                num += 1
+            else:
+                fontb.draw(xl[1], yl[3], 60, 'なし', color, 'mm')
+        except IndexError:
+            fontb.draw(xl[1], yl[3], 60, 'なし', color, 'mm')
+    
+    if diffnum != 5:
+        font.draw(665, 1230, 50, '難易度\nなし', (103, 20, 141, 255), anchor='mm', multiline=True)
+    
+    fontb.draw(500, 1475, 25, 'Generated by Sakura Bot', anchor='mm')
+    msg = MessageSegment.image(image_to_base64(im))
+
+    return msg
+
+async def query_chart_data(match: Match) -> str:
     if match.group(1) != '':
         try:
             level_index = level_labels.index(match.group(1))
@@ -82,14 +243,10 @@ BREAK: {chart['notes'][4]}
         try:
             name = match.group(2)
             music = mai.total_list.by_id(name)
-            msg = f'''{music["id"]}. {music["title"]}
-{MessageSegment.image(f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png")}
-艺术家: {music['basic_info']['artist']} 
-分类: {music['basic_info']['genre']}
-BPM: {music['basic_info']['bpm']}
-版本: {music['basic_info']['from']}
-难度: {'/'.join(list(map(str, music["ds"])))}'''
-        except:
+            msg = await draw_music_info(music)
+
+        except Exception as e:
+            log.error(traceback.format_exc())
             msg = '未找到该乐曲'
     
     return msg

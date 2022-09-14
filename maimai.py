@@ -400,6 +400,40 @@ async def best_40(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, data, at_sender=True)
 
+@sv.on_prefix(['minfo'])
+async def maiinfo(bot: NoneBot, ev: CQEvent):
+    qqid = ev.user_id
+    args: list[str] = ev.message.extract_plain_text().strip().split()
+    for i in ev.message:
+        if i.type == 'at' and i.data['qq'] != 'all':
+            qqid = int(i.data['qq'])
+    if not args:
+        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+    if len(args) != 1:
+        payload = {'username': args[0]}
+        song = args[1]
+    else:
+        payload = {'qq': qqid}
+        song = args[0]
+    
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+
+    if song.isdigit() and song not in ['9', '135']:
+        if music := mai.total_list.by_id(song):
+            id = music.id
+        else:
+            await bot.finish(ev, '未找到曲目', at_sender=True)
+    elif song in mai.music_aliases:
+        result = mai.music_aliases[song][0]
+        id = mai.total_list.by_title(result[0]).id
+    else:
+        await bot.finish(ev, '未找到曲目', at_sender=True)
+    
+    data = await music_play_data(payload, id)
+    if not data:
+        data = '您未游玩该曲目'
+    await bot.send(ev, data, at_sender=True)
+
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
