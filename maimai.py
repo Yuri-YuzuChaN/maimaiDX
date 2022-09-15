@@ -426,7 +426,7 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
             await bot.finish(ev, '未找到曲目', at_sender=True)
     elif song in mai.music_aliases:
         result = mai.music_aliases[song][0]
-        id = mai.total_list.by_title(result[0]).id
+        id = mai.total_list.by_title(result).id
     else:
         await bot.finish(ev, '未找到曲目', at_sender=True)
     
