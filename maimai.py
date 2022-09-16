@@ -260,7 +260,7 @@ async def search_song(bot: NoneBot, ev: CQEvent):
 @sv.on_rex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$')
 async def query_chart(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
-    msg = query_chart_data(match)
+    msg = await query_chart_data(match)
 
     await bot.send(ev, msg, at_sender=True)
 
