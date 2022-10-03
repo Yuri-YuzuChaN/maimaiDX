@@ -14,7 +14,7 @@
 
 ## 使用方法
 
-1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
+1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
 3. 下载别名文件 [aliases.csv](https://cloudreve.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
 4. pip以下依赖：`pillow`, `retrying`
@@ -51,34 +51,19 @@
 | <等级><评价>进度 <名字>                                | 查看等级评价完成进度      |
 | <等级> 分数列表 <名字>                                 | 查看等级评价列表        |
 | 查看排名,查看排行 <页数>/<名字>                            | 查看水鱼网站的用户ra排行   |
-| 添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ...          | 添加机厅信息          |
-| 删除机厅 <名称>                                      | 删除机厅信息          |
-| 修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... | 修改机厅信息          |
-| 订阅机厅 <名称>                                      | 订阅机厅，简化后续指令     |
-| 查看订阅                                           | 查看群组订阅机厅的信息     |
-| 取消订阅,取消订阅机厅                                    | 取消群组机厅订阅        |
-| 查找机厅,查询机厅,机厅查找,机厅查询 <关键词>                      | 查询对应机厅信息        |
-| <名称>人数设置,设定,增加,加,+,减少,减,-<人数>                  | 操作排卡人数          |
-| <名称>有多少人,有几人,有几卡,几人,几卡                         | 查看排卡人数          |
-
-## 批量更新机厅
-
-1. 在舞萌DX官方微信中点击资讯->店铺分布
-2. 等待页面加载完后，ctrl+A选择全部文字并复制
-3. 删除 [_update_arcades.py](_update_arcades.py) line 4下原有内容，并将复制的内容粘贴到这里
-4. 删除头部`所选地区：[  ▼]（店铺数：xxx）`以及尾部`©SEGA. All rights reserved. ©DWANGO Co., Ltd."VOCALOID" and "VOCALO" are trademarks of Yamaha Corporation.`字样
-5. **重要：关闭hoshino**，运行`python _update_arcades.py`  
-ps: 更新前请做好备份，防止误操作导致数据丢失  
-pps: 该功能不会覆盖原有机厅信息
 
 ## 更新说明
 
-**2022-9-14**
+**2022-10-04**
+
+1. 发布删除机厅相关指令的 `del-arcade` 分支
+
+**2022-09-14**
 
 1. 新增查询单曲指令 `minfo`
 2. 修改查曲绘图
 
-**2022-8-30**
+**2022-08-30**
 
 1. 修复新版b40/b50 isinstance bug [#38](https://github.com/Yuri-YuzuChaN/maimaiDX/issues/38)
 2. 修复新版b40/b50 找不到图片问题

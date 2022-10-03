@@ -8,13 +8,13 @@ from .maimaidx_api_data import get_player_data
 from .maimaidx_music import get_cover_len4_id
 from .. import static
 
-scoreRank = 'D C B BB BBB A AA AAA S S+ SS SS+ SSS SSS+'.lower().split(' ')
-comboRank = 'FC FC+ AP AP+'.lower().split(' ')
-combo_rank = 'fc fcp ap app'.split(' ')
-syncRank = 'FS FS+ FDX FDX+'.lower().split(' ')
-sync_rank = 'fs fsp fsd fsdp'.split(' ')
-diffs = 'Basic Advanced Expert Master Re:Master'.split(' ')
-levelList = '1 2 3 4 5 6 7 7+ 8 8+ 9 9+ 10 10+ 11 11+ 12 12+ 13 13+ 14 14+ 15'.split(' ')
+scoreRank = ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 's+', 'ss', 'ss+', 'sss', 'sss+']
+comboRank = ['fc', 'fc+', 'ap', 'ap+']
+combo_rank = ['fc', 'fcp', 'ap', 'app']
+syncRank = ['fs', 'fs+', 'fdx', 'fdx+']
+sync_rank = ['fs', 'fsp', 'fsd', 'fsdp']
+diffs = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
+levelList = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9', '9+', '10', '10+', '11', '11+', '12', '12+', '13', '13+', '14', '14+', '15']
 achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 BaseRa = [0.0, 5.0, 6.0, 7.0, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13.0, 13.2, 13.5, 14.0]
 BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
