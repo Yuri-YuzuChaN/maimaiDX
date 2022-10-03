@@ -15,6 +15,9 @@
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
+
+> 如果不需要机厅功能，请clone分支 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
+
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
 3. 下载别名文件 [aliases.csv](https://cloudreve.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
 4. pip以下依赖：`pillow`, `retrying`
