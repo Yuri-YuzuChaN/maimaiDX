@@ -1,4 +1,7 @@
+import json
 import random, aiohttp, os
+
+import aiofiles
 from PIL import Image
 from typing import Dict, List, Optional, Union, Tuple, Any
 from copy import deepcopy
@@ -205,21 +208,32 @@ def get_cover_len4_id(mid: str) -> str:
     
     return f'{mid:04d}'
 
-@retry(stop_max_attempt_number=3)
+# @retry(stop_max_attempt_number=3)
 async def get_music_list() -> MusicList:
     """
     获取所有数据
     """
+    root_path = os.path.dirname(os.path.dirname(__file__))
     async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/music_data') as obj_data:
         if obj_data.status != 200:
-            raise aiohttp.ClientResponseError('maimaiDX曲目数据获取失败，请检查网络环境')
+            # raise aiohttp.ClientResponseError('maimaiDX曲目数据获取失败，请检查网络环境')
+            print('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
+            async with aiofiles.open(os.path.join(root_path, 'music_data.json'), 'r', encoding='utf-8') as f:
+                data = json.loads(await f.read())
         else:
             data = await obj_data.json()
+            async with aiofiles.open(os.path.join(root_path, 'music_data.json'), 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(data, ensure_ascii=False, indent=4))
     async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/chart_stats') as obj_stats:
         if obj_stats.status != 200:
-            raise aiohttp.ClientResponseError('maimaiDX数据获取错误，请检查网络环境')
+            # raise aiohttp.ClientResponseError('maimaiDX数据获取错误，请检查网络环境')
+            print('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
+            async with aiofiles.open(os.path.join(root_path, 'chart_stats.json'), 'r', encoding='utf-8') as f:
+                stats = json.loads(await f.read())
         else:
             stats = await obj_stats.json()
+            async with aiofiles.open(os.path.join(root_path, 'chart_stats.json'), 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
 
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):

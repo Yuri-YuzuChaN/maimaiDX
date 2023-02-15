@@ -20,7 +20,7 @@
 
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
 3. 下载别名文件 [aliases.csv](https://cloud.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
-4. pip以下依赖：`pillow`, `retrying`
+4. pip以下依赖：`pillow`, `retrying`, `aiofiles`
 5. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
 6. 重启HoshinoBot
 
@@ -75,6 +75,10 @@ ps: 更新前请做好备份，防止误操作导致数据丢失
 pps: 该功能不会覆盖原有机厅信息
 
 ## 更新说明
+
+**2023-2-15**
+
+1. 更新本地缓存水鱼网数据
 
 **2022-9-14**
 
