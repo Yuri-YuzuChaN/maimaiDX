@@ -64,6 +64,18 @@
 | <名称>人数设置,设定,增加,加,+,减少,减,-<人数>                  | 操作排卡人数          |
 | <名称>有多少人,有几人,有几卡,几人,几卡                         | 查看排卡人数          |
 
+## 同步别称文件（临时）
+
+1. 打开[fufubot歌曲别名表](https://docs.qq.com/sheet/DVnJUb0pYeXJxakVk?tab=BB08J3&_t=1676626810168)并登录腾讯文档
+2. 打开浏览器控制台 点击NetWork栏
+3. 在filter内填入doc_info
+4. 拷贝Request Headers中cookie值至[_update_aliases.py](_update_aliases.py) line 10 `cookie_value` 变量处
+5. **重要：关闭hoshino**，运行`python _update_aliases.py`  
+
+* 参考[python爬虫系列之下载在线文档Excel(腾讯)](https://blog.csdn.net/qq_45731111/article/details/124994682)  
+* **更新前请做好备份**，防止误操作导致数据丢失
+* 该功能不会覆盖原有别称信息
+
 ## 批量更新机厅
 
 1. 在舞萌DX官方微信中点击资讯->店铺分布
@@ -71,14 +83,18 @@
 3. 删除 [_update_arcades.py](_update_arcades.py) line 4下原有内容，并将复制的内容粘贴到这里
 4. 删除头部`所选地区：[  ▼]（店铺数：xxx）`以及尾部`©SEGA. All rights reserved. ©DWANGO Co., Ltd."VOCALOID" and "VOCALO" are trademarks of Yamaha Corporation.`字样
 5. **重要：关闭hoshino**，运行`python _update_arcades.py`  
-ps: 更新前请做好备份，防止误操作导致数据丢失  
-pps: 该功能不会覆盖原有机厅信息
+* **更新前请做好备份**，防止误操作导致数据丢失
+* 该功能不会覆盖原有机厅信息
 
 ## 更新说明
 
+**2023-2-18**
+
+1. 别称同步临时解决方案 #47
+
 **2023-2-15**
 
-1. 更新本地缓存水鱼网数据
+1. 更新本地缓存水鱼网数据 #43
 
 **2022-9-14**
 

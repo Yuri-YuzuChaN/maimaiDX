@@ -269,7 +269,7 @@ class MaiMusic:
         _music_aliases = defaultdict(list)
         _music_aliases_reverse = defaultdict(list)
         with open(os.path.join(static, 'aliases.csv'), 'r', encoding='utf-8') as f:
-            _music_aliases_lines = f.readlines()
+            _music_aliases_lines = [l for l in f.readlines() if l.strip()]
         for l in _music_aliases_lines:
             arr = l.strip().split('\t')
             for i in range(len(arr)):
