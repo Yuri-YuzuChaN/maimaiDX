@@ -1,4 +1,5 @@
 import json
+import os
 
 arcades_lines = '''
 环游嘉年华天河店
@@ -1949,9 +1950,12 @@ TOP玩家银川店
 广西百色市田东县中兴城二楼童话王国
 '''
 
+static = os.path.join(os.path.dirname(__file__), 'static')
+arcades_json = os.path.join(static, 'arcades.json')
+
 arcades_lines = arcades_lines.split('\n')
 arcades_lines = [l.replace('\n', '') for l in arcades_lines if l]
-with open('arcades.json', 'r', encoding='utf-8') as f:
+with open(arcades_json, 'r', encoding='utf-8') as f:
     arcades = json.load(f)
 
 current_names = [c_a['name'] for c_a in arcades]
@@ -1968,5 +1972,5 @@ for i, name in enumerate(arcades_lines[::2]):
         arcades[current_names.index(name)]['location'] = arcades_lines[i * 2 + 1]
 
 
-with open('arcades.json', 'w', encoding='utf-8') as f:
+with open(arcades_json, 'w', encoding='utf-8') as f:
     json.dump(arcades, f, ensure_ascii=False, indent=4)

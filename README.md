@@ -4,14 +4,6 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
-## 2022说明
-
-现版本需重新下载静态文件，即[使用方法第二步](#使用方法)。
-
-请勿删除目录下现有的 `static/aliases.csv` 别名文件，静态压缩文件不再有该文件。
-
-如果您不小心删除了，可以单独下载别名文件 [aliases.csv](https://cloud.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)
-
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
@@ -19,14 +11,11 @@
 > 如果不需要机厅功能，请clone分支 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
 
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. 下载别名文件 [aliases.csv](https://cloud.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
-4. pip以下依赖：`pillow`, `retrying`, `aiofiles`
-5. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
-6. 重启HoshinoBot
+3. pip以下依赖：`pillow`, `aiofiles`
+4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
+5. 重启HoshinoBot
 
 **请务必将`nonebot`以及`aiocqhttp`依赖升级为最新版本，否则无法使用`b40/b50`指令**
-
-**插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
 
 ## 指令
 
@@ -40,7 +29,9 @@
 | [绿黄红紫白]id<歌曲编号>                                | 查询乐曲信息或谱面信息     |
 | <歌曲别名>是什么歌                                     | 查询乐曲别名对应的乐曲     |
 | <id/歌曲别称>有什么别称                                 | 查询歌曲别名          |
-| <id/歌曲别称> [添加/删除]别称 <歌曲别名>                     | 添加或删除歌曲别名       |
+| 添加别称 <歌曲ID> <歌曲别名>                       | 申请添加歌曲别名       |
+| 当前别名投票                                      | 查看正在进行的投票           |
+| 同意别名 <标签>                                   | 同意其中一个标签的别名申请，可通过指令 当前别名投票 查看  |
 | 定数查歌 <定数> 定数查歌 <定数下限> <定数上限>                   | 查询定数对应的乐曲       |
 | 分数线 <难度+歌曲id> <分数线>                            | 展示歌曲的分数线        |
 | 开启/关闭mai猜歌                                     | 开关猜歌功能          |
@@ -64,18 +55,6 @@
 | <名称>人数设置,设定,增加,加,+,减少,减,-<人数>                  | 操作排卡人数          |
 | <名称>有多少人,有几人,有几卡,几人,几卡                         | 查看排卡人数          |
 
-## 同步别称文件（临时）
-
-1. 打开[fufubot歌曲别名表](https://docs.qq.com/sheet/DVnJUb0pYeXJxakVk?tab=BB08J3&_t=1676626810168)并登录腾讯文档
-2. 打开浏览器控制台 点击NetWork栏
-3. 在filter内填入doc_info
-4. 拷贝Request Headers中cookie值至[_update_aliases.py](_update_aliases.py) line 10 `cookie_value` 变量处
-5. **重要：关闭hoshino**，运行`python _update_aliases.py`  
-
-* 参考[python爬虫系列之下载在线文档Excel(腾讯)](https://blog.csdn.net/qq_45731111/article/details/124994682)  
-* **更新前请做好备份**，防止误操作导致数据丢失
-* 该功能不会覆盖原有别称信息
-
 ## 批量更新机厅
 
 1. 在舞萌DX官方微信中点击资讯->店铺分布
@@ -87,6 +66,13 @@
 * 该功能不会覆盖原有机厅信息
 
 ## 更新说明
+
+**2023-02-22**
+
+1. 修复启动BOT时无法获取所有曲目信息的问题，添加本地缓存
+2. 修改别名库，使用API获取和添加，并同步所有使用该插件的BOT
+3. 修改猜歌和别名功能
+4. 新增指令 `当前别名投票` 和 `同意别名`
 
 **2023-2-18**
 

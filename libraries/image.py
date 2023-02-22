@@ -1,6 +1,9 @@
-import base64, os
+import base64
+import os
 from io import BytesIO
-from PIL import ImageFont, ImageDraw, Image
+
+from PIL import Image, ImageDraw, ImageFont
+
 from .. import static
 
 path = os.path.join(static, 'high_eq_image.png')
