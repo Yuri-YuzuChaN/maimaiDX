@@ -375,8 +375,8 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
     status = await get_alias('status')
-    msg = ['检测到新的别名申请']
     if status:
+        msg = ['检测到新的别名申请']
         for tag in status:
             if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < 30:
                 id = str(status[tag]['ID'])
@@ -386,6 +386,19 @@ async def alias_apply_status():
             group = await sv.get_enable_groups()
             for gid in group.keys():
                 await sv.bot.send_group_msg(group_id=gid, message='\n'.join(msg))
+                await asyncio.sleep(1)
+    await asyncio.sleep(5)
+    end = await get_alias('end')
+    if end:
+        msg2 = ['以下是已成功添加别名的曲目']
+        for ta in end:
+            id = status[ta]['ID']
+            alias_name = status[ta]['ApplyAlias']
+            msg2.append(f'{await draw_music_info(mai.total_list.by_id(id))}\nID：{id}\n别名：{alias_name}')
+        if len(msg) != 1:
+            group = await sv.get_enable_groups()
+            for gid in group.keys():
+                await sv.bot.send_group_msg(group_id=gid, message='\n'.join(msg2))
                 await asyncio.sleep(1)
 
 @sv.on_prefix('分数线')
