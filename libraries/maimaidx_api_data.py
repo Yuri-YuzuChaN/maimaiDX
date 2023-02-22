@@ -1,11 +1,23 @@
-from typing import Union
-import aiohttp, traceback
+import traceback
+from typing import Dict, List, Union
+
+import aiohttp
 
 from .. import log
 
 player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
 如未绑定，请前往查分器官网进行绑定
 https://www.diving-fish.com/maimaidx/prober/'''
+
+ALIAS = {
+    'all': 'maimaidx_alias',
+    'songs': 'get_song',
+    'alias': 'get_song_alias',
+    'status': 'get_alias_status',
+    'apply': 'apply_alias',
+    'argee': 'argee_user',
+    'end': 'get_alias_end'
+}
 
 async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
     """
@@ -32,7 +44,7 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
             else:
                 data = '未知错误，请联系BOT管理员'
     except Exception as e:
-        log.error(f'Error: {traceback.print_exc()}')
+        log.error(f'Error: {traceback.format_exc()}')
         data = f'获取玩家数据时发生错误，请联系BOT管理员: {type(e)}'
     return data
 
@@ -47,6 +59,41 @@ async def get_rating_ranking_data() -> Union[dict, str]:
             else:
                 data = await resp.json()
     except Exception as e:
-        log.error(f'Error: {traceback.print_exc()}')
+        log.error(f'Error: {traceback.format_exc()}')
+        data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
+    return data
+
+async def get_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
+    """
+    - `all`: 所有曲目的别名
+    - `songs`: 该别名的曲目
+    - `alias`: 该曲目的所有别名
+    - `status`: 正在进行的别名申请
+    - `end`: 已结束的别名申请
+    """
+    try:
+        async with aiohttp.request('GET', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params) as resp:
+            if resp.status != 200:
+                data = '未知错误，请联系BOT管理员'
+            else:
+                data = await resp.json()
+    except Exception as e:
+        log.error(f'Error: {traceback.format_exc()}')
+        data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
+    return data
+
+async def post_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
+    """
+    - `apply`: 申请别名
+    - `argee`: 同意别名
+    """
+    try:
+        async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params) as resp:
+            if resp.status != 200:
+                data = '未知错误，请联系BOT管理员'
+            else:
+                data = await resp.json()
+    except Exception as e:
+        log.error(f'Error: {traceback.format_exc()}')
         data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
     return data

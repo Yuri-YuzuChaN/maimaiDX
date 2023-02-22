@@ -1,12 +1,16 @@
-import random, aiohttp, os
-from PIL import Image
-from typing import Dict, List, Optional, Union, Tuple, Any
+import json
+import os
+import random
 from copy import deepcopy
-from retrying import retry
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import aiofiles
+import aiohttp
+from PIL import Image
+
+from .. import log, static
 from .image import image_to_base64
-from .. import static, aliases_csv
+from .maimaidx_api_data import *
 
 hot_music_ids = ['17', '56', '62', '66', '70', '71', '100', '101', '107', '109', '115', '117', '122', '143', '187', '188', '189', '193', '198', '199', '200', '201', '204', '223', '226', '227', '229', '230', '233', '258', '261', '268', '269', '282', '283', '295', '299', '315', '322', '324', '327', '337', '339', '348', '360', '364', '365', '366', '374', '379', '381', '384', '386', '387', '388', '389', '390', '399', '400', '411', '417', '419', '421', '422', '426', '427', '431', '432', '438', '439', '446', '447', '448', '456', '457', '462', '464', '465', '467', '471', '488', '490', '492', '494', '495', '496', '507', '508', '510', '511', '513', '520', '521', '531', '532', '535', '540', '541', '542', '548', '552', '553', '555', '556', '561', '566', '567', '568', '571', '573', '574', '580', '581', '587', '589', '592', '603', '606', '610', '614', '621', '625', '626', '627', '628', '631', '632', '643', '646', '647', '648', '649', '655', '664', '670', '672', '673', '674', '682', '688', '689', '690', '691', '693', '694', '699', '700', '701', '705', '707', '708', '709', '710', '711', '717', '719', '720', '725', '726', '731', '736', '738', '740', '741', '742', '746', '750', '756', '757', '759', '760', '763', '764', '766', '771', '772', '773', '777', '779', '781', '782', '786', '789', '791', '793', '794', '796', '797', '798', '799', '802', '803', '806', '809', '812', '815', '816', '818', '820', '823', '825', '829', '830', '832', '833', '834', '835', '836', '837', '838', '839', '840', '841', '844', '848', '849', '850', '852', '853', '10363', '11002', '11003', '11004', '11005', '11006', '11007', '11008', '11010', '11014', '11015', '11016', '11017', '11018', '11019', '11020', '11021', '11022', '11023', '11024', '11025', '11026', '11027', '11028', '11029', '11030', '11031', '11032', '11034', '11035', '11036', '11037', '11038', '11043', '11044', '11045', '11046', '11047', '11048', '11049', '11050', '11051', '11052', '11058', '11059', '11060', '11061', '11064', '11065', '11067', '11069', '11070', '11073', '11075', '11078', '11080', '11081', '11083', '11084', '11085', '11086', '11087', '11088', '11089', '11090', '11091', '11092', '11093', '11094', '11095', '11096', '11097', '11098', '11099', '11101', '11102', '11103', '11104', '11105', '11106', '11107', '11109', '11110', '11113', '11114', '11115', '11116', '11121', '11122', '11123', '11124', '11125', '11126', '11127', '11128', '11129', '11131', '11132', '11133', '11134', '11135', '11136', '11137', '11138', '11139', '11140', '11141', '11142', '11143', '11146', '11147', '11148', '11149', '11150', '11151', '11206']
 cover_dir = os.path.join(static, 'mai', 'cover')
@@ -205,21 +209,28 @@ def get_cover_len4_id(mid: str) -> str:
     
     return f'{mid:04d}'
 
-@retry(stop_max_attempt_number=3)
 async def get_music_list() -> MusicList:
     """
     获取所有数据
     """
-    async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/music_data') as obj_data:
+    async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data') as obj_data:
         if obj_data.status != 200:
-            raise aiohttp.ClientResponseError('maimaiDX曲目数据获取失败，请检查网络环境')
+            log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
+            async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
+                data = json.loads(await f.read())
         else:
             data = await obj_data.json()
-    async with aiohttp.request("GET", 'https://www.diving-fish.com/api/maimaidxprober/chart_stats') as obj_stats:
+            async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(data, ensure_ascii=False, indent=4))
+    async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats') as obj_stats:
         if obj_stats.status != 200:
-            raise aiohttp.ClientResponseError('maimaiDX数据获取错误，请检查网络环境')
+            log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
+            async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
+                stats = json.loads(await f.read())
         else:
             stats = await obj_stats.json()
+            async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
 
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):
@@ -245,37 +256,13 @@ class MaiMusic:
         """
         self.total_list = await get_music_list()
 
-    def aliases(self):
-        """
-        初始化所有别名数据
-        """
-        self.music_aliases, self.music_aliases_reverse, self.music_aliases_lines = self.__music_aliases__()
-
-    def __music_aliases__(self):
-        _music_aliases = defaultdict(list)
-        _music_aliases_reverse = defaultdict(list)
-        with open(os.path.join(static, 'aliases.csv'), 'r', encoding='utf-8') as f:
-            _music_aliases_lines = f.readlines()
-        for l in _music_aliases_lines:
-            arr = l.strip().split('\t')
-            for i in range(len(arr)):
-                if arr[i] != '':
-                    _music_aliases[arr[i].lower()].append(arr[0])
-                    _music_aliases_reverse[arr[0]].append(arr[i].lower())
-        return _music_aliases, _music_aliases_reverse, _music_aliases_lines
-
-    def save_aliases(self, data: str):
-        with open(aliases_csv, 'w', encoding='utf-8') as f:
-            f.write(data)
-        self.aliases()
-
     def guess(self):
         """
         初始化猜歌数据
         """
         self.guess_data = list(filter(lambda x: x['id'] in hot_music_ids, mai.total_list))
 
-    def start(self):
+    async def start(self):
         """
         开始猜歌
         """
@@ -290,6 +277,9 @@ class MaiMusic:
             f'{"没" if len(self.music["ds"]) == 4 else ""}有白谱',
             f'的 BPM 是 {self.music["basic_info"]["bpm"]}'
         ]
+        music = await get_alias('alias', {'id': self.music.id})
+        self.answer = music[0]['Alias']
+        self.answer.append(self.music.id)
         self.guess_options = random.sample(self.guess_options, 6)
         pngPath = os.path.join(cover_dir, f'{get_cover_len4_id(int(self.music["id"]))}.jpg')
         if not os.path.exists(pngPath):
@@ -305,3 +295,55 @@ class MaiMusic:
         self.is_end = False
 
 mai = MaiMusic()
+
+class Guess:
+
+    Group: Dict[str, Dict[str, Union[MaiMusic, int]]] = {}
+
+    def __init__(self) -> None:
+        """
+        猜歌类
+        """
+        
+        self.config_json = os.path.join(static, 'config.json')
+        if not os.path.exists(self.config_json):
+            with open(self.config_json, 'w', encoding='utf-8') as f:
+                json.dump({'enable': [], 'disable': []}, f)
+        self.config: Dict[str, List[int]] = json.load(open(self.config_json, 'r', encoding='utf-8'))
+    
+    def add(self, gid: str, music: MaiMusic, cycle: int = 0):
+        """
+        新增猜歌群
+        """
+        self.Group[gid] = {
+            'object':  music,
+            'cycle': cycle
+        }
+
+    def end(self, gid: str):
+        """
+        结束猜歌
+        """
+        del self.Group[gid]
+
+    def guess_change(self, gid: int, set: bool):
+        """
+        猜歌开关
+        """
+        if set:
+            if gid not in self.config['enable']:
+                self.config['enable'].append(gid)
+            if gid in self.config['disable']:
+                self.config['disable'].remove(gid)
+        else:
+            if gid not in self.config['disable']:
+                self.config['disable'].append(gid)
+            if gid in self.config['enable']:
+                self.config['enable'].remove(gid)
+        try:
+            with open(self.config_json, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, ensure_ascii=True, indent=4)
+        except:
+            log.error(traceback.format_exc())
+
+guess = Guess()

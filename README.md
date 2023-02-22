@@ -4,26 +4,15 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
-## 2022说明
-
-现版本需重新下载静态文件，即[使用方法第二步](#使用方法)。
-
-请勿删除目录下现有的 `static/aliases.csv` 别名文件，静态压缩文件不再有该文件。
-
-如果您不小心删除了，可以单独下载别名文件 [aliases.csv](https://cloud.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)
-
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. 下载别名文件 [aliases.csv](https://cloud.yuzuai.xyz/api/v3/file/get/1819/aliases.csv?sign=VNk5o7WR5mG7BF9yzC0deNsihBZEqv0Wnog9EzLlR5U%3D%3A0)，并解压至 `static` 目录下，即 `maimaiDX/static/aliases.csv`
-4. pip以下依赖：`pillow`, `retrying`
-5. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
-6. 重启HoshinoBot
+3. pip以下依赖：`pillow`, `aiofiles`
+4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
+5. 重启HoshinoBot
 
 **请务必将`nonebot`以及`aiocqhttp`依赖升级为最新版本，否则无法使用`b40/b50`指令**
-
-**插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
 
 ## 指令
 
@@ -37,7 +26,9 @@
 | [绿黄红紫白]id<歌曲编号>                                | 查询乐曲信息或谱面信息     |
 | <歌曲别名>是什么歌                                     | 查询乐曲别名对应的乐曲     |
 | <id/歌曲别称>有什么别称                                 | 查询歌曲别名          |
-| <id/歌曲别称> [添加/删除]别称 <歌曲别名>                     | 添加或删除歌曲别名       |
+| 添加别称 <歌曲ID> <歌曲别名>                       | 申请添加歌曲别名       |
+| 当前别名投票                                      | 查看正在进行的投票           |
+| 同意别名 <标签>                                   | 同意其中一个标签的别名申请，可通过指令 当前别名投票 查看  |
 | 定数查歌 <定数> 定数查歌 <定数下限> <定数上限>                   | 查询定数对应的乐曲       |
 | 分数线 <难度+歌曲id> <分数线>                            | 展示歌曲的分数线        |
 | 开启/关闭mai猜歌                                     | 开关猜歌功能          |
@@ -53,6 +44,13 @@
 | 查看排名,查看排行 <页数>/<名字>                            | 查看水鱼网站的用户ra排行   |
 
 ## 更新说明
+
+**2023-02-22**
+
+1. 修复启动BOT时无法获取所有曲目信息的问题，添加本地缓存
+2. 修改别名库，使用API获取和添加，并同步所有使用该插件的BOT
+3. 修改猜歌和别名功能
+4. 新增指令 `当前别名投票` 和 `同意别名`
 
 **2022-10-04**
 
