@@ -361,7 +361,7 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
-    await bot.send(ev, '========'.join(msg))
+    await bot.send(ev, '\n========\n'.join(msg))
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
@@ -376,7 +376,7 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n'.join(msg))
+                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
                 await asyncio.sleep(1)
     await asyncio.sleep(5)
     end = await get_alias('end')
@@ -389,7 +389,7 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n'.join(msg2))
+                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
                 await asyncio.sleep(1)
 
 @sv.on_prefix('分数线')
