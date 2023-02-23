@@ -393,8 +393,8 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
-                await asyncio.sleep(1)
+                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+                await asyncio.sleep(5)
     await asyncio.sleep(5)
     end = await get_alias('end')
     if end:
@@ -406,7 +406,7 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
                 await asyncio.sleep(5)
 
 @sv.on_prefix('分数线')
