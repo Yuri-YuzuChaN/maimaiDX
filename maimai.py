@@ -4,6 +4,7 @@ import re
 from datetime import timedelta
 from typing import Any, Dict, Tuple
 
+import hoshino
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
 from nonebot import NoneBot, on_startup
