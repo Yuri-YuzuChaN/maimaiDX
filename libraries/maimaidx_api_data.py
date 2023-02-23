@@ -15,7 +15,7 @@ ALIAS = {
     'alias': 'get_song_alias',
     'status': 'get_alias_status',
     'apply': 'apply_alias',
-    'argee': 'argee_user',
+    'agree': 'agree_user',
     'end': 'get_alias_end'
 }
 
@@ -85,7 +85,7 @@ async def get_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union
 async def post_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
     """
     - `apply`: 申请别名
-    - `argee`: 同意别名
+    - `agree`: 同意别名
     """
     try:
         async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params) as resp:

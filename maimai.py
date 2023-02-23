@@ -344,9 +344,9 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, f'您已提交以下别名申请\nID：{id} \n别名：{alias_name}\n{await draw_music_info(mai.total_list.by_id(id))}\n现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}', at_sender=True)
 
 @sv.on_prefix('同意别名')
-async def argee_alias(bot: NoneBot, ev: CQEvent):
+async def agree_alias(bot: NoneBot, ev: CQEvent):
     tag: str = ev.message.extract_plain_text().strip().upper()
-    status = await post_alias('argee', {'tag': tag, 'uid': ev.user_id})
+    status = await post_alias('agree', {'tag': tag, 'uid': ev.user_id})
     if isinstance(status, dict):
         await bot.send(ev, status['content'], at_sender=True)
 
