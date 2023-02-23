@@ -1,6 +1,7 @@
 import asyncio
 import random
 import re
+from datetime import timedelta
 from typing import Any, Dict, Tuple
 
 from hoshino import Service, priv
@@ -14,6 +15,13 @@ from .libraries.maimaidx_music import (MaiMusic, Music, get_cover_len4_id,
                                        guess, mai)
 from .libraries.maimaidx_project import *
 from .libraries.tool import hash
+
+from .page import mp
+
+public_addr = 'http://www.example.com:8081'
+
+app = hoshino.get_bot().server_app
+app.register_blueprint(mp)
 
 sv_help = '''
 可用命令如下：
@@ -370,7 +378,7 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
-    await bot.send(ev, '\n========\n'.join(msg))
+    await bot.send(ev, '\n========\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
@@ -398,8 +406,8 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                await asyncio.sleep(1)
+                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+                await asyncio.sleep(5)
 
 @sv.on_prefix('分数线')
 async def quert_score(bot: NoneBot, ev: CQEvent):

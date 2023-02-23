@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>maimaiDX</title>
+  <link rel="shortcut icon" href="{{url_for('static',filename='mai/favicon.png')}}"/>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='mai/css/element-ui.css')}}"/>
+  <script src="{{url_for('static',filename='mai/js/vue.min.js')}}" type="text/javascript" charset="utf-8"></script>
+  <script src="{{url_for('static',filename='mai/js/vue-router.min.js')}}" type="text/javascript" charset="utf-8"></script>
+  <script src="{{url_for('static',filename='mai/js/vue-clipboard.min.js')}}" type="text/javascript" charset="utf-8"></script>
+  <script src="{{url_for('static',filename='mai/js/element-ui.js')}}" type="text/javascript" charset="utf-8"></script>
+  <script src="{{url_for('static',filename='mai/js/axios.min.js')}}" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+<div id="app">
+  <el-container id="app-container">
+    <el-header height="35px">maimaiDX</el-header>
+    <el-container>
+      <el-aside width="240px">
+        <!-- 左边栏导航目录-->
+        <el-menu :default-openeds="['1']" :unique-opened="true" active-text-color="#5C307D">
+          <el-submenu index="1" :show-timeout="0" :hide-timeout="0">
+            <!-- 别称投票-->
+            <template slot="title">
+              <i class="el-icon-magic-stick"></i>
+              <span>别称投票</span>
+            </template>
+
+            <!-- 生成目录-->
+            <template v-for="title in [...new Set(voteData.map((item) =>{return item.title}))]">
+              <el-menu-item-group :title="title">
+                <template v-for="info in voteData.filter((item) => {return item.title === title})">
+                  <a :href="'#cell-'+info.index" style="text-decoration: none;">
+                    <el-menu-item :index="'1-'+info.index" style="font-size: 12px; height: 25px; line-height: 25px">
+                      [[ info.ApplyAlias ]]
+                    </el-menu-item>
+                  </a>
+                </template>
+              </el-menu-item-group>
+            </template>
+          </el-submenu>
+        </el-menu>
+      </el-aside>
+      <el-main>
+        <!-- 页面主体-->
+        <template v-for="index of Math.floor(voteData.length / picturePeerRow) + 1">
+          <el-row :gutter="20">
+            <template v-for="info in voteData.slice((index - 1) * picturePeerRow, index * picturePeerRow)">
+                <el-col :id="'cell-'+info.index" :span="8"><div class="grid-content bg-purple">
+                  <el-image :src="info.image" alt="" :fit="'contain'">
+                    <div slot="placeholder" class="image-slot">
+                      加载中...<span class="dot">...</span>
+                    </div>
+                  </el-image>
+                  <el-row>
+                    <el-col :span="12">
+                      <span class="demonstration music-info">标题： [[ info.title ]]<br/></span>
+                      <span class="demonstration music-info">新别称： [[ info.ApplyAlias ]]<br/></span>
+                      <span class="demonstration music-info">票数： [[ info.userNum ]]/30</span>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-button v-clipboard:copy="'同意别名 '+info.index" v-clipboard:success="onCopy"
+                                 v-clipboard:error="onError" class="confirm-button">
+                        同意别名<i style="margin: 0;" class="el-icon-arrow-right el-icon--right"></i>
+                      </el-button>
+                    </el-col>
+                  </el-row>
+                </div></el-col>
+            </template>
+          </el-row>
+        </template>
+      </el-main>
+    </el-container>
+  </el-container>
+</div>
+</body>
+</html>
+
+<script>
+  var base_url = "";
+
+  var app = new Vue({
+    el: '#app',
+    delimiters:['[[', ']]'],
+    data: {
+      base_url: base_url,
+      voteData: [],
+      picturePeerRow: 3,
+    },
+    beforeCreate() {
+      axios.get("/mai/api/getVoteData")
+        .then((response) => {
+          this.voteData = response.data.result
+        })
+    },
+    methods: {
+      onCopy(e) {
+        console.log("copy arguments e:", e)
+        this.$message({
+          message: "复制成功，快快发送至q群吧~",
+          center: true
+        })
+      },
+      onError(e) {
+        console.log("copy arguments e:", e)
+        this.$message({
+          message: "复制失败，肯定不是我的问题！",
+          center: true
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+    html, body, #app, #app-container {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .el-header{
+        background-color: #238FF8;
+        color:#E0E0E0;
+        text-align: left;
+        line-height: 35px;
+        font-size: x-large;
+        position:fixed;
+        top:0;
+        left: 0;
+        right: 0;
+        overflow: hidden;
+        z-index: 999;
+    }
+
+    .el-aside {
+        background-color: #b5deff;
+        color: #333;
+        position:fixed;
+        left: 0;
+        top: 35px;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        z-index: 998;
+    }
+
+    .el-main {
+        background-color: #F9F9F9;
+        color: #333;
+        padding: 12px;
+        position:absolute;
+        top: 35px;
+        left: 240px;
+        right: 0;
+        bottom: 0;
+        overflow-y: scroll;
+    }
+
+    .el-menu {
+        height: 100%;
+        width: 100%;
+        background-color: #b5deff;
+        color: #333;
+    }
+
+    .el-submenu__title:hover{
+        background-color: #e5daed !important;
+    }
+    .el-menu-item:hover{
+        background-color: #fbf6ff !important;
+    }
+    .el-menu-item.is-active {
+        background-color: #e5daed !important;
+    }
+
+    .el-row {
+        margin-bottom: 20px;
+    }
+    .el-col {
+        border-radius: 4px;
+    }
+    .grid-content {
+        border-radius: 4px;
+        min-height: 36px;
+    }
+    .bg-purple {
+        background: #A6BFFF;
+    }
+
+    .music-info {
+        margin: 8px 8px;
+    }
+
+    .confirm-button {
+        margin: 8px 8px;
+        height: 30px;
+        background-color: #67C23A;
+        color: #fff;
+        float: right;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+</style>
