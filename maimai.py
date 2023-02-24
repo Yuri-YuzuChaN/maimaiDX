@@ -70,7 +70,7 @@ SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 
 TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=SV_HELP)
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
     msg = f'''{music.id}. {music.title}
