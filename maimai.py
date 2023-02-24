@@ -359,7 +359,12 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     status = await post_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
         await bot.finish(ev, status['error'])
-    await bot.send(ev, f'您已提交以下别名申请\nID：{id} \n别名：{alias_name}\n{await draw_music_info(mai.total_list.by_id(id))}\n现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}', at_sender=True)
+    await bot.send(ev, f'''您已提交以下别名申请
+ID：{id}
+别名：{alias_name}
+{await draw_music_info(mai.total_list.by_id(id))}
+现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}
+浏览{public_addr + "/mai/vote"}查看详情''', at_sender=True)
 
 @sv.on_prefix('同意别名')
 async def agree_alias(bot: NoneBot, ev: CQEvent):
