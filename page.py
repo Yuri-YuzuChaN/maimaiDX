@@ -7,12 +7,13 @@ from .libraries.maimaidx_api_data import *
 mp = Blueprint('maimaiPage', __name__,
                url_prefix='/mai',
                template_folder='page',
-               static_folder='page')
+               static_url_path='/statics',
+               static_folder='mai')
 
 
 @mp.route('/vote', methods=['GET'])
 async def aliases_vote():
-    return await render_template('index.html')
+    return await render_template('index.html', static_url_path=mp.static_url_path, url_prefix=mp.url_prefix)
 
 
 @mp.route('/api/getVoteData', methods=['GET'])

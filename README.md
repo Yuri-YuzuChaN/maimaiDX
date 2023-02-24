@@ -17,8 +17,7 @@
 
 ### 加载网页
 
-1. 将mai文件夹整体移至HoshinoBot/static下
-2. 将 [maimai.py](maimai.py) line21 `public_addr` 修改成自己的公网地址
+1. 将 [maimai.py](maimai.py) line21 `public_addr` 修改成自己的公网地址
 
 * 网页可直接查看所有待投票别名，点击同意别名后，在q群发送即可
 

@@ -22,6 +22,10 @@ from .page import mp
 public_addr = 'http://www.example.com:8081'
 
 app = hoshino.get_bot().server_app
+# !<-- 前端开发用 -->
+# app.jinja_env.auto_reload = True
+# app.config['TEMPLATES_AUTO_RELOAD'] = True
+# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)
 app.register_blueprint(mp)
 
 sv_help = '''
