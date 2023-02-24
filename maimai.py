@@ -694,6 +694,7 @@ async def guess_music_solve(bot: NoneBot, ev: CQEvent):
     guess_ = guess.Group[gid]['object']
     if ans.lower() in guess_.answer:
         guess_.is_end = True
+        guess.end(gid)
         msg = f'''猜对了，答案是：
 {await draw_music_info(guess_.music)}'''
         await bot.finish(ev, msg, at_sender=True)
