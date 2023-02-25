@@ -403,21 +403,27 @@ async def alias_apply_status():
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
-                await asyncio.sleep(5)
+                try:
+                    await asyncio.sleep(5)
+                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+                except: 
+                    continue
     await asyncio.sleep(5)
     end = await get_alias('end')
     if end:
         msg2 = ['以下是已成功添加别名的曲目']
         for ta in end:
-            id = status[ta]['ID']
-            alias_name = status[ta]['ApplyAlias']
+            id = str(end[ta]['ID'])
+            alias_name = end[ta]['ApplyAlias']
             msg2.append(f'{await draw_music_info(mai.total_list.by_id(id))}\nID：{id}\n别名：{alias_name}')
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                await asyncio.sleep(5)
+                try:
+                    await asyncio.sleep(5)
+                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
+                except:
+                    continue
 
 @sv.on_prefix('分数线')
 async def quert_score(bot: NoneBot, ev: CQEvent):
