@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8"/>
   <title>maimaiDX</title>
-  <link rel="shortcut icon" href="{{url_for('static',filename='mai/favicon.png')}}"/>
-  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='mai/css/element-ui.css')}}"/>
-  <script src="{{url_for('static',filename='mai/js/vue.min.js')}}" type="text/javascript" charset="utf-8"></script>
-  <script src="{{url_for('static',filename='mai/js/vue-router.min.js')}}" type="text/javascript" charset="utf-8"></script>
-  <script src="{{url_for('static',filename='mai/js/vue-clipboard.min.js')}}" type="text/javascript" charset="utf-8"></script>
-  <script src="{{url_for('static',filename='mai/js/element-ui.js')}}" type="text/javascript" charset="utf-8"></script>
-  <script src="{{url_for('static',filename='mai/js/axios.min.js')}}" type="text/javascript" charset="utf-8"></script>
+  <link rel="shortcut icon" href="{{ url_prefix }}{{ static_url_path }}/favicon.png"/>
+  <link rel="stylesheet" type="text/css" href="{{ url_prefix }}{{ static_url_path }}/css/element-ui.css"/>
+  <script src="{{ url_prefix }}{{ static_url_path }}/js/vue.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="{{ url_prefix }}{{ static_url_path }}/js/vue-router.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="{{ url_prefix }}{{ static_url_path }}/js/vue-clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+  <script src="{{ url_prefix }}{{ static_url_path }}/js/element-ui.js" type="text/javascript" charset="utf-8"></script>
+  <script src="{{ url_prefix }}{{ static_url_path }}/js/axios.min.js" type="text/javascript" charset="utf-8"></script>
 </head>
 <body>
 <div id="app">
