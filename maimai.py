@@ -416,7 +416,7 @@ async def alias_apply_status():
             id = str(end[ta]['ID'])
             alias_name = end[ta]['ApplyAlias']
             msg2.append(f'{await draw_music_info(mai.total_list.by_id(id))}\nID：{id}\n别名：{alias_name}')
-        if len(msg) != 1:
+        if len(msg2) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
                 try:
