@@ -370,14 +370,14 @@ ID：{id}
 现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}
 浏览{public_addr + "/mai/vote"}查看详情''', at_sender=True)
 
-@sv.on_prefix('同意别名')
+@sv.on_prefix(['同意别名', '同意别称'])
 async def agree_alias(bot: NoneBot, ev: CQEvent):
     tag: str = ev.message.extract_plain_text().strip().upper()
     status = await post_alias('agree', {'tag': tag, 'uid': ev.user_id})
     if isinstance(status, dict):
         await bot.send(ev, status['content'], at_sender=True)
 
-@sv.on_prefix('当前别名投票')
+@sv.on_prefix(['当前投票', '当前别名投票', '当前别称投票'])
 async def alias_status(bot: NoneBot, ev: CQEvent):
     status = await get_alias('status')
     if not status:
