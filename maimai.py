@@ -15,7 +15,7 @@ from .libraries.maimaidx_api_data import *
 from .libraries.maimaidx_music import (MaiMusic, Music, get_cover_len4_id,
                                        guess, mai)
 from .libraries.maimaidx_project import *
-from .libraries.tool import hash
+from .libraries.tool import *
 
 from .page import mp
 
@@ -382,13 +382,15 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
     status = await get_alias('status')
     if not status:
         await bot.finish(ev, '未查询到正在进行的别名投票', at_sender=True)
-    msg = []
+    msg = [f'浏览{public_addr + "/mai/vote"}查看详情']
     for tag in status:
         id = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
-    await bot.send(ev, '\n========\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+    # await bot.send(ev, '\n========\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+    msg.append(f'浏览{public_addr + "/mai/vote"}查看详情')
+    await bot.send_group_forward_msg(group_id=ev.group_id, messages=render_forward_msg(msg, ev.self_id, BOTNAME))
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
@@ -399,7 +401,9 @@ async def alias_apply_status():
             if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < 30:
                 id = str(status[tag]['ID'])
                 alias_name = status[tag]['ApplyAlias']
-                msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
+                music = mai.total_list.by_id(id)
+                # msg.append(f'{tag}：\n{await draw_music_info(music)}\n别名：{alias_name}\n票数：{usernum}/30')
+                msg.append(f'{tag}：\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/30')
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
@@ -415,7 +419,9 @@ async def alias_apply_status():
         for ta in end:
             id = str(end[ta]['ID'])
             alias_name = end[ta]['ApplyAlias']
-            msg2.append(f'{await draw_music_info(mai.total_list.by_id(id))}\nID：{id}\n别名：{alias_name}')
+            music = mai.total_list.by_id(id)
+            # msg2.append(f'{await draw_music_info(music)}\nID：{id}\n别名：{alias_name}')
+            msg2.append(f'标题：{music.title}\nID：{id}\n别名：{alias_name}')
         if len(msg2) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
