@@ -3,6 +3,7 @@ import random
 import re
 from typing import Any, Dict, Tuple
 
+import hoshino
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
 from nonebot import NoneBot, on_startup
@@ -13,7 +14,17 @@ from .libraries.maimaidx_api_data import *
 from .libraries.maimaidx_music import (MaiMusic, Music, get_cover_len4_id,
                                        guess, mai)
 from .libraries.maimaidx_project import *
-from .libraries.tool import hash
+from .libraries.tool import *
+from .page import mp
+
+public_addr = 'http://www.example.com:8081'
+
+app = hoshino.get_bot().server_app
+# !<-- 前端开发用 -->
+# app.jinja_env.auto_reload = True
+# app.config['TEMPLATES_AUTO_RELOAD'] = True
+# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)
+app.register_blueprint(mp)
 
 sv_help = '''
 可用命令如下：
@@ -26,9 +37,9 @@ XXXmaimaiXXX什么 随机一首歌
 [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
 <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
 <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
-[添加别称] <id> <别称> 申请添加别称
-当前别名投票    查看当前正在进行的别名投票
-同意别名 <标签>     同意其中一个标签的别名投票
+添加别称 <歌曲ID> <歌曲别名> 申请添加歌曲别名 
+当前别名投票    查看正在进行的投票 
+同意别名 <标签>     同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
 [定数查歌/search base] <定数>  查询定数对应的乐曲
 [定数查歌/search base] <定数下限> <定数上限>
 [bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
@@ -52,7 +63,7 @@ SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 
 TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=SV_HELP)
+sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
     msg = f'''{music.id}. {music.title}
@@ -341,27 +352,34 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     status = await post_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
         await bot.finish(ev, status['error'])
-    await bot.send(ev, f'您已提交以下别名申请\nID：{id} \n别名：{alias_name}\n{await draw_music_info(mai.total_list.by_id(id))}\n现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}', at_sender=True)
+    await bot.send(ev, f'''您已提交以下别名申请
+ID：{id}
+别名：{alias_name}
+{await draw_music_info(mai.total_list.by_id(id))}
+现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}
+浏览{public_addr + "/mai/vote"}查看详情''', at_sender=True)
 
-@sv.on_prefix('同意别名')
+@sv.on_prefix(['同意别名', '同意别称'])
 async def agree_alias(bot: NoneBot, ev: CQEvent):
     tag: str = ev.message.extract_plain_text().strip().upper()
     status = await post_alias('agree', {'tag': tag, 'uid': ev.user_id})
     if isinstance(status, dict):
         await bot.send(ev, status['content'], at_sender=True)
 
-@sv.on_prefix('当前别名投票')
+@sv.on_prefix(['当前投票', '当前别名投票', '当前别称投票'])
 async def alias_status(bot: NoneBot, ev: CQEvent):
     status = await get_alias('status')
     if not status:
         await bot.finish(ev, '未查询到正在进行的别名投票', at_sender=True)
-    msg = []
+    msg = [f'浏览{public_addr + "/mai/vote"}查看详情']
     for tag in status:
         id = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
-    await bot.send(ev, '\n========\n'.join(msg))
+    msg.append(f'浏览{public_addr + "/mai/vote"}查看详情')
+    await bot.send_group_forward_msg(group_id=ev.group_id, messages=render_forward_msg(msg, ev.self_id, BOTNAME))
+
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
@@ -372,25 +390,33 @@ async def alias_apply_status():
             if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < 30:
                 id = str(status[tag]['ID'])
                 alias_name = status[tag]['ApplyAlias']
-                msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
+                music = mai.total_list.by_id(id)
+                msg.append(f'{tag}：\nID：{id}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/30')
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
-                await asyncio.sleep(1)
+                try:
+                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
+                    await asyncio.sleep(1)
+                except:
+                    continue
     await asyncio.sleep(5)
     end = await get_alias('end')
     if end:
         msg2 = ['以下是已成功添加别名的曲目']
         for ta in end:
-            id = status[ta]['ID']
-            alias_name = status[ta]['ApplyAlias']
-            msg2.append(f'{await draw_music_info(mai.total_list.by_id(id))}\nID：{id}\n别名：{alias_name}')
-        if len(msg) != 1:
+            id = str(end[ta]['ID'])
+            alias_name = end[ta]['ApplyAlias']
+            music = mai.total_list.by_id(id)
+            msg2.append(f'标题：{music.title}\nID：{id}\n别名：{alias_name}')
+        if len(msg2) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
-                await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                await asyncio.sleep(1)
+                try:
+                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
+                    await asyncio.sleep(1)
+                except:
+                    continue
 
 @sv.on_prefix('分数线')
 async def quert_score(bot: NoneBot, ev: CQEvent):
@@ -667,6 +693,7 @@ async def guess_music_solve(bot: NoneBot, ev: CQEvent):
     guess_ = guess.Group[gid]['object']
     if ans.lower() in guess_.answer:
         guess_.is_end = True
+        guess.end(gid)
         msg = f'''猜对了，答案是：
 {await draw_music_info(guess_.music)}'''
         await bot.finish(ev, msg, at_sender=True)
