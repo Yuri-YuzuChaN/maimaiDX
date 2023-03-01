@@ -403,7 +403,7 @@ async def alias_apply_status():
                 alias_name = status[tag]['ApplyAlias']
                 music = mai.total_list.by_id(id)
                 # msg.append(f'{tag}：\n{await draw_music_info(music)}\n别名：{alias_name}\n票数：{usernum}/30')
-                msg.append(f'{tag}：\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/30')
+                msg.append(f'{tag}：\nID：{id}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/30')
         if len(msg) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
@@ -421,7 +421,7 @@ async def alias_apply_status():
             alias_name = end[ta]['ApplyAlias']
             music = mai.total_list.by_id(id)
             # msg2.append(f'{await draw_music_info(music)}\nID：{id}\n别名：{alias_name}')
-            msg2.append(f'标题：{music.title}\nID：{id}\n别名：{alias_name}')
+            msg2.append(f'ID：{id}\n标题：{music.title}\nID：{id}\n别名：{alias_name}')
         if len(msg2) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
