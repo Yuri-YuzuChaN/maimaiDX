@@ -323,7 +323,7 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
         for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
             msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
     if len(music_dx_list) != 0:
-        msg += f'\n为{appellation}推荐以下2021乐曲：\n'
+        msg += f'\n为{appellation}推荐以下new乐曲：\n'
         for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
             msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
 
