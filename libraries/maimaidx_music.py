@@ -347,3 +347,34 @@ class Guess:
             log.error(traceback.format_exc())
 
 guess = Guess()
+
+class Alias:
+
+    def __init__(self) -> None:
+        self.group_alias = os.path.join(static, 'group_alias.json')
+        if not os.path.exists(self.group_alias):
+            with open(self.group_alias, 'w', encoding='utf-8') as f:
+                json.dump({'enable': [], 'disable': []}, f)
+        self.config: Dict[str, List[int]] = json.load(open(self.group_alias, 'r', encoding='utf-8'))
+
+    def alias_change(self, gid: int, set: bool):
+        """
+        猜歌开关
+        """
+        if set:
+            if gid not in self.config['enable']:
+                self.config['enable'].append(gid)
+            if gid in self.config['disable']:
+                self.config['disable'].remove(gid)
+        else:
+            if gid not in self.config['disable']:
+                self.config['disable'].append(gid)
+            if gid in self.config['enable']:
+                self.config['enable'].remove(gid)
+        try:
+            with open(self.group_alias, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, ensure_ascii=True, indent=4)
+        except:
+            log.error(traceback.format_exc())
+
+alias = Alias()
