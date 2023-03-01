@@ -1,7 +1,7 @@
 import asyncio
 import random
 import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 import hoshino
 from hoshino import Service, priv
@@ -11,8 +11,8 @@ from nonebot import NoneBot, on_startup
 from . import *
 from .libraries.image import *
 from .libraries.maimaidx_api_data import *
-from .libraries.maimaidx_music import (MaiMusic, Music, get_cover_len4_id,
-                                       guess, mai)
+from .libraries.maimaidx_music import (MaiMusic, Music, alias,
+                                       get_cover_len4_id, guess, mai)
 from .libraries.maimaidx_project import *
 from .libraries.tool import *
 from .page import mp
@@ -376,25 +376,51 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
         id = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
-        msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/30')
+        votes = status[tag]['votes']
+        msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/{votes}')
     msg.append(f'浏览{public_addr + "/mai/vote"}查看详情')
     await bot.send_group_forward_msg(group_id=ev.group_id, messages=render_forward_msg(msg, ev.self_id, BOTNAME))
 
+@sv.on_fullmatch('开启别名推送')
+async def alias_on(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if not priv.check_priv(ev, priv.ADMIN):
+        msg = '仅允许管理员开启'
+    elif gid in alias.config['enable']:
+        msg = '该群已开启别名推送功能'
+    else:
+        alias.alias_change(gid, True)
+        msg = '已开启该群别名推送功能'
+    await bot.send(ev, msg, at_sender=True)
+
+@sv.on_fullmatch('关闭别名推送')
+async def alias_off(bot: NoneBot, ev: CQEvent):
+    gid = ev.group_id
+    if not priv.check_priv(ev, priv.ADMIN):
+        msg = '仅允许管理员关闭'
+    elif gid in alias.config['disable']:
+        msg = '该群已关闭别名推送功能'
+    else:
+        alias.alias_change(gid, False)
+        msg = '已关闭该群别名推送功能'
+    await bot.send(ev, msg, at_sender=True)
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
+    group = await sv.get_enable_groups()
     status = await get_alias('status')
     if status:
         msg = ['检测到新的别名申请']
         for tag in status:
-            if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < 30:
+            if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < (votes := status[tag]['votes']):
                 id = str(status[tag]['ID'])
                 alias_name = status[tag]['ApplyAlias']
                 music = mai.total_list.by_id(id)
-                msg.append(f'{tag}：\nID：{id}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/30')
+                msg.append(f'{tag}：\nID：{id}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/{votes}')
         if len(msg) != 1:
-            group = await sv.get_enable_groups()
             for gid in group.keys():
+                if gid in alias.config['disable']:
+                    continue
                 try:
                     await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
                     await asyncio.sleep(1)
@@ -412,6 +438,8 @@ async def alias_apply_status():
         if len(msg2) != 1:
             group = await sv.get_enable_groups()
             for gid in group.keys():
+                if gid in alias.config['disable']:
+                    continue
                 try:
                     await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
                     await asyncio.sleep(1)
@@ -636,9 +664,6 @@ async def rating_ranking(bot: NoneBot, ev: CQEvent):
     
     data = await rating_ranking_data(name, page)
     await bot.send(ev, data, at_sender=True)
-
-guess_dict: Dict[Tuple[str], MaiMusic] = {}
-guess_time_dict: Dict[Tuple[str], float] = {}
 
 async def guess_music_loop(bot: NoneBot, ev: CQEvent):
     gid = str(ev.group_id)
