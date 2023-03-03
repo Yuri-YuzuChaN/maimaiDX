@@ -56,7 +56,7 @@
                     <el-col :span="12">
                       <span class="demonstration music-info">标题： [[ info.title ]]<br/></span>
                       <span class="demonstration music-info">新别称： [[ info.ApplyAlias ]]<br/></span>
-                      <span class="demonstration music-info">票数： [[ info.userNum ]]/30</span>
+                      <span class="demonstration music-info">票数： [[ info.userNum ]]/[[ info.votes ]]</span>
                     </el-col>
                     <el-col :span="12">
                       <el-button v-clipboard:copy="'同意别名 '+info.index" v-clipboard:success="onCopy"

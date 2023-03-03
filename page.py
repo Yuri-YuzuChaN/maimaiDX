@@ -1,8 +1,7 @@
-import os
-from quart import Blueprint, render_template, jsonify
+from quart import Blueprint, jsonify, render_template
 
-from .libraries.maimaidx_project import *
 from .libraries.maimaidx_api_data import *
+from .libraries.maimaidx_project import *
 
 mp = Blueprint('maimaiPage', __name__,
                url_prefix='/mai',
@@ -27,6 +26,7 @@ async def get_vote_data():
         d['ID'] = str(status[tag]['ID'])
         d['ApplyAlias'] = status[tag]['ApplyAlias']
         d['userNum'] = len(status[tag]['User'])
+        d['votes'] = status[tag]['votes']
         d['index'] = tag
         music = mai.total_list.by_id(d['ID'])
         d['title'] = music.title
