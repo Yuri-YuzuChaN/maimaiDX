@@ -444,7 +444,7 @@ async def alias_apply_status():
             id = str(end[ta]['ID'])
             alias_name = end[ta]['ApplyAlias']
             music = mai.total_list.by_id(id)
-            msg2.append(f'ID：{id}\n标题：{music.title}\nID：{id}\n别名：{alias_name}')
+            msg2.append(f'ID：{id}\n标题：{music.title}\n别名：{alias_name}')
         if len(msg2) != 1:
             for gid in group.keys():
                 if gid in alias.config['disable']:
