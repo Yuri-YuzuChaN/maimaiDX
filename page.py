@@ -26,6 +26,7 @@ async def get_vote_data():
         d['ID'] = str(status[tag]['ID'])
         d['ApplyAlias'] = status[tag]['ApplyAlias']
         d['userNum'] = len(status[tag]['User'])
+        d['votes'] = status[tag]['votes']
         d['index'] = tag
         music = mai.total_list.by_id(d['ID'])
         d['title'] = music.title
