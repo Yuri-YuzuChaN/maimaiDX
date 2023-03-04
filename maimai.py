@@ -76,7 +76,7 @@ TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
-    len4id = get_cover_len4_id(id)
+    len4id = get_cover_len4_id(music.id)
     if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
         img = file
     else:
