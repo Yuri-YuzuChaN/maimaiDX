@@ -242,7 +242,7 @@ BREAK: {chart['notes'][4]}
 谱师: {chart['charter']}
 难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
 
-            len4id = get_cover_len4_id(id)
+            len4id = get_cover_len4_id(music['id'])
             if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
                 img = file
             else:
