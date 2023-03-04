@@ -60,9 +60,14 @@ category = {
 
 async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
     try:
-        async with aiohttp.request('GET', f"https://www.diving-fish.com/covers/{get_cover_len4_id(id)}.png") as req:
-            data = await req.read()
-        return io.BytesIO(data)
+        len4id = get_cover_len4_id(id)
+        if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
+            return file
+        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{len4id}.png') as req:
+            if req.status == 200:
+                return io.BytesIO(await req.read())
+            else:
+                return os.path.join(static, 'mai', 'cover', '0000.png')
     except:
         return os.path.join(static, 'mai', 'cover', '0000.png')
 
@@ -236,8 +241,14 @@ BREAK: {chart['notes'][4]}
 谱师: {chart['charter']}
 难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
 
+            len4id = get_cover_len4_id(music['id'])
+            if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
+                img = file
+            else:
+                img = os.path.join(static, 'mai', 'cover', '0000.png')
+
             msg = f'''{music["id"]}. {music["title"]}
-{MessageSegment.image(f"https://www.diving-fish.com/covers/{get_cover_len4_id(music['id'])}.png")}
+{MessageSegment.image(f"file:///{img}")}
 {result}'''
         except:
             msg = '未找到该谱面'

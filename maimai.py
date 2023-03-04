@@ -67,8 +67,13 @@ TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
+    len4id = get_cover_len4_id(music.id)
+    if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
+        img = file
+    else:
+        img = os.path.join(static, 'mai', 'cover', '0000.png')
     msg = f'''{music.id}. {music.title}
-{MessageSegment.image(f'https://www.diving-fish.com/covers/{get_cover_len4_id(music.id)}.png')}
+{MessageSegment.image(f"file:///{img}")}
 {'/'.join(list(map(str, music.ds)))}'''
     return msg
 
