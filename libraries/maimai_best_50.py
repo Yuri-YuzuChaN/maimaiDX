@@ -3,12 +3,11 @@ import math
 import os
 from typing import Dict, List, Optional, Tuple, Union
 
-import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 from nonebot.adapters.onebot.v11 import MessageSegment
 
 from .. import BOTNAME, static
-from .image import image_to_base64
+from .image import image_to_base64, get_user_logo
 from .maimaidx_api_data import get_player_data
 from .maimaidx_music import get_cover_len4_id
 
@@ -292,8 +291,7 @@ class DrawBest:
         self._im = Image.open(os.path.join(self.new_dir, 'b50_bg.png')).convert('RGBA')
 
         if self.qqId:
-            async with aiohttp.request('GET', f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
-                qqLogo = Image.open(io.BytesIO(await resp.read()))
+            qqLogo = await get_user_logo(self.qqId)
             self._im.alpha_composite(qqLogo.convert('RGBA').resize((132, 132)), (402, 48))
         else:
             chara_l = Image.open(os.path.join(self.new_dir, 'chara_l.png'))

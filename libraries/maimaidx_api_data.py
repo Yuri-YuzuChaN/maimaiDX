@@ -1,7 +1,7 @@
 import traceback
 from typing import Dict, List, Union
 
-import aiohttp
+import httpx
 
 from .. import log
 
@@ -34,13 +34,14 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
     else:
         return '项目错误'
     try:
-        async with aiohttp.request('POST', f'https://www.diving-fish.com/api/maimaidxprober/query/{p}', json=payload) as resp:
-            if resp.status == 400:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(f'https://www.diving-fish.com/api/maimaidxprober/query/{p}', json=payload)
+            if resp.status_code == 400:
                 data = player_error
-            elif resp.status == 403:
+            elif resp.status_code == 403:
                 data = '该用户禁止了其他人获取数据。'
-            elif resp.status == 200:
-                data = await resp.json()
+            elif resp.status_code == 200:
+                data = resp.json()
             else:
                 data = '未知错误，请联系BOT管理员'
     except Exception as e:
@@ -53,11 +54,13 @@ async def get_rating_ranking_data() -> Union[dict, str]:
     获取排名，获取失败时返回字符串
     """
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/rating_ranking') as resp:
-            if resp.status != 200:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get('https://www.diving-fish.com/api/maimaidxprober/rating_ranking')
+            if resp.status_code != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
-                data = await resp.json()
+                data = resp.json()
+
     except Exception as e:
         log.error(f'Error: {traceback.format_exc()}')
         data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
@@ -72,11 +75,12 @@ async def get_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union
     - `end`: 已结束的别名申请
     """
     try:
-        async with aiohttp.request('GET', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params) as resp:
-            if resp.status != 200:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params)
+            if resp.status_code != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
-                data = await resp.json()
+                data = resp.json()
     except Exception as e:
         log.error(f'Error: {traceback.format_exc()}')
         data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
@@ -88,11 +92,12 @@ async def post_alias(api: str, params: dict = None) -> Union[List[Dict[str, Unio
     - `agree`: 同意别名
     """
     try:
-        async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params) as resp:
-            if resp.status != 200:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params)
+            if resp.status_code != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
-                data = await resp.json()
+                data = resp.json()
     except Exception as e:
         log.error(f'Error: {traceback.format_exc()}')
         data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'

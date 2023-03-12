@@ -2,6 +2,7 @@ import base64
 import os
 from io import BytesIO
 
+import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from .. import static
@@ -49,3 +50,9 @@ def image_to_base64(img: Image.Image, format='PNG') -> str:
     byte_data = output_buffer.getvalue()
     base64_str = base64.b64encode(byte_data).decode()
     return 'base64://' + base64_str
+
+
+async def get_user_logo(qq: int) -> Image.Image:
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f'http://q1.qlogo.cn/g?b=qq&nk={qq}&s=100')
+        return Image.open(BytesIO(res.content))

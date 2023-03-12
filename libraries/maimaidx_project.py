@@ -4,6 +4,7 @@ import traceback
 from re import Match
 from typing import Optional, Union
 
+import httpx
 from PIL import Image, ImageDraw
 
 from .. import BOTNAME, static
@@ -62,9 +63,10 @@ async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
         len4id = get_cover_len4_id(id)
         if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
             return file
-        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{len4id}.png') as req:
-            if req.status == 200:
-                return io.BytesIO(await req.read())
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f'https://www.diving-fish.com/covers/{len4id}.png')
+            if r.status_code == 200:
+                return io.BytesIO(r.content)
             else:
                 return os.path.join(static, 'mai', 'cover', '0000.png')
     except:

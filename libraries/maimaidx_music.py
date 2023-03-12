@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiofiles
-import aiohttp
+import httpx
 from PIL import Image
 
 from .. import log, static
@@ -213,22 +213,24 @@ async def get_music_list() -> MusicList:
     """
     获取所有数据
     """
-    async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data') as obj_data:
-        if obj_data.status != 200:
+    async with httpx.AsyncClient() as client:
+        obj_data = await client.get('https://www.diving-fish.com/api/maimaidxprober/music_data')
+        if obj_data.status_code != 200:
             log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
             async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
                 data = json.loads(await f.read())
         else:
-            data = await obj_data.json()
+            data = obj_data.json()
             async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(data, ensure_ascii=False, indent=4))
-    async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats') as obj_stats:
-        if obj_stats.status != 200:
+    async with httpx.AsyncClient() as client:
+        obj_stats = await client.get('https://www.diving-fish.com/api/maimaidxprober/chart_stats')
+        if obj_stats.status_code != 200:
             log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
             async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
                 stats = json.loads(await f.read())
         else:
-            stats = await obj_stats.json()
+            stats = obj_stats.json()
             async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
 

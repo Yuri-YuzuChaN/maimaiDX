@@ -1,15 +1,13 @@
 # Author: xyb, Diving_Fish
 import math
 import os
-from io import BytesIO
 from typing import Dict, List, Tuple, Union
 
-import aiohttp
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from nonebot.adapters.onebot.v11 import MessageSegment
 
 from .. import BOTNAME, static
-from .image import image_to_base64
+from .image import image_to_base64, get_user_logo
 from .maimaidx_api_data import get_player_data
 from .maimaidx_music import get_cover_len4_id, mai
 
@@ -445,8 +443,7 @@ class DrawBest(object):
 
     async def draw(self):
         if self.qqId:
-            async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
-                qqLogo = Image.open(BytesIO(await resp.read()))
+            qqLogo = await get_user_logo(self.qqId)
             borderImg1 = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
             borderImg2 = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
             self._drawRoundRec(borderImg1, (255, 0, 80), 0, 0, 200, 200, 40)
