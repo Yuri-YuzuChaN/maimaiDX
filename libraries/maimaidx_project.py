@@ -2,10 +2,12 @@ import io
 import time
 import traceback
 from re import Match
+from textwrap import dedent
 from typing import Optional, Union
 
 import httpx
 from PIL import Image, ImageDraw
+from nonebot import logger
 
 from .. import BOTNAME, static
 from .image import *
@@ -213,54 +215,53 @@ async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment
 
     return msg
 
-async def query_chart_data(match: Match) -> str:
-    if match.group(1) != '':
+async def query_chart_data(match: Tuple) -> str:
+    if match[0] != '':
         try:
-            level_index = level_labels.index(match.group(1))
+            level_index = level_labels.index(match[0])
             level_name = ['Basic', 'Advanced', 'Expert', 'Master', 'Re: MASTER']
-            name = match.group(2)
+            name = match[1]
             music = mai.total_list.by_id(name)
             chart = music['charts'][level_index]
             stats = music['stats'][level_index]
             ds = music['ds'][level_index]
             level = music['level'][level_index]
             if len(chart['notes']) == 4:
-                result = f'''{level_name[level_index]} {level}({ds})
-TAP: {chart['notes'][0]}
-HOLD: {chart['notes'][1]}
-SLIDE: {chart['notes'][2]}
-BREAK: {chart['notes'][3]}
-谱师: {chart['charter']}
-难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
+                result = dedent(f'''\
+                    {level_name[level_index]} {level}({ds})
+                    TAP: {chart['notes'][0]}
+                    HOLD: {chart['notes'][1]}
+                    SLIDE: {chart['notes'][2]}
+                    BREAK: {chart['notes'][3]}
+                    谱师: {chart['charter']}
+                    难易度参考: {stats['tag'] if 'tag' in stats else '无'}''')
             else:
-                result = f'''{level_name[level_index]} {level}({ds})
-TAP: {chart['notes'][0]}
-HOLD: {chart['notes'][1]}
-SLIDE: {chart['notes'][2]}
-TOUCH: {chart['notes'][3]}
-BREAK: {chart['notes'][4]}
-谱师: {chart['charter']}
-难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
-
+                result = dedent(f'''\
+                    {level_name[level_index]} {level}({ds})
+                    TAP: {chart['notes'][0]}
+                    HOLD: {chart['notes'][1]}
+                    SLIDE: {chart['notes'][2]}
+                    TOUCH: {chart['notes'][3]}
+                    BREAK: {chart['notes'][4]}
+                    谱师: {chart['charter']}
+                    难易度参考: {stats['tag'] if 'tag' in stats else '无'}''')
             len4id = get_cover_len4_id(music['id'])
             if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
                 img = file
             else:
                 img = os.path.join(static, 'mai', 'cover', '0000.png')
 
-            msg = f'''{music["id"]}. {music["title"]}
-{MessageSegment.image(f"file:///{img}")}
-{result}'''
+            msg = f'{music["id"]}. {music["title"]}' + '\n' + MessageSegment.image(f'file:///{img}') + '\n' + result
         except:
             msg = '未找到该谱面'
     else:
         try:
-            name = match.group(2)
+            name = match[1]
             music = mai.total_list.by_id(name)
             msg = await draw_music_info(music)
 
         except Exception as e:
-            log.error(traceback.format_exc())
+            logger.exception(e)
             msg = '未找到该乐曲'
     
     return msg
