@@ -213,26 +213,28 @@ async def get_music_list() -> MusicList:
     """
     获取所有数据
     """
-    async with httpx.AsyncClient() as client:
-        obj_data = await client.get('https://www.diving-fish.com/api/maimaidxprober/music_data')
-        if obj_data.status_code != 200:
-            log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
-            async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
-                data = json.loads(await f.read())
-        else:
+    try:
+        async with httpx.AsyncClient() as client:
+            obj_data = await client.get('https://www.diving-fish.com/api/maimaidxprober/music_data')
+            obj_data.raise_for_status()
             data = obj_data.json()
             async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(data, ensure_ascii=False, indent=4))
-    async with httpx.AsyncClient() as client:
-        obj_stats = await client.get('https://www.diving-fish.com/api/maimaidxprober/chart_stats')
-        if obj_stats.status_code != 200:
-            log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
-            async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
-                stats = json.loads(await f.read())
-        else:
+    except:
+        log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
+        async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
+            data = json.loads(await f.read())
+    try:
+        async with httpx.AsyncClient() as client:
+            obj_stats = await client.get('https://www.diving-fish.com/api/maimaidxprober/chart_stats')
+            obj_stats.raise_for_status()
             stats = obj_stats.json()
             async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
+    except:
+        log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
+        async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
+            stats = json.loads(await f.read())
 
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):
@@ -300,7 +302,7 @@ mai = MaiMusic()
 
 class Guess:
 
-    Group: Dict[str, Dict[str, Union[MaiMusic, int]]] = {}
+    Group: Dict[int, Dict[str, Union[MaiMusic, int]]] = {}
 
     def __init__(self) -> None:
         """
@@ -313,7 +315,7 @@ class Guess:
                 json.dump({'enable': [], 'disable': []}, f)
         self.config: Dict[str, List[int]] = json.load(open(self.config_json, 'r', encoding='utf-8'))
     
-    def add(self, gid: str, music: MaiMusic, cycle: int = 0):
+    def add(self, gid: int, music: MaiMusic, cycle: int = 0):
         """
         新增猜歌群
         """
@@ -322,7 +324,7 @@ class Guess:
             'cycle': cycle
         }
 
-    def end(self, gid: str):
+    def end(self, gid: int):
         """
         结束猜歌
         """
