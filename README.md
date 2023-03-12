@@ -4,6 +4,12 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
+# 请注意：当前分支为面向 [nonebot2](https://v2.nonebot.dev/) 而进行重构的分支
+
+目前重构尚未结束，该分支的插件暂时不能直接使用，敬请期待。
+
+面向的 nonebot2 的版本是 `2.0.0rc3`
+
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
