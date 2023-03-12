@@ -29,19 +29,19 @@ def text_to_image(text: str) -> Image.Image:
     font = ImageFont.truetype(fontpath, 24)
     padding = 10
     margin = 4
-    text_list = text.split('\n')
+    lines = text.strip().split('\n')
     max_width = 0
-    for text in text_list:
-        w, h = font.getsize(text)
+    for line in lines:
+        w, _ = font.getsize(line)
         max_width = max(max_width, w)
+    h = font.getsize(lines[0])[1]  # 将第一行作为文字高度取样行
     wa = max_width + padding * 2
-    ha = h * len(text_list) + margin * (len(text_list) - 1) + padding * 2
-    i = Image.new('RGB', (wa, ha), color=(255, 255, 255))
-    draw = ImageDraw.Draw(i)
-    for j in range(len(text_list)):
-        text = text_list[j]
-        draw.text((padding, padding + j * (margin + h)), text, font=font, fill=(0, 0, 0))
-    return i
+    ha = h * len(lines) + margin * (len(lines) - 1) + padding * 2
+    im = Image.new('RGB', (wa, ha), color=(255, 255, 255))
+    draw = ImageDraw.Draw(im)
+    for index, line in enumerate(lines):
+        draw.text((padding, padding + index * (margin + h)), line, font=font, fill=(0, 0, 0))
+    return im
 
 
 def to_bytes_io(text: str) -> BytesIO:
