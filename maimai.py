@@ -1,70 +1,77 @@
-import asyncio
-import random
-import re
-from typing import Any, Dict
+from textwrap import dedent
 
-import hoshino
-from hoshino import Service, priv
-from hoshino.typing import CQEvent, MessageSegment
-from nonebot import NoneBot, on_startup
+from nonebot import on_command, get_driver, on_regex, logger
+from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent
+from nonebot.params import CommandArg, RegexGroup
 
-from . import *
 from .libraries.image import *
 from .libraries.maimaidx_api_data import *
 from .libraries.maimaidx_music import (MaiMusic, Music, alias,
                                        get_cover_len4_id, guess, mai)
 from .libraries.maimaidx_project import *
 from .libraries.tool import *
-from .page import mp
+# from .page import mp
+
+manual = on_command('帮助maimaiDX', aliases={'帮助maimaidx'}, priority=5)
+repo = on_command('项目地址maimaiDX', aliases={'项目地址maimaidx'}, priority=5)
+search_base = on_command('定数查歌', aliases={'search base'}, priority=5)
+search_bpm = on_command('bpm查歌', aliases={'search bpm'}, priority=5)
+search_artist = on_command('曲师查歌', aliases={'search artist'}, priority=5)
+search_charter = on_command('谱师查歌', aliases={'search charter'}, priority=5)
+random_song = on_regex(r'^[随来给]个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$', priority=5)
+mai_what = on_regex(r'.*mai.*什么', priority=5)
+search = on_command('查歌', aliases={'search'}, priority=5)  # 注意 on 响应器的注册顺序，search 应当优先于 search_* 之前注册
+query_chart = on_regex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$', priority=5)
+
+
+driver=get_driver()
 
 public_addr = 'http://www.example.com:8081'
 
-app = hoshino.get_bot().server_app
+# app = hoshino.get_bot().server_app
 # !<-- 前端开发用 -->
 # app.jinja_env.auto_reload = True
 # app.config['TEMPLATES_AUTO_RELOAD'] = True
 # app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)
-app.register_blueprint(mp)
+# app.register_blueprint(mp)
 
-sv_help = '''
-可用命令如下：
-帮助maimaiDX 查看指令帮助
-项目地址maimaiDX 查看项目地址
-今日mai,今日舞萌,今日运势 查看今天的舞萌运势
-XXXmaimaiXXX什么 随机一首歌
-随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
-[查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
-[绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
-<歌曲别名>是什么歌 查询乐曲别名对应的乐曲
-<id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
-添加别称 <歌曲ID> <歌曲别名> 申请添加歌曲别名 
-当前别名投票    查看正在进行的投票 
-同意别名 <标签>     同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
-开启/关闭别名推送    开启或关闭新别名投票的推送
-[定数查歌/search base] <定数>  查询定数对应的乐曲
-[定数查歌/search base] <定数下限> <定数上限>
-[bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
-[bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
-[曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
-[谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
-分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
-开启/关闭mai猜歌 开关猜歌功能
-猜歌 顾名思义，识别id，歌名和别名
-minfo<@> <id/别称/曲名> 查询单曲成绩
-b40 <名字> 或 @某人 查B40
-b50 <名字> 或 @某人 查B50
-我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
-<牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
-<等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
-<等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
-查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
-'''.strip()
 
-SV_HELP = '请使用 帮助maimaiDX 查看帮助'
+help_text = dedent('''\
+        可用命令如下：
+        帮助maimaiDX 查看指令帮助
+        项目地址maimaiDX 查看项目地址
+        今日mai,今日舞萌,今日运势 查看今天的舞萌运势
+        XXXmaimaiXXX什么 随机一首歌
+        随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
+        [查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
+        [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
+        <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
+        <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
+        添加别称 <歌曲ID> <歌曲别名> 申请添加歌曲别名 
+        当前别名投票    查看正在进行的投票 
+        同意别名 <标签>     同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
+        开启/关闭别名推送    开启或关闭新别名投票的推送
+        [定数查歌/search base] <定数>  查询定数对应的乐曲
+        [定数查歌/search base] <定数下限> <定数上限>
+        [bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
+        [bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
+        [曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
+        [谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
+        分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
+        开启/关闭mai猜歌 开关猜歌功能
+        猜歌 顾名思义，识别id，歌名和别名
+        minfo<@> <id/别称/曲名> 查询单曲成绩
+        b40 <名字> 或 @某人 查B40
+        b50 <名字> 或 @某人 查B50
+        我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
+        <牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
+        <等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
+        <等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
+        查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
+    ''')
 
 TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
     len4id = get_cover_len4_id(music.id)
@@ -72,10 +79,12 @@ def random_music(music: Music) -> str:
         img = file
     else:
         img = os.path.join(static, 'mai', 'cover', '0000.png')
-    msg = f'''{music.id}. {music.title}
-{MessageSegment.image(f"file:///{img}")}
-{'/'.join(list(map(str, music.ds)))}'''
+    msg = dedent(f'''\
+        {music.id}. {music.title}
+        {MessageSegment.image(f"file:///{img}")}
+        {'/'.join(list(map(str, music.ds)))}''')
     return msg
+
 
 def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
@@ -94,7 +103,8 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
                 result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
 
-@on_startup
+
+@driver.on_startup
 async def get_music():
     """
     bot启动时开始获取所有数据
@@ -102,19 +112,22 @@ async def get_music():
     await mai.get_music()
     mai.guess()
 
-@sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
-async def dx_help(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(sv_help))), at_sender=True)
 
-@sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
-async def dx_github(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', at_sender=True)
+@manual.handle()
+async def _():
+    await manual.finish(MessageSegment.image(to_bytes_io(help_text)), reply_message=True)
 
-@sv.on_prefix(['定数查歌', 'search base'])
-async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
-    args = ev.message.extract_plain_text().strip().split()
+
+@repo.handle()
+async def _():
+    await manual.finish(f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', reply_message=True)
+
+
+@search_base.handle()
+async def _(args: Message = CommandArg()):
+    args = args.extract_plain_text().strip().split()
     if len(args) > 4 or len(args) == 0:
-        await bot.finish(ev, '命令格式为\n定数查歌 <定数>\n定数查歌 <定数下限> <定数上限>', at_sender=True)
+        await search_base.finish('命令格式为\n定数查歌 <定数>\n定数查歌 <定数下限> <定数上限>', reply_message=True)
     if len(args) == 1:
         result = song_level(float(args[0]), float(args[0]))
     elif len(args) == 2:
@@ -130,19 +143,20 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
     else:
         result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
     if not result:
-        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+        await search_base.finish('没有找到这样的乐曲。', reply_message=True)
     if len(result) >= 60:
-        await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
+        await search_base.finish(f'结果过多（{len(result)} 条），请缩小搜索范围', reply_message=True)
     msg = ''
     for i in result:
         msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await search_base.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
-@sv.on_prefix(['bpm查歌', 'search bpm'])
-async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
-    if str(ev.group_id) in guess.Group:
-        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
-    args = ev.message.extract_plain_text().strip().split()
+
+@search_bpm.handle()
+async def _(event: MessageEvent, args: Message = CommandArg()):
+    if isinstance(event, GroupMessageEvent) and event.group_id in guess.Group:
+        await search_bpm.finish('本群正在猜歌，不要作弊哦~', reply_message=True)
+    args = args.extract_plain_text().strip().split()
     page = 1
     if len(args) == 1:
         music_data = mai.total_list.filter(bpm=int(args[0]))
@@ -152,22 +166,24 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
         music_data = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
         page = int(args[2])
     else:
-        await bot.finish(ev, '命令格式为：\nbpm查歌 <bpm>\nbpm查歌 <bpm下限> <bpm上限> (<页数>)', at_sender=True)
+        music_data = None
+        await search_bpm.finish('命令格式为：\nbpm查歌 <bpm>\nbpm查歌 <bpm下限> <bpm上限> (<页数>)', reply_message=True)
     if not music_data:
-        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+        await search_bpm.finish('没有找到这样的乐曲。', reply_message=True)
     msg = ''
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(sorted(music_data, key=lambda i: int(i.bpm))):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.bpm}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await search_bpm.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
-@sv.on_prefix(['曲师查歌', 'search artist'])
-async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
-    if str(ev.group_id) in guess.Group:
-        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
-    args: List[str] = ev.message.extract_plain_text().strip().split()
+
+@search_artist.handle()
+async def _(event: MessageEvent, args: Message = CommandArg()):
+    if isinstance(event, GroupMessageEvent) and event.group_id in guess.Group:
+        await search_bpm.finish('本群正在猜歌，不要作弊哦~', reply_message=True)
+    args = args.extract_plain_text().strip().split()
     page = 1
     if len(args) == 1:
         name: str = args[0]
@@ -176,27 +192,29 @@ async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
         if args[1].isdigit():
             page = int(args[1])
         else:
-            bot.finish(ev, '命令格式为：曲师查歌 <曲师名称> (<页数>)', at_sender=True)
+            await search_artist.finish('命令格式为：\n曲师查歌 <曲师名称> (<页数>)', reply_message=True)
     else:
-        bot.finish(ev, '命令格式为：曲师查歌 <曲师名称> (<页数>)', at_sender=True)
+        name = ''
+        await search_artist.finish('命令格式为：\n曲师查歌 <曲师名称> (<页数>)', reply_message=True)
     if not name:
         return
     music_data = mai.total_list.filter(artist_search=name)
     if not music_data:
-        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+        await search_artist.finish('没有找到这样的乐曲。', reply_message=True)
     msg = ''
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(music_data):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await search_artist.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
-@sv.on_prefix(['谱师查歌', 'search charter'])
-async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
-    if str(ev.group_id) in guess.Group:
-        await bot.finish(ev, '本群正在猜歌，不要作弊哦~', at_sender=True)
-    args: List[str] = ev.message.extract_plain_text().strip().split()
+
+@search_charter.handle()
+async def _(event: MessageEvent, args: Message = CommandArg()):
+    if isinstance(event, GroupMessageEvent) and event.group_id in guess.Group:
+        await search_bpm.finish('本群正在猜歌，不要作弊哦~', reply_message=True)
+    args = args.extract_plain_text().strip().split()
     page = 1
     if len(args) == 1:
         name: str = args[0]
@@ -205,14 +223,15 @@ async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
         if args[1].isdigit():
             page = int(args[1])
         else:
-            bot.finish(ev, '命令格式为：谱师查歌 <谱师名称> (<页数>)', at_sender=True)
+            await search_charter.finish('命令格式为：\n谱师查歌 <谱师名称> (<页数>)', reply_message=True)
     else:
-        bot.finish(ev, '命令格式为：谱师查歌 <谱师名称> (<页数>)', at_sender=True)
+        name = ''
+        await search_charter.finish('命令格式为：\n谱师查歌 <谱师名称> (<页数>)', reply_message=True)
     if not name:
         return
     music_data = mai.total_list.filter(charter_search=name)
     if not music_data:
-        await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
+        await search_charter.finish('没有找到这样的乐曲。', reply_message=True)
     msg = ''
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(music_data):
@@ -220,61 +239,60 @@ async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
             diff_charter = zip([diffs[d] for d in m.diff], [m.charts[d].charter for d in m.diff])
             msg += f'No.{i + 1} {m.id}. {m.title} {" ".join([f"{d}/{c}" for d, c in diff_charter])}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
+    await search_charter.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
-@sv.on_rex(r'^[随来给]个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
-async def random_song(bot: NoneBot, ev: CQEvent):
+
+@random_song.handle()
+@mai_what.handle()
+async def _(match: Tuple = RegexGroup()):
+    # see https://github.com/nonebot/nonebot2/pull/1453
     try:
-        match: Match[str] = ev['match']
-        diff = match.group(1)
+        diff = match[0]
         if diff == 'dx':
             tp = ['DX']
         elif diff == 'sd' or diff == '标准':
             tp = ['SD']
         else:
             tp = ['SD', 'DX']
-        level = match.group(3)
-        if match.group(2) == '':
+        level = match[1]
+        if match[2] == '':
             music_data = mai.total_list.filter(level=level, type=tp)
         else:
-            music_data = mai.total_list.filter(level=level, diff=['绿黄红紫白'.index(match.group(2))], type=tp)
+            music_data = mai.total_list.filter(level=level, diff=['绿黄红紫白'.index(match[1])], type=tp)
         if len(music_data) == 0:
             msg = '没有这样的乐曲哦。'
         else:
             msg = await draw_music_info(music_data.random())
-        await bot.send(ev, msg, at_sender=True)
     except:
-        await bot.send(ev, '随机命令错误，请检查语法', at_sender=True)
+        msg = '随机命令错误，请检查语法'
+    await random_song.finish(msg, reply_message=True)
 
-@sv.on_rex(r'.*mai.*什么')
-async def random_day_song(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, await draw_music_info(mai.total_list.random()))
 
-@sv.on_prefix(['查歌', 'search'])
-async def search_song(bot: NoneBot, ev: CQEvent):
-    name: str = ev.message.extract_plain_text().strip()
+@search.handle()
+async def _(args: Message = CommandArg()):
+    name = args.extract_plain_text().strip()
     if not name:
         return
     result = mai.total_list.filter(title_search=name)
     if len(result) == 0:
-        await bot.send(ev, '没有找到这样的乐曲。', at_sender=True)
+        await search.finish('没有找到这样的乐曲。', reply_message=True)
     elif len(result) == 1:
         msg = await draw_music_info(result.random())
-        await bot.send(ev, msg)
+        await search.finish(msg, reply_message=True)
     elif len(result) < 50:
         search_result = ''
         for music in sorted(result, key=lambda i: int(i['id'])):
             search_result += f'{music["id"]}. {music["title"]}\n'
-        await bot.send(ev, search_result.strip(), at_sender=True)
+        await search.finish(MessageSegment.image(to_bytes_io(search_result)), reply_message=True)
     else:
-        await bot.send(ev, f'结果过多（{len(result)} 条），请缩小查询范围。', at_sender=True)
+        await search.finish(f'结果过多（{len(result)} 条），请缩小查询范围。', reply_message=True)
 
-@sv.on_rex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$')
-async def query_chart(bot: NoneBot, ev: CQEvent):
-    match: Match[str] = ev['match']
+
+@query_chart.handle()
+async def _(match: Tuple = RegexGroup()):
     msg = await query_chart_data(match)
+    await query_chart.finish(msg, reply_message=True)
 
-    await bot.send(ev, msg)
 
 @sv.on_fullmatch(['今日mai', '今日舞萌', '今日运势'])
 async def day_mai(bot: NoneBot, ev: CQEvent):
@@ -300,7 +318,7 @@ async def day_mai(bot: NoneBot, ev: CQEvent):
 @sv.on_suffix(['是什么歌', '是啥歌'])
 async def what_song(bot: NoneBot, ev: CQEvent):
     name: str = ev.message.extract_plain_text().strip().lower()
-    
+
     data = await get_alias('songs', {'alias_name': name})
     if 'error' in data:
         await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
@@ -316,7 +334,7 @@ async def what_song(bot: NoneBot, ev: CQEvent):
 @sv.on_suffix(['有什么别称', '有什么别名'])
 async def how_song(bot: NoneBot, ev: CQEvent):
     name: str = ev.message.extract_plain_text().strip().lower()
-    
+
     alias = await get_alias('alias', {'name': name})
     if not alias:
         if name.isdigit():
@@ -333,7 +351,7 @@ async def how_song(bot: NoneBot, ev: CQEvent):
             alias_list = '\n'.join(songs['Alias'])
             msg.append(f'ID：{songs["ID"]}\n{alias_list}')
         await bot.finish(ev, f'找到{len(alias)}个相同别名的曲目：\n' + '\n======\n'.join(msg), at_sender=True)
-    
+
     if len(alias[0]['Alias']) == 1:
         await bot.finish(ev, '该曲目没有别名', at_sender=True)
 
@@ -572,7 +590,7 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-        
+
     data = await rise_score_data(payload, match, nickname)
     await bot.send(ev, data, at_sender=True)
 
@@ -595,7 +613,7 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-    
+
     if match.group(1) in ['霸', '舞']:
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
     else:
@@ -641,7 +659,7 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
-        
+
     if match.group(1) not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
@@ -667,7 +685,7 @@ async def rating_ranking(bot: NoneBot, ev: CQEvent):
         page = int(args)
     else:
         name = args.lower()
-    
+
     data = await rating_ranking_data(name, page)
     await bot.send(ev, data, at_sender=True)
 
