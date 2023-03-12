@@ -4,8 +4,8 @@ import os
 from typing import Dict, List, Optional, Tuple, Union
 
 import aiohttp
-from hoshino.typing import MessageSegment
 from PIL import Image, ImageDraw, ImageFont
+from nonebot.adapters.onebot.v11 import MessageSegment
 
 from .. import BOTNAME, static
 from .image import image_to_base64

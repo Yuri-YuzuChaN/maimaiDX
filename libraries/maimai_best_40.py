@@ -6,8 +6,8 @@ from typing import Dict, List, Tuple, Union
 
 import aiohttp
 import numpy as np
-from hoshino.typing import MessageSegment
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from nonebot.adapters.onebot.v11 import MessageSegment
 
 from .. import BOTNAME, static
 from .image import image_to_base64

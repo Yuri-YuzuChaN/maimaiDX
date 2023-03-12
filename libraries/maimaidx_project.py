@@ -4,7 +4,6 @@ import traceback
 from re import Match
 from typing import Optional, Union
 
-from hoshino.typing import MessageSegment
 from PIL import Image, ImageDraw
 
 from .. import BOTNAME, static
