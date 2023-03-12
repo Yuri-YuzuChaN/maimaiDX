@@ -44,6 +44,14 @@ def text_to_image(text: str) -> Image.Image:
     return i
 
 
+def to_bytes_io(text: str) -> BytesIO:
+    bio = BytesIO()
+    text_to_image(text).save(bio, format='PNG')
+    bio.seek(0)
+
+    return bio
+
+
 def image_to_base64(img: Image.Image, format='PNG') -> str:
     output_buffer = BytesIO()
     img.save(output_buffer, format)
