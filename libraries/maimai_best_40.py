@@ -5,7 +5,6 @@ from io import BytesIO
 from typing import Dict, List, Tuple, Union
 
 import aiohttp
-import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from nonebot.adapters.onebot.v11 import MessageSegment
 
@@ -448,8 +447,8 @@ class DrawBest(object):
         if self.qqId:
             async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
                 qqLogo = Image.open(BytesIO(await resp.read()))
-            borderImg1 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
-            borderImg2 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
+            borderImg1 = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
+            borderImg2 = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
             self._drawRoundRec(borderImg1, (255, 0, 80), 0, 0, 200, 200, 40)
             self._drawRoundRec(borderImg2, (255, 255, 255), 3, 3, 193, 193, 30)
             borderImg1.paste(borderImg2, (0, 0), mask=borderImg2.split()[3])
