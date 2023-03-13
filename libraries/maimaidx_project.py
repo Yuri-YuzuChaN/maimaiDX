@@ -74,7 +74,12 @@ async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
     except:
         return os.path.join(static, 'mai', 'cover', '0000.png')
 
-async def draw_music_info(music: MusicList) -> MessageSegment:
+
+async def draw_music_info_to_message_segment(music: MusicList) -> MessageSegment:
+    return MessageSegment.image(await draw_music_info(music))
+
+
+async def draw_music_info(music: MusicList) -> BytesIO:
     im = Image.new('RGBA', (800, 1000))
     genre = category[music['basic_info']['genre']]
 
@@ -116,9 +121,11 @@ async def draw_music_info(music: MusicList) -> MessageSegment:
     font.draw_partial_opacity(240, 940, 20, f'Ver:{music["basic_info"]["from"]}', 1, anchor='mm')
     font.draw_partial_opacity(580, 940, 20, f'BPM:{music["basic_info"]["bpm"]}', 1, anchor='mm')
 
-    msg = MessageSegment.image(image_to_base64(im))
+    bio = BytesIO()
+    im.save(bio, format='PNG')
+    bio.seek(0)
+    return bio
 
-    return msg
 
 async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment, None]:
     data = await get_player_data('plate', payload)
@@ -258,7 +265,7 @@ async def query_chart_data(match: Tuple) -> str:
         try:
             name = match[1]
             music = mai.total_list.by_id(name)
-            msg = await draw_music_info(music)
+            msg = await draw_music_info_to_message_segment(music)
 
         except Exception as e:
             logger.exception(e)
