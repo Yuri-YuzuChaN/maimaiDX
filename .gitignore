@@ -130,7 +130,7 @@ dmypy.json
 
 
 # static
-static/
+/static/
 static.zip
 arcades.json
 

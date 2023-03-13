@@ -2,8 +2,7 @@ from textwrap import dedent
 from string import ascii_uppercase, digits
 from random import sample
 
-import nonebot
-from nonebot import on_command, get_driver, on_regex, on_endswith, logger
+from nonebot import on_command, get_driver, on_regex, on_endswith
 from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent
 from nonebot.params import CommandArg, RegexGroup, Endswith
 
@@ -13,7 +12,8 @@ from .libraries.maimaidx_music import (MaiMusic, Music, alias,
                                        get_cover_len4_id, guess, mai)
 from .libraries.maimaidx_project import *
 from .libraries.tool import *
-# from .page import mp
+
+driver = get_driver()
 
 manual = on_command('帮助maimaiDX', aliases={'帮助maimaidx'}, priority=5)
 repo = on_command('项目地址maimaiDX', aliases={'项目地址maimaidx'}, priority=5)
@@ -28,19 +28,6 @@ query_chart = on_regex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$', priority=5)
 mai_today = on_command('今日mai', aliases={'今日舞萌', '今日运势'}, priority=5)
 what_song = on_endswith(('是什么歌', '是啥歌'), priority=5)
 alias_song = on_endswith(('有什么别称', '有什么别名'), priority=5)
-
-
-driver=get_driver()
-
-public_addr = 'http://www.example.com:8081'
-
-# app = hoshino.get_bot().server_app
-# !<-- 前端开发用 -->
-# app.jinja_env.auto_reload = True
-# app.config['TEMPLATES_AUTO_RELOAD'] = True
-# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)
-# app.register_blueprint(mp)
-
 
 help_text = dedent('''\
         可用命令如下：
@@ -75,8 +62,6 @@ help_text = dedent('''\
         <等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
         查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
     ''')
-
-TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
 def random_music(music: Music) -> str:
@@ -268,7 +253,7 @@ async def _(match: Tuple = RegexGroup()):
         if len(music_data) == 0:
             msg = '没有这样的乐曲哦。'
         else:
-            msg = await draw_music_info(music_data.random())
+            msg = await draw_music_info_to_message_segment(music_data.random())
     except:
         msg = '随机命令错误，请检查语法'
     await random_song.finish(msg, reply_message=True)
@@ -283,7 +268,7 @@ async def _(args: Message = CommandArg()):
     if len(result) == 0:
         await search.finish('没有找到这样的乐曲。', reply_message=True)
     elif len(result) == 1:
-        msg = await draw_music_info(result.random())
+        msg = await draw_music_info_to_message_segment(result.random())
         await search.finish(msg, reply_message=True)
     elif len(result) < 50:
         search_result = ''
@@ -318,7 +303,7 @@ async def _(event: MessageEvent):
             msg += f'忌 {wm_list[i]}\n'
     msg += 'Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
     music = mai.total_list[h % len(mai.total_list)]
-    msg += await draw_music_info(music)
+    msg += await draw_music_info_to_message_segment(music)
     await mai_today.finish(msg, reply_message=True)
 
 
@@ -336,7 +321,7 @@ async def _(event: MessageEvent, end: str = Endswith()):
         await what_song.finish(msg.strip(), reply_message=True)
 
     music = mai.total_list.by_id(str(data[0]['ID']))
-    await what_song.finish(await draw_music_info(music), reply_message=True)
+    await what_song.finish(await draw_music_info_to_message_segment(music), reply_message=True)
 
 
 @alias_song.handle()
