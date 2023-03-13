@@ -1,8 +1,11 @@
 from textwrap import dedent
+from string import ascii_uppercase, digits
+from random import sample
 
-from nonebot import on_command, get_driver, on_regex, logger
+import nonebot
+from nonebot import on_command, get_driver, on_regex, on_endswith, logger
 from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent
-from nonebot.params import CommandArg, RegexGroup
+from nonebot.params import CommandArg, RegexGroup, Endswith
 
 from .libraries.image import *
 from .libraries.maimaidx_api_data import *
@@ -22,6 +25,9 @@ random_song = on_regex(r'^[随来给]个((?:dx|sd|标准))?([绿黄红紫白]?)(
 mai_what = on_regex(r'.*mai.*什么', priority=5)
 search = on_command('查歌', aliases={'search'}, priority=5)  # 注意 on 响应器的注册顺序，search 应当优先于 search_* 之前注册
 query_chart = on_regex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$', priority=5)
+mai_today = on_command('今日mai', aliases={'今日舞萌', '今日运势'}, priority=5)
+what_song = on_endswith(('是什么歌', '是啥歌'), priority=5)
+alias_song = on_endswith(('有什么别称', '有什么别名'), priority=5)
 
 
 driver=get_driver()
@@ -294,10 +300,10 @@ async def _(match: Tuple = RegexGroup()):
     await query_chart.finish(msg, reply_message=True)
 
 
-@sv.on_fullmatch(['今日mai', '今日舞萌', '今日运势'])
-async def day_mai(bot: NoneBot, ev: CQEvent):
+@mai_today.handle()
+async def _(event: MessageEvent):
     wm_list = ['拼机', '推分', '越级', '下埋', '夜勤', '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
-    uid = ev.user_id
+    uid = event.user_id
     h = hash(uid)
     rp = h % 100
     wm_value = []
@@ -310,54 +316,57 @@ async def day_mai(bot: NoneBot, ev: CQEvent):
             msg += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             msg += f'忌 {wm_list[i]}\n'
-    msg += f'{NICKNAME} Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
+    msg += 'Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
     music = mai.total_list[h % len(mai.total_list)]
     msg += await draw_music_info(music)
-    await bot.send(ev, msg, at_sender=True)
+    await mai_today.finish(msg, reply_message=True)
 
-@sv.on_suffix(['是什么歌', '是啥歌'])
-async def what_song(bot: NoneBot, ev: CQEvent):
-    name: str = ev.message.extract_plain_text().strip().lower()
+
+@what_song.handle()
+async def _(event: MessageEvent, end: str = Endswith()):
+    name = event.get_plaintext().lower().removesuffix(end).strip()
 
     data = await get_alias('songs', {'alias_name': name})
     if 'error' in data:
-        await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
+        await what_song.finish('未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', reply_message=True)
     if len(data) != 1:
         msg = f'找到{len(data)}个相同别名的曲目：\n'
         for songs in data:
             msg += f'{songs["ID"]}：{songs["Name"]}\n'
-        await bot.finish(ev, msg.strip(), at_sender=True)
+        await what_song.finish(msg.strip(), reply_message=True)
 
     music = mai.total_list.by_id(str(data[0]['ID']))
-    await bot.send(ev, '您要找的是不是：' + (await draw_music_info(music)), at_sender=True)
+    await what_song.finish(await draw_music_info(music), reply_message=True)
 
-@sv.on_suffix(['有什么别称', '有什么别名'])
-async def how_song(bot: NoneBot, ev: CQEvent):
-    name: str = ev.message.extract_plain_text().strip().lower()
 
-    alias = await get_alias('alias', {'name': name})
-    if not alias:
+@alias_song.handle()
+async def _(event: MessageEvent, end: str = Endswith()):
+    name = event.get_plaintext().lower().removesuffix(end).strip()
+
+    aliases = await get_alias('alias', {'name': name})
+    if not aliases:
         if name.isdigit():
             alias_id = await get_alias('alias', {'id': name})
             if not alias_id:
-                await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
+                await alias_song.finish('未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', reply_message=True)
             else:
-                alias = alias_id
+                aliases = alias_id
         else:
-            await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
-    if len(alias) != 1:
+            await alias_song.finish('未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', reply_message=True)
+    if len(aliases) != 1:
         msg = []
-        for songs in alias:
+        for songs in aliases:
             alias_list = '\n'.join(songs['Alias'])
             msg.append(f'ID：{songs["ID"]}\n{alias_list}')
-        await bot.finish(ev, f'找到{len(alias)}个相同别名的曲目：\n' + '\n======\n'.join(msg), at_sender=True)
+        await alias_song.finish(f'找到{len(aliases)}个相同别名的曲目：\n' + '\n======\n'.join(msg), reply_message=True)
 
-    if len(alias[0]['Alias']) == 1:
-        await bot.finish(ev, '该曲目没有别名', at_sender=True)
+    if len(aliases[0]['Alias']) == 1:
+        await alias_song.finish('该曲目没有别名', reply_message=True)
 
-    msg = f'该曲目有以下别名：\nID：{alias[0]["ID"]}\n'
-    msg += '\n'.join(alias[0]['Alias'])
-    await bot.send(ev, msg, at_sender=True)
+    msg = f'该曲目有以下别名：\nID：{aliases[0]["ID"]}\n'
+    msg += '\n'.join(aliases[0]['Alias'])
+    await alias_song.finish(msg, reply_message=True)
+
 
 @sv.on_prefix(['添加别名', '增加别名', '增添别名', '添加别称'])
 async def apply_alias(bot: NoneBot, ev: CQEvent):
@@ -372,7 +381,7 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     isexist = await get_alias('alias', {'id': id})
     if alias_name in isexist[0]['Alias']:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名')
-    tag = ''.join([TAG[random.randint(0, 35)] for _ in range(5)])
+    tag = ''.join(sample(ascii_uppercase + digits, 5))
     status = await post_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
         await bot.finish(ev, status['error'])
