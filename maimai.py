@@ -432,6 +432,8 @@ async def alias_apply_status():
                 alias_name = status[tag]['ApplyAlias']
                 music = mai.total_list.by_id(id)
                 msg.append(f'{tag}：\nID：{id}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/{votes}')
+                if not os.path.exists(os.path.join(static, 'mai', 'vote', f'{tag}.png')):
+                    await draw_music_info(music, tag)
         if len(msg) != 1:
             for gid in group.keys():
                 if gid in alias.config['disable']:
@@ -450,6 +452,8 @@ async def alias_apply_status():
             alias_name = end[ta]['ApplyAlias']
             music = mai.total_list.by_id(id)
             msg2.append(f'ID：{id}\n标题：{music.title}\n别名：{alias_name}')
+            if os.path.exists(os.path.join(static, 'mai', 'vote', f'{ta}.png')):
+                os.remove(os.path.join(static, 'mai', 'vote', f'{ta}.png'))
         if len(msg2) != 1:
             for gid in group.keys():
                 if gid in alias.config['disable']:

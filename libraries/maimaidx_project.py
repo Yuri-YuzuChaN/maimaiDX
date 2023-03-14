@@ -1,3 +1,4 @@
+import os
 import io
 import json
 import time
@@ -72,7 +73,7 @@ async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
     except:
         return os.path.join(static, 'mai', 'cover', '0000.png')
 
-async def draw_music_info(music: MusicList) -> MessageSegment:
+async def draw_music_info(music: MusicList, tag: str=None) -> MessageSegment:
     im = Image.new('RGBA', (800, 1000))
     genre = category[music['basic_info']['genre']]
 
@@ -115,6 +116,9 @@ async def draw_music_info(music: MusicList) -> MessageSegment:
     font.draw_partial_opacity(580, 940, 20, f'BPM:{music["basic_info"]["bpm"]}', 1, anchor='mm')
 
     msg = MessageSegment.image(image_to_base64(im))
+
+    if tag:
+        im.save(os.path.join(static, 'mai', 'vote', f'{tag}.png'))
 
     return msg
 

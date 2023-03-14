@@ -5,9 +5,9 @@ from .libraries.maimaidx_project import *
 
 mp = Blueprint('maimaiPage', __name__,
                url_prefix='/mai',
-               template_folder='page',
+               template_folder='template',
                static_url_path='/statics',
-               static_folder='mai')
+               static_folder='static')
 
 
 @mp.route('/vote', methods=['GET'])
@@ -30,7 +30,10 @@ async def get_vote_data():
         d['index'] = tag
         music = mai.total_list.by_id(d['ID'])
         d['title'] = music.title
-        b64image = (await draw_music_info(mai.total_list.by_id(d['ID']))).data['file']
-        d['image'] = b64image.replace('base64://', 'data:image/png;base64,')
+        # b64image = (await draw_music_info(mai.total_list.by_id(d['ID']))).data['file']
+        # d['image'] = b64image.replace('base64://', 'data:image/png;base64,')
+        if not os.path.exists(os.path.join(static, 'mai', 'vote', f'{tag}.png')):
+            await draw_music_info(music, tag)
+        d['image'] = f'/mai/static/mai/vote/{tag}.png'
         vote_data.append(d)
     return jsonify({'result': vote_data})
