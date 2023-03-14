@@ -34,6 +34,6 @@ async def get_vote_data():
         # d['image'] = b64image.replace('base64://', 'data:image/png;base64,')
         if not os.path.exists(os.path.join(static, 'mai', 'vote', f'{tag}.png')):
             await draw_music_info(music, tag)
-        d['image'] = f'/mai/static/mai/vote/{tag}.png'
+        d['image'] = f'{mp.url_prefix}{mp.static_url_path}/mai/vote/{tag}.png'
         vote_data.append(d)
     return jsonify({'result': vote_data})
