@@ -18,28 +18,32 @@
     <el-container>
       <el-aside width="240px">
         <!-- 左边栏导航目录-->
-        <el-menu :default-openeds="['1']" :unique-opened="true" active-text-color="#5C307D">
-          <el-submenu index="1" :show-timeout="0" :hide-timeout="0">
-            <!-- 别称投票-->
-            <template slot="title">
-              <i class="el-icon-magic-stick"></i>
-              <span>别称投票</span>
-            </template>
-
-            <!-- 生成目录-->
-            <template v-for="title in [...new Set(voteData.map((item) =>{return item.title}))]">
-              <el-menu-item-group :title="title">
-                <template v-for="info in voteData.filter((item) => {return item.title === title})">
-                  <a :href="'#cell-'+info.index" style="text-decoration: none;">
-                    <el-menu-item :index="'1-'+info.index" style="font-size: 12px; height: 25px; line-height: 25px">
-                      [[ info.ApplyAlias ]]
-                    </el-menu-item>
-                  </a>
+        <div class="side-bar">
+          <el-scrollbar style="height: 100%;">
+            <el-menu :default-openeds="['1']" :unique-opened="true" active-text-color="#5C307D">
+              <el-submenu index="1" :show-timeout="0" :hide-timeout="0">
+                <!-- 别称投票-->
+                <template slot="title">
+                  <i class="el-icon-magic-stick"></i>
+                  <span>别称投票</span>
                 </template>
-              </el-menu-item-group>
-            </template>
-          </el-submenu>
-        </el-menu>
+
+                <!-- 生成目录-->
+                <template v-for="title in [...new Set(voteData.map((item) =>{return item.title}))]">
+                  <el-menu-item-group :title="title">
+                    <template v-for="info in voteData.filter((item) => {return item.title === title})">
+                      <a :href="'#cell-'+info.index" style="text-decoration: none;">
+                        <el-menu-item :index="'1-'+info.index" style="font-size: 12px; height: 25px; line-height: 25px">
+                          [[ info.ApplyAlias ]]
+                        </el-menu-item>
+                      </a>
+                    </template>
+                  </el-menu-item-group>
+                </template>
+              </el-submenu>
+            </el-menu>
+          </el-scrollbar>
+        </div>
       </el-aside>
       <el-main>
         <!-- 页面主体-->
@@ -207,5 +211,18 @@
         align-items: center;
         justify-content: center;
         text-align: center;
+    }
+
+    .side-bar {
+      width: 240px;
+      position: fixed;
+      left: 0;
+      top: 35px;
+      bottom: 0;
+      overflow: hidden;
+    }
+
+    .el-scrollbar__wrap {
+        overflow-x: hidden;
     }
 </style>

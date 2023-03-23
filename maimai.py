@@ -2,6 +2,7 @@ import asyncio
 import random
 import re
 from typing import Any, Dict
+from datetime import timedelta
 
 import hoshino
 from hoshino import Service, priv
