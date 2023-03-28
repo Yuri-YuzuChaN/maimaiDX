@@ -4,6 +4,7 @@ from random import sample
 from string import ascii_uppercase, digits
 from textwrap import dedent
 from typing import Any, Dict
+from datetime import timedelta
 
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
