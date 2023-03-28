@@ -15,7 +15,7 @@
     ``` git
     git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
-2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip)
+2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
 3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`
 4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 5. 重启HoshinoBot
