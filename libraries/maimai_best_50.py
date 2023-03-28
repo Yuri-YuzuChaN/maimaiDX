@@ -306,7 +306,7 @@ class DrawBest:
         
         meiryo = os.path.join(static, 'meiryo.ttc')
         siyuan = os.path.join(static, 'SourceHanSansSC-Bold.otf')
-        Torus_SemiBold = os.path.join(self.maimai_dir, 'Torus SemiBold.otf')
+        Torus_SemiBold = os.path.join(static, 'Torus SemiBold.otf')
         basic = Image.open(os.path.join(self.maimai_dir, 'b40_score_basic.png'))
         advanced = Image.open(os.path.join(self.maimai_dir, 'b40_score_advanced.png'))
         expert = Image.open(os.path.join(self.maimai_dir, 'b40_score_expert.png'))
