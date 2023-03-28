@@ -1,9 +1,10 @@
 import asyncio
-import random
 import re
+from random import sample
+from string import ascii_uppercase, digits
+from textwrap import dedent
 from typing import Any, Dict
 
-import hoshino
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
 from nonebot import NoneBot, on_startup
@@ -15,64 +16,53 @@ from .libraries.maimaidx_music import (MaiMusic, Music, alias,
                                        get_cover_len4_id, guess, mai)
 from .libraries.maimaidx_project import *
 from .libraries.tool import *
-from .page import mp
 
-public_addr = 'http://www.example.com:8081'
+public_addr = 'https://vote.yuzuai.xyz/'
 
-app = hoshino.get_bot().server_app
-# !<-- 前端开发用 -->
-# app.jinja_env.auto_reload = True
-# app.config['TEMPLATES_AUTO_RELOAD'] = True
-# app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(seconds=1)
-app.register_blueprint(mp)
-
-sv_help = '''
-可用命令如下：
-帮助maimaiDX 查看指令帮助
-项目地址maimaiDX 查看项目地址
-今日mai,今日舞萌,今日运势 查看今天的舞萌运势
-XXXmaimaiXXX什么 随机一首歌
-随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
-[查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
-[绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
-<歌曲别名>是什么歌 查询乐曲别名对应的乐曲
-<id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
-添加别称 <歌曲ID> <歌曲别名>   申请添加歌曲别名 
-当前别名投票   查看正在进行的投票 
-同意别名 <标签>    同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
-开启/关闭别名推送    开启或关闭新别名投票的推送
-[定数查歌/search base] <定数>  查询定数对应的乐曲
-[定数查歌/search base] <定数下限> <定数上限>
-[bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
-[bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
-[曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
-[谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
-分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
-开启/关闭mai猜歌 开关猜歌功能
-猜歌 顾名思义，识别id，歌名和别名
-minfo<@> <id/别称/曲名> 查询单曲成绩
-b40 <名字> 或 @某人 查B40
-b50 <名字> 或 @某人 查B50
-我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
-<牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
-<等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
-<等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
-查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
-添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ... 添加机厅信息
-删除机厅 <名称> 删除机厅信息
-修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... 修改机厅信息
-订阅机厅 <名称> 订阅机厅，简化后续指令
-查看订阅 查看群组订阅机厅的信息
-取消订阅,取消订阅机厅 取消群组机厅订阅
-查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
-<名称>人数设置,设定,=,增加,加,+,减少,减,-<人数> 操作排卡人数
-<名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
-'''.strip()
+sv_help = dedent('''\
+        可用命令如下：
+        帮助maimaiDX 查看指令帮助
+        项目地址maimaiDX 查看项目地址
+        今日mai,今日舞萌,今日运势 查看今天的舞萌运势
+        XXXmaimaiXXX什么 随机一首歌
+        随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
+        [查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
+        [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
+        <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
+        <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
+        添加别称 <歌曲ID> <歌曲别名>   申请添加歌曲别名 
+        当前别名投票   查看正在进行的投票 
+        同意别名 <标签>    同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
+        开启/关闭别名推送    开启或关闭新别名投票的推送
+        [定数查歌/search base] <定数>  查询定数对应的乐曲
+        [定数查歌/search base] <定数下限> <定数上限>
+        [bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
+        [bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
+        [曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
+        [谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
+        分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
+        开启/关闭mai猜歌 开关猜歌功能
+        猜歌 顾名思义，识别id，歌名和别名
+        minfo<@> <id/别称/曲名> 查询单曲成绩
+        b40 <名字> 或 @某人 查B40
+        b50 <名字> 或 @某人 查B50
+        我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
+        <牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
+        <等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
+        <等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
+        查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
+        添加机厅 <名称> <位置> <机台数量> <别称1> <别称2> ... 添加机厅信息
+        删除机厅 <名称> 删除机厅信息
+        修改机厅 <名称> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... 修改机厅信息
+        订阅机厅 <名称> 订阅机厅，简化后续指令
+        查看订阅 查看群组订阅机厅的信息
+        取消订阅,取消订阅机厅 取消群组机厅订阅
+        查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
+        <名称>人数设置,设定,=,增加,加,+,减少,减,-<人数> 操作排卡人数
+        <名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
+    ''')
 
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
-
-TAG = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def random_music(music: Music) -> str:
@@ -363,7 +353,7 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     isexist = await get_alias('alias', {'id': id})
     if alias_name in isexist[0]['Alias']:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名')
-    tag = ''.join([TAG[random.randint(0, 35)] for _ in range(5)])
+    tag = ''.join(sample(ascii_uppercase + digits, 5))
     status = await post_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
         await bot.finish(ev, status['error'])
@@ -372,7 +362,7 @@ ID：{id}
 别名：{alias_name}
 {await draw_music_info(mai.total_list.by_id(id))}
 现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}
-浏览{public_addr + "/mai/vote"}查看详情''', at_sender=True)
+浏览{public_addr}查看详情''', at_sender=True)
 
 @sv.on_prefix(['同意别名', '同意别称'])
 async def agree_alias(bot: NoneBot, ev: CQEvent):
@@ -386,14 +376,14 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
     status = await get_alias('status')
     if not status:
         await bot.finish(ev, '未查询到正在进行的别名投票', at_sender=True)
-    msg = [f'浏览{public_addr + "/mai/vote"}查看详情']
+    msg = []
     for tag in status:
         id = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
         usernum = len(status[tag]['User'])
         votes = status[tag]['votes']
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/{votes}')
-    msg.append(f'浏览{public_addr + "/mai/vote"}查看详情')
+    await bot.send(ev, f'浏览{public_addr}查看详情或查看以下合并消息')
     await bot.send_group_forward_msg(group_id=ev.group_id, messages=render_forward_msg(msg, ev.self_id, BOTNAME))
 
 @sv.on_fullmatch('开启别名推送')
@@ -439,8 +429,8 @@ async def alias_apply_status():
                 if gid in alias.config['disable']:
                     continue
                 try:
-                    await asyncio.sleep(5)
-                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr + "/mai/vote"}查看详情')
+                    await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr}查看详情')
+                    await asyncio.sleep(2)
                 except: 
                     continue
     await asyncio.sleep(5)
@@ -459,8 +449,8 @@ async def alias_apply_status():
                 if gid in alias.config['disable']:
                     continue
                 try:
-                    await asyncio.sleep(5)
                     await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
+                    await asyncio.sleep(2)
                 except:
                     continue
 

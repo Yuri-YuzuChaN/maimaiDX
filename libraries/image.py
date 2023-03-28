@@ -6,8 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .. import static
 
-path = os.path.join(static, 'high_eq_image.png')
-fontpath = os.path.join(static, 'msyh.ttc')
+fontpath = os.path.join(static, 'SourceHanSansSC-Bold.otf')
 
 
 def draw_text(img_pil: Image.Image, text: str, offset_x: float):

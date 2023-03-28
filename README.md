@@ -1,27 +1,34 @@
 # maimaiDX
 
-移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于HoshinoBot v2的街机音游 **舞萌DX** 的查询插件
+移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 和 [nonebot2](https://v2.nonebot.dev) 的街机音游 **舞萌DX** 的查询插件
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
+## 重要更新
+
+**2023-03-29**
+- 现版本 `static` 文件夹内容全部更换，需要重新进行[使用方法第二步](#使用方法)
+
 ## 使用方法
 
-1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone https://github.com/Yuri-YuzuChaN/maimaiDX`
+1. 请根据以下需求 clone 本项目
 
-> 如果不需要机厅功能，请clone分支 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
+    - 使用 `HoshinoBot` 框架的BOT将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
+        ``` git
+        git clone https://github.com/Yuri-YuzuChaN/maimaiDX
+        ```
+    - 如果不需要机厅功能的使用 `del-arcade` 分支
+        ``` git
+        git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX
+        ```
+    - 如果使用的 `nonebot2` 框架，前往查看分支 [nonebot2](https://github.com/Yuri-YuzuChaN/maimaiDX/tree/nonebot2) **（暂未完成移植，无法使用）**
 
-2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. pip以下依赖：`pillow`, `aiofiles`
-4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
+2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip)
+3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`
+4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 5. 重启HoshinoBot
 
-### 加载网页
-
-1. 将 [maimai.py](maimai.py) line21 `public_addr` 修改成自己的公网地址
-
-* 网页可直接查看所有待投票别名，点击同意别名后，在q群发送即可
-
-**请务必将`nonebot`以及`aiocqhttp`依赖升级为最新版本，否则无法使用`b40/b50`指令**
+**请务必将 `nonebot` 以及 `aiocqhttp` 依赖升级为最新版本，否则无法使用 `b40/b50` 指令**
 
 **插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
 
@@ -75,6 +82,12 @@
 * 该功能不会覆盖原有机厅信息
 
 ## 更新说明
+
+**2023-03-29**
+
+1. 重制 `b40/b50` ，`minfo` 和曲目信息的绘图
+2. 修改投票网页端，改成共用网站
+3. 修改垃圾代码
 
 **2023-03-02**
 
@@ -185,6 +198,8 @@
 
 
 ## 鸣谢
+
+感谢 [zhanbao2000](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
 
 感谢 [CrazyKid](https://github.com/CrazyKidCN) 提供的源码支持
 
