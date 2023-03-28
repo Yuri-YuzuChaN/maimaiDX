@@ -1,18 +1,26 @@
 # maimaiDX
 
-移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于HoshinoBot v2的街机音游 **舞萌DX** 的查询插件
+移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 和 [nonebot2](https://v2.nonebot.dev) 的街机音游 **舞萌DX** 的查询插件
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
+## 重要更新
+
+**2023-03-29**
+- 现版本 `static` 文件夹内容全部更换，需要重新进行[使用方法第二步](#使用方法)
+
 ## 使用方法
 
-1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目 `git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX`
-2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://www.diving-fish.com/maibot/static.zip)
-3. pip以下依赖：`pillow`, `aiofiles`
-4. 在`config/__bot__.py`模块列表中添加 `maimaiDX`
+1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
+    ``` git
+    git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX
+    ```
+2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip)
+3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`
+4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 5. 重启HoshinoBot
 
-**请务必将`nonebot`以及`aiocqhttp`依赖升级为最新版本，否则无法使用`b40/b50`指令**
+**请务必将 `nonebot` 以及 `aiocqhttp` 依赖升级为最新版本，否则无法使用 `b40/b50` 指令**
 
 **插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
 
@@ -48,14 +56,23 @@
 
 ## 更新说明
 
+**2023-03-29**
+
+1. 重制 `b40/b50` ，`minfo` 和曲目信息的绘图
+2. 修改投票网页端，改成共用网站
+3. 修改垃圾代码
+
 **2023-03-02**
 
 1. 新增 `开启别名推送` 和 `关闭别名推送` 指令
 
-**2023-02-27**
+**2023-02-25**
 
 1. 修复猜歌答对后无法结束的问题
-2. 投票网页端
+
+**2023-02-23**
+
+1. 投票网页端
 
 **2023-02-22**
 
@@ -64,16 +81,20 @@
 3. 修改猜歌和别名功能
 4. 新增指令 `当前别名投票` 和 `同意别名`
 
-**2022-10-04**
+**2023-2-18**
 
-1. 发布删除机厅相关指令的 `del-arcade` 分支
+1. 别称同步临时解决方案 #47
 
-**2022-09-14**
+**2023-2-15**
+
+1. 更新本地缓存水鱼网数据 #43
+
+**2022-9-14**
 
 1. 新增查询单曲指令 `minfo`
 2. 修改查曲绘图
 
-**2022-08-30**
+**2022-8-30**
 
 1. 修复新版b40/b50 isinstance bug [#38](https://github.com/Yuri-YuzuChaN/maimaiDX/issues/38)
 2. 修复新版b40/b50 找不到图片问题
@@ -150,6 +171,8 @@
 
 
 ## 鸣谢
+
+感谢 [zhanbao2000](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
 
 感谢 [CrazyKid](https://github.com/CrazyKidCN) 提供的源码支持
 
