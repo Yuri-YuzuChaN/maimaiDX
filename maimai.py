@@ -20,40 +20,6 @@ from .libraries.tool import *
 
 public_addr = 'https://vote.yuzuai.xyz/'
 
-sv_help = dedent('''\
-        可用命令如下：
-        帮助maimaiDX 查看指令帮助
-        项目地址maimaiDX 查看项目地址
-        今日mai,今日舞萌,今日运势 查看今天的舞萌运势
-        XXXmaimaiXXX什么 随机一首歌
-        随个[dx/标准][绿黄红紫白]<难度> 随机一首指定条件的乐曲
-        [查歌/search]<乐曲标题的一部分> 查询符合条件的乐曲
-        [绿黄红紫白]id <歌曲编号> 查询乐曲信息或谱面信息
-        <歌曲别名>是什么歌 查询乐曲别名对应的乐曲
-        <id/歌曲别称>有什么别称 查询乐曲对应的别称 识别id，歌名和别名
-        添加别称 <歌曲ID> <歌曲别名> 申请添加歌曲别名 
-        当前别名投票    查看正在进行的投票 
-        同意别名 <标签>     同意其中一个标签的别名申请，可通过指令 当前别名投票 查看
-        开启/关闭别名推送    开启或关闭新别名投票的推送
-        [定数查歌/search base] <定数>  查询定数对应的乐曲
-        [定数查歌/search base] <定数下限> <定数上限>
-        [bpm查歌/search bpm] <bpm>  查询bpm对应的乐曲
-        [bpm查歌/search bpm] <bpm下限> <bpm上限> (<页数>)
-        [曲师查歌/search artist] <曲师名字的一部分> (<页数>)  查询曲师对应的乐曲
-        [谱师查歌/search charter] <谱师名字的一部分> (<页数>)  查询名字对应的乐曲
-        分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
-        开启/关闭mai猜歌 开关猜歌功能
-        猜歌 顾名思义，识别id，歌名和别名
-        minfo<@> <id/别称/曲名> 查询单曲成绩
-        b40 <名字> 或 @某人 查B40
-        b50 <名字> 或 @某人 查B50
-        我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
-        <牌子名称>进度 <名字> 或 @某人 查看牌子完成进度
-        <等级><评价>进度 <名字> 或 @某人 查看等级评价完成进度
-        <等级>分数列表<页数> <名字> 或者 @某人 查看等级分数列表（从高至低）
-        查看排名,查看排行 <页数/名字> 查看某页或某玩家在水鱼网站的用户ra排行
-    ''')
-
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
@@ -95,7 +61,7 @@ async def get_music():
 
 @sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 async def dx_help(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(sv_help))), at_sender=True)
+    await bot.send(ev, MessageSegment.image(f'file:///{os.path.join(static, "maimaidxhelp.png")}'), at_sender=True)
 
 @sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
 async def dx_github(bot: NoneBot, ev: CQEvent):
