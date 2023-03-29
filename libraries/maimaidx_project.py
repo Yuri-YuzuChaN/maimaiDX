@@ -144,30 +144,33 @@ async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment
     sy.draw(295, 330, 15, f'Version: {music.version}', anchor='lm')
 
     y = 120
+    diff = 0
     TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
     for num in range(diffnum):
         try:
-            _data = player_data[num]
-            ds = music.ds[_data['level_index']]
-            ra, rate = computeRa(ds, _data['achievements'], israte=True)
+            if num == player_data[diff]['level_index']:
+                _data = player_data[num]
+                ds = music.ds[_data['level_index']]
+                ra, rate = computeRa(ds, _data['achievements'], israte=True)
 
-            rank = Image.open(os.path.join(maimaidir, f'UI_TTR_PhotoParts_{rate}.png')).resize((97, 60))
-            im.alpha_composite(rank, (440, 515 + y * num))
-            if _data['fc']:
-                fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
-                fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
-                im.alpha_composite(fc, (575, 511 + y * num))
-            if _data['fs']:
-                fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
-                fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
-                im.alpha_composite(fs, (650, 511 + y * num))
+                rank = Image.open(os.path.join(maimaidir, f'UI_TTR_PhotoParts_{rate}.png')).resize((97, 60))
+                im.alpha_composite(rank, (440, 515 + y * num))
+                if _data['fc']:
+                    fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
+                    fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
+                    im.alpha_composite(fc, (575, 511 + y * num))
+                if _data['fs']:
+                    fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
+                    fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
+                    im.alpha_composite(fs, (650, 511 + y * num))
 
-            p, s = f'{_data["achievements"]:.4f}'.split('.')
-            r = tb.get_box(p, 36)
-            tb.draw(90, 545 + y * num, 30, ds, anchor='mm')
-            tb.draw(200, 567 + y * num, 36, p, TEXT_COLOR[num], 'ld')
-            tb.draw(200 + r[2], 565 + y * num, 30, f'.{s}%', TEXT_COLOR[num], 'ld')
-            tb.draw(790, 545 + y * num, 30, ra, TEXT_COLOR[num], 'mm')
+                p, s = f'{_data["achievements"]:.4f}'.split('.')
+                r = tb.get_box(p, 36)
+                tb.draw(90, 545 + y * num, 30, ds, anchor='mm')
+                tb.draw(200, 567 + y * num, 36, p, TEXT_COLOR[num], 'ld')
+                tb.draw(200 + r[2], 565 + y * num, 30, f'.{s}%', TEXT_COLOR[num], 'ld')
+                tb.draw(790, 545 + y * num, 30, ra, TEXT_COLOR[num], 'mm')
+                diff += 1
         except IndexError:
             pass
 
