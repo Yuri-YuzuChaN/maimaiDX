@@ -149,7 +149,7 @@ async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment
     for num in range(diffnum):
         try:
             if num == player_data[diff]['level_index']:
-                _data = player_data[num]
+                _data = player_data[diff]
                 ds = music.ds[_data['level_index']]
                 ra, rate = computeRa(ds, _data['achievements'], israte=True)
 
