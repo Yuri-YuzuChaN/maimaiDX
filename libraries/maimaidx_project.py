@@ -273,7 +273,7 @@ async def query_chart_data(match: Tuple) -> str:
     
     return msg
 
-async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] = None) -> Union[MessageSegment, str]:
+async def rise_score_data(payload: dict, match: Tuple, nickname: Optional[str] = None) -> Union[MessageSegment, str]:
     """
     上分数据
     - `payload` : 传递给查分器的数据
@@ -304,7 +304,7 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
     for music in mai.total_list:
         for i, ds in enumerate(music.ds):
             for achievement in realAchievementList[f'{ds:.1f}']:
-                if match.group(1) and music['level'][i] != match.group(1): continue
+                if match[0] and music['level'][i] != match[0]: continue
                 if f'{achievement:.1f}' == '100.5':
                     index_score = 12
                 else:
@@ -314,20 +314,20 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
                     if music_ra < dx_ra_lowest: continue
                     if [int(music.id), i] in player_dx_id_list:
                         player_ra = player_dx_list[player_dx_id_list.index([int(music.id), i])][2]
-                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
+                        if music_ra - player_ra == int(match[1]) and [int(music.id), i, music_ra] not in player_dx_list:
                             music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                     else:
-                        if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
+                        if music_ra - dx_ra_lowest == int(match[1]) and [int(music.id), i, music_ra] not in player_dx_list:
                             music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                 else:
                     music_ra = computeRa(ds, achievement)
                     if music_ra < sd_ra_lowest: continue
                     if [int(music.id), i] in player_sd_id_list:
                         player_ra = player_sd_list[player_sd_id_list.index([int(music.id), i])][2]
-                        if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
+                        if music_ra - player_ra == int(match[1]) and [int(music.id), i, music_ra] not in player_sd_list:
                             music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
                     else:
-                        if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
+                        if music_ra - sd_ra_lowest == int(match[1]) and [int(music.id), i, music_ra] not in player_sd_list:
                             music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
 
     if len(music_dx_list) == 0 and len(music_sd_list) == 0:
@@ -348,7 +348,7 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
 
     return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
-async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]) -> Union[MessageSegment, str]:
     song_played = []
     song_remain_basic = []
     song_remain_advanced = []
@@ -362,20 +362,20 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
     if isinstance(data, str):
         return data
 
-    if match.group(2) in ['将', '者']:
+    if match[1] in ['将', '者']:
         for song in data['verlist']:
-            if song['level_index'] == 0 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+            if song['level_index'] == 0 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_basic.append([song['id'], song['level_index']])
-            if song['level_index'] == 1 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+            if song['level_index'] == 1 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_advanced.append([song['id'], song['level_index']])
-            if song['level_index'] == 2 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+            if song['level_index'] == 2 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_expert.append([song['id'], song['level_index']])
-            if song['level_index'] == 3 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+            if song['level_index'] == 3 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_master.append([song['id'], song['level_index']])
-            if match.group(1) in ['舞', '霸'] and song['level_index'] == 4 and song['achievements'] < (100.0 if match.group(2) == '将' else 80.0):
+            if match[0] in ['舞', '霸'] and song['level_index'] == 4 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
-    elif match.group(2) in ['極', '极']:
+    elif match[1] in ['極', '极']:
         for song in data['verlist']:
             if song['level_index'] == 0 and not song['fc']:
                 song_remain_basic.append([song['id'], song['level_index']])
@@ -385,10 +385,10 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
                 song_remain_expert.append([song['id'], song['level_index']])
             if song['level_index'] == 3 and not song['fc']:
                 song_remain_master.append([song['id'], song['level_index']])
-            if match.group(1) == '舞' and song['level_index'] == 4 and not song['fc']:
+            if match[0] == '舞' and song['level_index'] == 4 and not song['fc']:
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
-    elif match.group(2) == '舞舞':
+    elif match[1] == '舞舞':
         for song in data['verlist']:
             if song['level_index'] == 0 and song['fs'] not in ['fsd', 'fsdp']:
                 song_remain_basic.append([song['id'], song['level_index']])
@@ -398,10 +398,10 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
                 song_remain_expert.append([song['id'], song['level_index']])
             if song['level_index'] == 3 and song['fs'] not in ['fsd', 'fsdp']:
                 song_remain_master.append([song['id'], song['level_index']])
-            if match.group(1) == '舞' and song['level_index'] == 4 and song['fs'] not in ['fsd', 'fsdp']:
+            if match[0] == '舞' and song['level_index'] == 4 and song['fs'] not in ['fsd', 'fsdp']:
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
-    elif match.group(2) == '神':
+    elif match[1] == '神':
         for song in data['verlist']:
             if song['level_index'] == 0 and song['fc'] not in ['ap', 'app']:
                 song_remain_basic.append([song['id'], song['level_index']])
@@ -411,7 +411,7 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
                 song_remain_expert.append([song['id'], song['level_index']])
             if song['level_index'] == 3 and song['fc'] not in ['ap', 'app']:
                 song_remain_master.append([song['id'], song['level_index']])
-            if match.group(1) == '舞' and song['level_index'] == 4 and song['fc'] not in ['ap', 'app']:
+            if match[0] == '舞' and song['level_index'] == 4 and song['fc'] not in ['ap', 'app']:
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     for music in mai.total_list:
@@ -424,7 +424,7 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
                 song_remain_expert.append([int(music.id), 2])
             if [int(music.id), 3] not in song_played:
                 song_remain_master.append([int(music.id), 3])
-            if match.group(1) in ['舞', '霸'] and len(music.level) == 5 and [int(music.id), 4] not in song_played:
+            if match[0] in ['舞', '霸'] and len(music.level) == 5 and [int(music.id), 4] not in song_played:
                 song_remain_re_master.append([int(music.id), 4])
     song_remain_basic = sorted(song_remain_basic, key=lambda i: int(i[0]))
     song_remain_advanced = sorted(song_remain_advanced, key=lambda i: int(i[0]))
@@ -438,7 +438,7 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
 
     appellation = nickname if nickname else '您'
 
-    msg = f'''{appellation}的{match.group(1)}{match.group(2)}剩余进度如下：
+    msg = f'''{appellation}的{match[0]}{match[1]}剩余进度如下：
 Basic剩余{len(song_remain_basic)}首
 Advanced剩余{len(song_remain_advanced)}首
 Expert剩余{len(song_remain_expert)}首
@@ -446,7 +446,7 @@ Master剩余{len(song_remain_master)}首
 '''
     song_remain: list[list] = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
     song_record = [[s['id'], s['level_index']] for s in data['verlist']]
-    if match.group(1) in ['舞', '霸']:
+    if match[0] in ['舞', '霸']:
         msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
     if len(song_remain_difficult) > 0:
         if len(song_remain_difficult) < 60:
@@ -455,12 +455,12 @@ Master剩余{len(song_remain_master)}首
                 self_record = ''
                 if [int(s[0]), s[-1]] in song_record:
                     record_index = song_record.index([int(s[0]), s[-1]])
-                    if match.group(2) in ['将', '者']:
+                    if match[1] in ['将', '者']:
                         self_record = str(data['verlist'][record_index]['achievements']) + '%'
-                    elif match.group(2) in ['極', '极', '神']:
+                    elif match[1] in ['極', '极', '神']:
                         if data['verlist'][record_index]['fc']:
                             self_record = comboRank[combo_rank.index(data['verlist'][record_index]['fc'])].upper()
-                    elif match.group(2) == '舞舞':
+                    elif match[1] == '舞舞':
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
@@ -480,12 +480,12 @@ Master剩余{len(song_remain_master)}首
                 self_record = ''
                 if [int(s[0]), s[-1]] in song_record:
                     record_index = song_record.index([int(s[0]), s[-1]])
-                    if match.group(2) in ['将', '者']:
+                    if match[1] in ['将', '者']:
                         self_record = str(data['verlist'][record_index]['achievements']) + '%'
-                    elif match.group(2) in ['極', '极', '神']:
+                    elif match[1] in ['極', '极', '神']:
                         if data['verlist'][record_index]['fc']:
                             self_record = comboRank[combo_rank.index(data['verlist'][record_index]['fc'])].upper()
-                    elif match.group(2) == '舞舞':
+                    elif match[1] == '舞舞':
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
@@ -494,11 +494,11 @@ Master剩余{len(song_remain_master)}首
         else:
             msg += '已经没有定数大于13.6的曲目了,加油清谱捏！\n'
     else:
-        msg += f'恭喜{appellation}完成{match.group(1)}{match.group(2)}！'
+        msg += f'恭喜{appellation}完成{match[0]}{match[1]}！'
 
     return msg
 
-async def level_process_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+async def level_process_data(payload: dict, match: Tuple, nickname: Optional[str]) -> Union[MessageSegment, str]:
     song_played = []
     song_remain = []
 
@@ -507,27 +507,27 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
     if isinstance(data, str):
         return data
 
-    if match.group(2).lower() in scoreRank:
-        achievement = achievementList[scoreRank.index(match.group(2).lower()) - 1]
+    if match[1].lower() in scoreRank:
+        achievement = achievementList[scoreRank.index(match[1].lower()) - 1]
         for song in data['verlist']:
-            if song['level'] == match.group(1) and song['achievements'] < achievement:
+            if song['level'] == match[0] and song['achievements'] < achievement:
                 song_remain.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
-    elif match.group(2).lower() in comboRank:
-        combo_index = comboRank.index(match.group(2).lower())
+    elif match[1].lower() in comboRank:
+        combo_index = comboRank.index(match[1].lower())
         for song in data['verlist']:
-            if song['level'] == match.group(1) and ((song['fc'] and combo_rank.index(song['fc']) < combo_index) or not song['fc']):
+            if song['level'] == match[0] and ((song['fc'] and combo_rank.index(song['fc']) < combo_index) or not song['fc']):
                 song_remain.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
-    elif match.group(2).lower() in syncRank:
-        sync_index = syncRank.index(match.group(2).lower())
+    elif match[1].lower() in syncRank:
+        sync_index = syncRank.index(match[1].lower())
         for song in data['verlist']:
-            if song['level'] == match.group(1) and ((song['fs'] and sync_rank.index(song['fs']) < sync_index) or not song['fs']):
+            if song['level'] == match[0] and ((song['fs'] and sync_rank.index(song['fs']) < sync_index) or not song['fs']):
                 song_remain.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     for music in mai.total_list:
         for i, lv in enumerate(music.level[2:]):
-            if lv == match.group(1) and [int(music.id), i + 2] not in song_played:
+            if lv == match[0] and [int(music.id), i + 2] not in song_played:
                 song_remain.append([int(music.id), i + 2])
     song_remain = sorted(song_remain, key=lambda i: int(i[1]))
     song_remain = sorted(song_remain, key=lambda i: int(i[0]))
@@ -542,30 +542,30 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
     if len(song_remain) > 0:
         if len(song_remain) < 50:
             song_record = [[s['id'], s['level_index']] for s in data['verlist']]
-            msg += f'{appellation}的{match.group(1)}全谱面{match.group(2).upper()}剩余曲目如下：\n'
+            msg += f'{appellation}的{match[0]}全谱面{match[1].upper()}剩余曲目如下：\n'
             for i, s in enumerate(sorted(songs, key=lambda i: i[3])):
                 self_record = ''
                 if [int(s[0]), s[-1]] in song_record:
                     record_index = song_record.index([int(s[0]), s[-1]])
-                    if match.group(2).lower() in scoreRank:
+                    if match[1].lower() in scoreRank:
                         self_record = str(data['verlist'][record_index]['achievements']) + '%'
-                    elif match.group(2).lower() in comboRank:
+                    elif match[1].lower() in comboRank:
                         if data['verlist'][record_index]['fc']:
                             self_record = comboRank[combo_rank.index(data['verlist'][record_index]['fc'])].upper()
-                    elif match.group(2).lower() in syncRank:
+                    elif match[1].lower() in syncRank:
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
             if len(songs) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
-            msg = f'{appellation}还有{len(song_remain)}首{match.group(1)}曲目没有达成{match.group(2).upper()},加油推分捏！'
+            msg = f'{appellation}还有{len(song_remain)}首{match[0]}曲目没有达成{match[1].upper()},加油推分捏！'
     else:
-        msg = f'恭喜{appellation}达成{match.group(1)}全谱面{match.group(2).upper()}！'
+        msg = f'恭喜{appellation}达成{match[0]}全谱面{match[1].upper()}！'
 
     return msg
 
-async def level_achievement_list_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+async def level_achievement_list_data(payload: dict, match: Tuple, nickname: Optional[str]) -> Union[MessageSegment, str]:
     song_list = []
 
     data = await get_player_data('plate', payload)
@@ -574,14 +574,14 @@ async def level_achievement_list_data(payload: dict, match: Match, nickname: Opt
         return data
 
     for song in data['verlist']:
-        if song['level'] == match.group(1):
+        if song['level'] == match[0]:
             song_list.append(song)
 
-    page = max(min(int(match.group(2)), len(song_list) // SONGS_PER_PAGE + 1), 1) if match.group(2) else 1
+    page = max(min(int(match[1]), len(song_list) // SONGS_PER_PAGE + 1), 1) if match[1] else 1
 
     appellation = nickname if nickname else '您'
 
-    msg = f'{appellation}的{match.group(1)}分数列表（从高至低）：\n'
+    msg = f'{appellation}的{match[0]}分数列表（从高至低）：\n'
     for i, s in enumerate(sorted(song_list, key=lambda i: i['achievements'], reverse=True)):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             m = mai.total_list.by_id(str(s['id']))

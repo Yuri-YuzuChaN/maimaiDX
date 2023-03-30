@@ -7,22 +7,22 @@ from textwrap import dedent
 from typing import Tuple, Optional
 
 from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger
-from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
 from nonebot.permission import SUPERUSER
 
 from . import static
 from .libraries.image import to_bytes_io
-from .libraries.maimai_best_50 import diffs, generate
+from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
 from .libraries.maimaidx_api_data import get_alias, post_alias
 from .libraries.maimaidx_music import Music, get_cover_len4_id, mai, guess, alias
 from .libraries.maimaidx_project import (
     SONGS_PER_PAGE,
     draw_music_info_to_message_segment,
-    query_chart_data,
     plate_to_version,
-    music_play_data
+    music_play_data, query_chart_data, rise_score_data,
+    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data,
 )
 from .libraries.tool import render_forward_msg
 
@@ -51,6 +51,11 @@ score = on_command('分数线', priority=5)
 best40 = on_command('b40', aliases={'B40'}, priority=5)
 best50 = on_command('b50', aliases={'B50'}, priority=5)
 minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
+rise_score = on_regex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?', priority=5)
+plate_process = on_regex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?', priority=5)
+level_process = on_regex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?', priority=5)
+level_achievement_list = on_regex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?', priority=5)
+rating_ranking = on_command('查看排名', aliases={'查看排行'}, priority=5)
 
 public_addr = 'http://localhost:8081'
 
@@ -600,124 +605,113 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     await minfo.finish(data, reply_message=True)
 
 
-# @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
-# async def rise_score(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     match: Match[str] = ev['match']
-#     nickname = ''
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#
-#     if match.group(1) and match.group(1) not in levelList:
-#         await bot.finish(ev, '无此等级', at_sender=True)
-#     elif match.group(3):
-#         nickname = match.group(3)
-#         payload = {'username': match.group(3).strip()}
-#     else:
-#         payload = {'qq': qqid}
-#
-#     if qqid != ev.user_id:
-#         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-#
-#     data = await rise_score_data(payload, match, nickname)
-#     await bot.send(ev, data, at_sender=True)
-#
-# @sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?')
-# async def plate_process(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     match: Match[str] = ev['match']
-#     nickname = ''
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#
-#     if f'{match.group(1)}{match.group(2)}' == '真将':
-#         await bot.finish(ev, '真系没有真将哦', at_sender=True)
-#     elif match.group(3):
-#         nickname = match.group(3)
-#         payload = {'username': match.group(3).strip()}
-#     else:
-#         payload = {'qq': qqid}
-#
-#     if qqid != ev.user_id:
-#         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-#
-#     if match.group(1) in ['霸', '舞']:
-#         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
-#     else:
-#         payload['version'] = [plate_to_version[match.group(1)]]
-#
-#     data = await player_plate_data(payload, match, nickname)
-#     await bot.send(ev, data, at_sender=True)
-#
-# @sv.on_rex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?')
-# async def level_process(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     match: Match[str] = ev['match']
-#     nickname = ''
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#
-#     if match.group(1) not in levelList:
-#         await bot.finish(ev, '无此等级', at_sender=True)
-#     if match.group(2).lower() not in scoreRank + comboRank + syncRank:
-#         await bot.finish(ev, '无此评价等级', at_sender=True)
-#     if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
-#         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
-#     elif match.group(3):
-#         nickname = match.group(3)
-#         payload = {'username': match.group(3).strip()}
-#     else:
-#         payload = {'qq': qqid}
-#
-#     if qqid != ev.user_id:
-#         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-#
-#     payload['version'] = list(set(version for version in plate_to_version.values()))
-#
-#     data = await level_process_data(payload, match, nickname)
-#     await bot.send(ev, data, at_sender=True)
-#
-# @sv.on_rex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?')
-# async def level_achievement_list(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     match: Match[str] = ev['match']
-#     nickname = ''
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#
-#     if match.group(1) not in levelList:
-#         await bot.finish(ev, '无此等级', at_sender=True)
-#     elif match.group(3):
-#         nickname = match.group(3)
-#         payload = {'username': match.group(3).strip()}
-#     else:
-#         payload = {'qq': qqid}
-#
-#     if qqid != ev.user_id:
-#         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-#
-#     payload['version'] = list(set(version for version in plate_to_version.values()))
-#
-#     data = await level_achievement_list_data(payload, match, nickname)
-#     await bot.send(ev, data, at_sender=True)
-#
-# @sv.on_prefix(['查看排名', '查看排行'])
-# async def rating_ranking(bot: NoneBot, ev: CQEvent):
-#     args: str = ev.message.extract_plain_text().strip()
-#     page = 1
-#     name = ''
-#     if args.isdigit():
-#         page = int(args)
-#     else:
-#         name = args.lower()
-#
-#     data = await rating_ranking_data(name, page)
-#     await bot.send(ev, data, at_sender=True)
-#
+@rise_score.handle()  # 慎用，垃圾代码非常吃机器性能
+async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
+    qqid = get_at_qq(event.get_message()) or event.user_id
+    nickname = ''
+
+    if match[0] and match[0] not in levelList:
+        await rise_score.finish('无此等级', reply_message=True)
+    elif match[2]:
+        nickname = match[2]
+        payload = {'username': match[2].strip()}
+    else:
+        payload = {'qq': qqid}
+
+    if qqid != event.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
+
+    data = await rise_score_data(payload, match, nickname)
+    await rise_score.finish(data, reply_message=True)
+
+
+@plate_process.handle()
+async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
+    qqid = get_at_qq(event.get_message()) or event.user_id
+    nickname = ''
+
+    if f'{match[0]}{match[1]}' == '真将':
+        await plate_process.finish('真系没有真将哦', reply_message=True)
+    elif match[2]:
+        nickname = match[2]
+        payload = {'username': match[2].strip()}
+    else:
+        payload = {'qq': qqid}
+
+    if qqid != event.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
+
+    if match[0] in ['霸', '舞']:
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
+    else:
+        payload['version'] = [plate_to_version[match[0]]]
+
+    data = await player_plate_data(payload, match, nickname)
+    await plate_process.finish(data, reply_message=True)
+
+
+@level_process.handle()
+async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
+    qqid = get_at_qq(event.get_message()) or event.user_id
+    nickname = ''
+
+    if match[0] not in levelList:
+        await level_process.finish('无此等级', reply_message=True)
+    if match[1].lower() not in scoreRank + comboRank + syncRank:
+        await level_process.finish('无此评价等级', reply_message=True)
+    if levelList.index(match[0]) < 11 or (match[1].lower() in scoreRank and scoreRank.index(match[1].lower()) < 8):
+        await level_process.finish('兄啊，有点志向好不好', reply_message=True)
+    elif match[2]:
+        nickname = match[2]
+        payload = {'username': match[2].strip()}
+    else:
+        payload = {'qq': qqid}
+
+    if qqid != event.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
+
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+
+    data = await level_process_data(payload, match, nickname)
+    await level_process.finish(data, reply_message=True)
+
+
+@level_achievement_list.handle()
+async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
+    qqid = get_at_qq(event.get_message()) or event.user_id
+    nickname = ''
+
+    if match[0] not in levelList:
+        await level_achievement_list.finish('无此等级', reply_message=True)
+    elif match[2]:
+        nickname = match[2]
+        payload = {'username': match[2].strip()}
+    else:
+        payload = {'qq': qqid}
+
+    if qqid != event.user_id:
+        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
+
+    payload['version'] = list(set(version for version in plate_to_version.values()))
+
+    data = await level_achievement_list_data(payload, match, nickname)
+    await level_achievement_list.finish(data, reply_message=True)
+
+
+@rating_ranking.handle()
+async def _(arg: Message = CommandArg()):
+    arg = arg.extract_plain_text().strip()
+    page = 1
+    name = ''
+    if arg.isdigit():
+        page = int(arg)
+    else:
+        name = arg.lower()
+
+    data = await rating_ranking_data(name, page)
+    await rating_ranking.finish(data, reply_message=True)
+
+
 # async def guess_music_loop(bot: NoneBot, ev: CQEvent):
 #     gid = str(ev.group_id)
 #     cycle = guess.Group[gid]['cycle']
