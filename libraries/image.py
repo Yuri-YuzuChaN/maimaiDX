@@ -60,6 +60,13 @@ def image_to_base64(img: Image.Image, format='PNG') -> str:
     return 'base64://' + base64_str
 
 
+def image_to_bytesio(img: Image.Image, format_='PNG') -> BytesIO:
+    bio = BytesIO()
+    img.save(bio, format_)
+    bio.seek(0)
+    return bio
+
+
 async def get_user_logo(qq: int) -> Image.Image:
     async with httpx.AsyncClient() as client:
         res = await client.get(f'http://q1.qlogo.cn/g?b=qq&nk={qq}&s=100')

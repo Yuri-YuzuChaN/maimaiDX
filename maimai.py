@@ -1,21 +1,29 @@
 import asyncio
 import os
+import re
 from random import sample
 from string import ascii_uppercase, digits
 from textwrap import dedent
-from typing import Tuple
+from typing import Tuple, Optional
 
-from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require
+from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger
 from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment
+from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
 from nonebot.permission import SUPERUSER
 
 from . import static
 from .libraries.image import to_bytes_io
-from .libraries.maimai_best_40 import diffs
+from .libraries.maimai_best_50 import diffs, generate
 from .libraries.maimaidx_api_data import get_alias, post_alias
 from .libraries.maimaidx_music import Music, get_cover_len4_id, mai, guess, alias
-from .libraries.maimaidx_project import SONGS_PER_PAGE, draw_music_info_to_message_segment, query_chart_data
+from .libraries.maimaidx_project import (
+    SONGS_PER_PAGE,
+    draw_music_info_to_message_segment,
+    query_chart_data,
+    plate_to_version,
+    music_play_data
+)
 from .libraries.tool import render_forward_msg
 
 driver = get_driver()
@@ -39,6 +47,10 @@ alias_agree = on_command('同意别名', aliases={'同意别称'}, priority=5)
 alias_status = on_command('当前投票', aliases={'当前别名投票', '当前别称投票'}, priority=5)
 alias_on = on_command('开启别名推送', aliases={'开启别称推送'}, priority=5, permission=SUPERUSER)
 alias_off = on_command('关闭别名推送', aliases={'关闭别称推送'}, priority=5, permission=SUPERUSER)
+score = on_command('分数线', priority=5)
+best40 = on_command('b40', aliases={'B40'}, priority=5)
+best50 = on_command('b50', aliases={'B50'}, priority=5)
+minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
 
 public_addr = 'http://localhost:8081'
 
@@ -106,6 +118,12 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
             for i in music.diff:
                 result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
+
+
+def get_at_qq(message: Message) -> Optional[int]:
+    for item in message:
+        if isinstance(item, MessageSegment) and item.type == 'at' and item.data['qq'] != 'all':
+            return int(item.data['qq'])
 
 
 @driver.on_startup
@@ -482,107 +500,106 @@ async def alias_apply_status():
                     continue
 
 
-# @sv.on_prefix('分数线')
-# async def quert_score(bot: NoneBot, ev: CQEvent):
-#     args: str = ev.message.extract_plain_text().strip()
-#     pro = args.split()
-#     if len(pro) == 1 and pro[0] == '帮助':
-#         msg = '''此功能为查找某首歌分数线设计。
-# 命令格式：分数线 <难度+歌曲id> <分数线>
-# 例如：分数线 紫799 100
-# 命令将返回分数线允许的 TAP GREAT 容错以及 BREAK 50落等价的 TAP GREAT 数。
-# 以下为 TAP GREAT 的对应表：
-# GREAT/GOOD/MISS
-# TAP\t1/2.5/5
-# HOLD\t2/5/10
-# SLIDE\t3/7.5/15
-# TOUCH\t1/2.5/5
-# BREAK\t5/12.5/25(外加200落)'''
-#         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
-#     else:
-#         try:
-#             result = re.search(r'([绿黄红紫白])\s?([0-9]+)', args)
-#             level_labels = ['绿', '黄', '红', '紫', '白']
-#             level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
-#             level_index = level_labels.index(result.group(1))
-#             chart_id = result.group(2)
-#             line = float(pro[-1])
-#             music = mai.total_list.by_id(chart_id)
-#             chart: Dict[Any] = music['charts'][level_index]
-#             tap = int(chart['notes'][0])
-#             slide = int(chart['notes'][2])
-#             hold = int(chart['notes'][1])
-#             touch = int(chart['notes'][3]) if len(chart['notes']) == 5 else 0
-#             brk = int(chart['notes'][-1])
-#             total_score = 500 * tap + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
-#             break_bonus = 0.01 / brk
-#             break_50_reduce = total_score * break_bonus / 4
-#             reduce = 101 - line
-#             if reduce <= 0 or reduce >= 101:
-#                 raise ValueError
-#             msg = f'''{music['title']} {level_labels2[level_index]}
-# 分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
-# BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)'''
-#             await bot.send(ev, msg, at_sender=True)
-#         except:
-#             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
-#
-# @sv.on_prefix(['b40', 'b50', 'B40', 'B50'])
-# async def best_40(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     args: str = ev.message.extract_plain_text().strip()
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#
-#     if args:
-#         payload = {'username': args}
-#     else:
-#         payload = {'qq': qqid}
-#
-#     if ev.prefix.lower() == 'b50':
-#         payload['b50'] = True
-#
-#     data = await generate(payload)
-#
-#     await bot.send(ev, data, at_sender=True)
-#
-# @sv.on_prefix(['minfo', 'Minfo', 'MINFO'])
-# async def maiinfo(bot: NoneBot, ev: CQEvent):
-#     qqid = ev.user_id
-#     args: str = ev.message.extract_plain_text().strip()
-#     for i in ev.message:
-#         if i.type == 'at' and i.data['qq'] != 'all':
-#             qqid = int(i.data['qq'])
-#     if not args:
-#         await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
-#
-#     payload = {
-#         'qq': qqid,
-#         'version': list(set(version for version in plate_to_version.values()))
-#     }
-#
-#     if mai.total_list.by_id(args):
-#         id = args
-#     elif by_t := mai.total_list.by_title(args):
-#         id = by_t.id
-#     else:
-#         alias = await get_alias('songs', {'alias_name': args})
-#         if 'error' in alias:
-#             await bot.finish(ev, '未找到曲目', at_sender=True)
-#         elif len(alias) != 1:
-#             msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
-#             for songs in alias:
-#                 msg += f'{songs["ID"]}：{songs["Name"]}\n'
-#             await bot.finish(ev, msg.strip(), at_sender=True)
-#         else:
-#             id = str(alias[0]["ID"])
-#
-#     data = await music_play_data(payload, id)
-#     if not data:
-#         data = '您未游玩该曲目'
-#     await bot.send(ev, data, at_sender=True)
-#
+@score.handle()
+async def _(arg: Message = CommandArg()):
+    arg = arg.extract_plain_text().strip()
+    args = arg.split()
+    if args and args[0] == '帮助':
+        msg = dedent('''\
+            此功能为查找某首歌分数线设计。
+            命令格式：分数线 <难度+歌曲id> <分数线>
+            例如：分数线 紫799 100
+            命令将返回分数线允许的 TAP GREAT 容错以及 BREAK 50落等价的 TAP GREAT 数。
+            以下为 TAP GREAT 的对应表：
+            GREAT/GOOD/MISS
+            TAP\t1/2.5/5
+            HOLD\t2/5/10
+            SLIDE\t3/7.5/15
+            TOUCH\t1/2.5/5
+            BREAK\t5/12.5/25(外加200落)''')
+        await score.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
+    else:
+        try:
+            result = re.search(r'([绿黄红紫白])\s?([0-9]+)', arg)
+            level_labels = ['绿', '黄', '红', '紫', '白']
+            level_labels2 = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER']
+            level_index = level_labels.index(result.group(1))
+            chart_id = result.group(2)
+            line = float(args[-1])
+            music = mai.total_list.by_id(chart_id)
+            chart = music['charts'][level_index]
+            tap = int(chart['notes'][0])
+            slide = int(chart['notes'][2])
+            hold = int(chart['notes'][1])
+            touch = int(chart['notes'][3]) if len(chart['notes']) == 5 else 0
+            brk = int(chart['notes'][-1])
+            total_score = 500 * tap + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
+            break_bonus = 0.01 / brk
+            break_50_reduce = total_score * break_bonus / 4
+            reduce = 101 - line
+            if reduce <= 0 or reduce >= 101:
+                raise ValueError
+            msg = dedent(f'''\
+                {music['title']} {level_labels2[level_index]}
+                分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
+                BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)''')
+            await score.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
+        except (AttributeError, ValueError) as e:
+            logger.exception(e)
+            await score.finish('格式错误，输入“分数线 帮助”以查看帮助信息', reply_message=True)
+
+
+@best40.handle()
+@best50.handle()
+async def _(event: MessageEvent, matcher: Matcher, arg: Message = CommandArg()):
+    specific_qq = get_at_qq(arg)
+
+    if not arg:  # b40
+        payload = {'qq': event.user_id}
+    elif specific_qq is None:  # b40 name
+        payload = {'username': arg.extract_plain_text().split()}
+    else:  # b40 @xxxx
+        payload = {'qq': specific_qq}
+
+    payload['b50'] = type(matcher) is best50
+
+    await matcher.finish(await generate(payload), reply_message=True)
+
+
+@minfo.handle()
+async def _(event: MessageEvent, arg: Message = CommandArg()):
+    qqid = get_at_qq(arg) or event.user_id
+    args = arg.extract_plain_text().strip()
+    if not args:
+        await minfo.finish('请输入曲目id或曲名', reply_message=True)
+
+    payload = {
+        'qq': qqid,
+        'version': list(set(version for version in plate_to_version.values()))
+    }
+
+    if mai.total_list.by_id(args):
+        id = args
+    elif by_t := mai.total_list.by_title(args):
+        id = by_t.id
+    else:
+        alias = await get_alias('songs', {'alias_name': args})
+        if 'error' in alias:
+            await minfo.finish('未找到曲目', reply_message=True)
+        elif len(alias) != 1:
+            msg = '找到相同别名的曲目，请使用以下ID查询：\n'
+            for songs in alias:
+                msg += f'{songs["ID"]}：{songs["Name"]}\n'
+            await minfo.finish(msg.strip(), reply_message=True)
+        else:
+            id = str(alias[0]["ID"])
+
+    data = await music_play_data(payload, id)
+    if not data:
+        data = '您未游玩该曲目'
+    await minfo.finish(data, reply_message=True)
+
+
 # @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 # async def rise_score(bot: NoneBot, ev: CQEvent):
 #     qqid = ev.user_id

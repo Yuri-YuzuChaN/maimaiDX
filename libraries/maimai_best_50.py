@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 from nonebot.adapters.onebot.v11 import MessageSegment
 
 from .. import BOTNAME, static
-from .image import image_to_base64, get_user_logo
+from .image import get_user_logo, image_to_bytesio
 from .maimaidx_api_data import get_player_data
 from .maimaidx_music import get_cover_len4_id
 
@@ -410,4 +410,4 @@ async def generate(payload: dict) -> Union[MessageSegment, str]:
         dx_best.push(ChartInfo.from_json(c))
     draw_best = DrawBest(sd_best, dx_best, obj['nickname'], obj['additional_rating'], obj['rating'], qqId, b50)
     pic = await draw_best.draw()
-    return MessageSegment.image(image_to_base64(pic))
+    return MessageSegment.image(image_to_bytesio(pic))
