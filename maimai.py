@@ -6,7 +6,7 @@ from string import ascii_uppercase, digits
 from textwrap import dedent
 from typing import Tuple, Optional
 
-from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger
+from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger, on_message
 from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
@@ -16,7 +16,7 @@ from . import static
 from .libraries.image import to_bytes_io
 from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
 from .libraries.maimaidx_api_data import get_alias, post_alias
-from .libraries.maimaidx_music import Music, get_cover_len4_id, mai, guess, alias
+from .libraries.maimaidx_music import Music, get_cover_len4_id, mai, guess, alias, MaiMusic
 from .libraries.maimaidx_project import (
     SONGS_PER_PAGE,
     draw_music_info_to_message_segment,
@@ -28,6 +28,15 @@ from .libraries.tool import render_forward_msg
 
 driver = get_driver()
 scheduler = require('nonebot_plugin_apscheduler').scheduler
+
+
+def is_now_playing_guess_music(event: GroupMessageEvent) -> bool:
+    return event.group_id in guess.Group
+
+
+def is_group_admin(event: GroupMessageEvent) -> bool:
+    return event.sender.role in ('owner', 'admin')
+
 
 manual = on_command('帮助maimaiDX', aliases={'帮助maimaidx'}, priority=5)
 repo = on_command('项目地址maimaiDX', aliases={'项目地址maimaidx'}, priority=5)
@@ -56,6 +65,10 @@ plate_process = on_regex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉�
 level_process = on_regex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?', priority=5)
 level_achievement_list = on_regex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?', priority=5)
 rating_ranking = on_command('查看排名', aliases={'查看排行'}, priority=5)
+guess_music_start = on_command('猜歌', priority=5)
+guess_music_solve = on_message(rule=is_now_playing_guess_music, priority=5)
+guess_music_enable = on_command('开启猜歌', aliases={'开启mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
+guess_music_disable = on_command('关闭猜歌', aliases={'关闭mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
 
 public_addr = 'http://localhost:8081'
 
@@ -712,97 +725,88 @@ async def _(arg: Message = CommandArg()):
     await rating_ranking.finish(data, reply_message=True)
 
 
-# async def guess_music_loop(bot: NoneBot, ev: CQEvent):
-#     gid = str(ev.group_id)
-#     cycle = guess.Group[gid]['cycle']
-#     if cycle != 0:
-#         await asyncio.sleep(8)
-#     else:
-#         await asyncio.sleep(4)
-#     guess_: MaiMusic = guess.Group[gid]['object']
-#     if ev.group_id not in guess.config['enable'] or guess_.is_end:
-#         return
-#     if cycle < 6:
-#         await bot.send(ev, f'{cycle + 1}/7 这首歌{guess_.guess_options[cycle]}')
-#     else:
-#         await bot.send(ev,f'''7/7 这首歌封面的一部分是：
-# {MessageSegment.image(guess_.b64image)}
-# 答案将在30秒后揭晓''')
-#         await give_answer(bot, ev)
-#     guess.Group[gid]['cycle'] += 1
-#     await guess_music_loop(bot, ev, )
-#
-# async def give_answer(bot: NoneBot, ev: CQEvent):
-#     gid = str(ev.group_id)
-#     await asyncio.sleep(30)
-#     guess_: MaiMusic = guess.Group[gid]['object']
-#     if ev.group_id not in guess.config['enable'] or guess_.is_end:
-#         return
-#     guess_.is_end = True
-#     guess.end(gid)
-#     msg = f'''答案是：
-# {await draw_music_info_to(guess_.music)}'''
-#     await bot.finish(ev, msg)
-#
-# @sv.on_fullmatch('猜歌')
-# async def guess_music(bot: NoneBot, ev: CQEvent):
-#     gid = str(ev.group_id)
-#     if ev.group_id not in guess.config['enable']:
-#         await bot.finish(ev, '该群已关闭猜歌功能，开启请输入 开启mai猜歌')
-#     if gid in guess.Group:
-#         await bot.finish(ev, '该群已有正在进行的猜歌')
-#     await mai.start()
-#     guess.add(gid, mai, 0)
-#     await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别名（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
-#     await guess_music_loop(bot, ev)
-#
-# @sv.on_message()
-# async def guess_music_solve(bot: NoneBot, ev: CQEvent):
-#     gid = str(ev.group_id)
-#     if gid not in guess.Group:
-#         return
-#     ans: str = ev.message.extract_plain_text().strip().lower()
-#     guess_ = guess.Group[gid]['object']
-#     if ans.lower() in guess_.answer:
-#         guess_.is_end = True
-#         guess.end(gid)
-#         msg = f'''猜对了，答案是：
-# {await draw_music_info_to(guess_.music)}'''
-#         await bot.finish(ev, msg, at_sender=True)
-#
-# @sv.on_fullmatch('开启mai猜歌')
-# async def guess_on(bot: NoneBot, ev: CQEvent):
-#     gid = ev.group_id
-#     if not priv.check_priv(ev, priv.ADMIN):
-#         msg = '仅允许管理员开启'
-#     elif gid in guess.config['enable']:
-#         msg = '该群已开启猜歌功能'
-#     else:
-#         guess.guess_change(gid, True)
-#         msg = '已开启该群猜歌功能'
-#
-#     await bot.send(ev, msg, at_sender=True)
-#
-# @sv.on_fullmatch('关闭mai猜歌')
-# async def guess_off(bot: NoneBot, ev: CQEvent):
-#     gid = ev.group_id
-#     if not priv.check_priv(ev, priv.ADMIN):
-#         msg = '仅允许管理员关闭'
-#     elif gid in guess.config['disable']:
-#         msg = '该群已关闭猜歌功能'
-#     else:
-#         guess.guess_change(gid, False)
-#         if str(gid) in guess.Group:
-#             guess.end(str(gid))
-#         msg = '已关闭该群猜歌功能'
-#
-#     await bot.send(ev, msg, at_sender=True)
+@guess_music_start.handle()
+async def _(event: GroupMessageEvent):
+    gid = event.group_id
+    if gid not in guess.config['enable']:
+        await guess_music_start.finish('该群已关闭猜歌功能，开启请输入 开启mai猜歌', reply_message=True)
+    if gid in guess.Group:
+        await guess_music_start.finish('该群已有正在进行的猜歌', reply_message=True)
+    await mai.start()
+    guess.add(gid, mai, 0)
+    await guess_music_start.send(
+        '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，'
+        '请输入歌曲的 id 标题 或 别名（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。'
+        '猜歌时查歌等其他命令依然可用。'
+    )
+    await guess_music_loop(event)
+    await guess_music_start.finish()
+
+
+async def guess_music_loop(event: GroupMessageEvent):
+    gid = event.group_id
+    cycle = guess.Group[gid]['cycle']
+    if cycle != 0:
+        await asyncio.sleep(8)
+    else:
+        await asyncio.sleep(4)
+    guess_: MaiMusic = guess.Group[gid]['object']
+    if gid not in guess.config['enable'] or guess_.is_end:
+        return
+    if cycle < 6:
+        await guess_music_start.send(f'{cycle + 1}/7 这首歌{guess_.guess_options[cycle]}')
+    else:
+        await guess_music_start.send('7/7 这首歌封面的一部分是：\n' + MessageSegment.image(guess_.image) + '\n答案将在30秒后揭晓')
+        await give_answer(event)
+    guess.Group[gid]['cycle'] += 1
+    await guess_music_loop(event)
+
+
+async def give_answer(event: GroupMessageEvent):
+    gid = event.group_id
+    await asyncio.sleep(30)
+    guess_: MaiMusic = guess.Group[gid]['object']
+    if gid not in guess.config['enable'] or guess_.is_end:
+        return
+    guess_.is_end = True
+    guess.end(gid)
+    await guess_music_solve.finish('答案是：' + await draw_music_info_to_message_segment(guess_.music), reply_message=True)
+
+
+@guess_music_solve.handle()
+async def _(event: GroupMessageEvent):
+    gid = event.group_id
+    ans = event.get_plaintext().strip()
+    guess_ = guess.Group[gid]['object']
+    if ans.lower() in guess_.answer:
+        guess_.is_end = True
+        guess.end(gid)
+        await guess_music_solve.finish('猜对了，答案是：' + await draw_music_info_to_message_segment(guess_.music), reply_message=True)
+
+
+@guess_music_enable.handle()
+@guess_music_disable.handle()
+async def _(matcher: Matcher, event: GroupMessageEvent):
+    gid = event.group_id
+    if type(matcher) is guess_music_enable:
+        guess.guess_change(gid, True)
+        msg = '已开启该群猜歌功能'
+    elif type(matcher) is guess_music_disable:
+        guess.guess_change(gid, False)
+        if str(gid) in guess.Group:
+            guess.end(str(gid))
+        msg = '已关闭该群猜歌功能'
+    else:
+        raise ValueError('matcher type error')
+
+    await guess_music_enable.finish(msg, reply_message=True)
 
 
 async def Data_Update():
     await mai.get_music()
     mai.guess()
     logger.info('数据更新完毕')
+
 
 scheduler.add_job(alias_apply_status, 'interval', minutes=5)
 scheduler.add_job(Data_Update, 'cron', hour=5)
