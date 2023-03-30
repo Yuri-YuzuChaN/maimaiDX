@@ -797,11 +797,12 @@ async def _(arg: Message = CommandArg()):
 #         msg = '已关闭该群猜歌功能'
 #
 #     await bot.send(ev, msg, at_sender=True)
-#
-# @sv.scheduled_job('cron', hour='5')
-# async def Data_Update():
-#     await mai.get_music()
-#     mai.guess()
-#     log.info('数据更新完毕')
+
+
+async def Data_Update():
+    await mai.get_music()
+    mai.guess()
+    logger.info('数据更新完毕')
 
 scheduler.add_job(alias_apply_status, 'interval', minutes=5)
+scheduler.add_job(Data_Update, 'cron', hour=5)
