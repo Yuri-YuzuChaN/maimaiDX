@@ -1,15 +1,8 @@
-import io
 import time
-import traceback
-from re import Match
 from textwrap import dedent
-from typing import Optional, Union
 
-import httpx
-from PIL import Image, ImageDraw
 from nonebot import logger
 
-from .. import BOTNAME, static
 from .image import *
 from .maimai_best_50 import *
 from .maimaidx_api_data import *
