@@ -196,7 +196,7 @@ async def query_chart_data(match: Match) -> str:
 TAP: {chart.tap}
 HOLD: {chart.hold}
 SLIDE: {chart.slide}
-BREAK: {chart.touch}
+BREAK: {chart.brk}
 谱师: {chart.charter}
 难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
             else:
