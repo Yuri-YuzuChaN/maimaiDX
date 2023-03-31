@@ -1,5 +1,4 @@
 import asyncio
-import os
 import re
 from random import sample
 from string import ascii_uppercase, digits
@@ -12,11 +11,11 @@ from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
 from nonebot.permission import SUPERUSER
 
-from . import static
+from . import BOTNAME, log
 from .libraries.image import to_bytes_io
 from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
 from .libraries.maimaidx_api_data import get_alias, post_alias
-from .libraries.maimaidx_music import Music, get_cover_len4_id, mai, guess, alias, MaiMusic
+from .libraries.maimaidx_music import mai, guess, alias
 from .libraries.maimaidx_project import (
     SONGS_PER_PAGE,
     draw_music_info_to_message_segment,

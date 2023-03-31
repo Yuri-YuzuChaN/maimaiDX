@@ -54,7 +54,7 @@ category = {
     'オンゲキCHUNITHM': 'ongeki'
 }
 
-async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
+async def download_music_pictrue(id: Union[int, str]) -> BytesIO:
     try:
         len4id = get_cover_len4_id(id)
         if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
@@ -62,20 +62,18 @@ async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
         async with httpx.AsyncClient() as client:
             r = await client.get(f"https://www.diving-fish.com/covers/{len4id}.png")
             if r.status_code == 200:
-                return io.BytesIO(r.content)
+                return BytesIO(r.content)
             else:
                 return os.path.join(static, 'mai', 'cover', '0000.png')
     except:
         return os.path.join(static, 'mai', 'cover', '0000.png')
 
 
-async def draw_music_info_to_message_segment(music: MusicList) -> MessageSegment:
+async def draw_music_info_to_message_segment(music: Music) -> MessageSegment:
     return MessageSegment.image(await draw_music_info(music))
 
 
 async def draw_music_info(music: Music) -> BytesIO:
-    im = Image.new('RGBA', (800, 1000))
-
     im = Image.open(os.path.join(maimaidir, 'music_bg.png')).convert('RGBA')
     genre = Image.open(os.path.join(maimaidir, f'music-{category[music.genre]}.png'))
     cover = Image.open(await download_music_pictrue(music.id)).resize((360, 360))
