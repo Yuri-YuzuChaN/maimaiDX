@@ -272,7 +272,6 @@ async def _(event: MessageEvent, args: Message = CommandArg()):
 
 
 @random_song.handle()
-@mai_what.handle()
 async def _(match: Tuple = RegexGroup()):
     # see https://github.com/nonebot/nonebot2/pull/1453
     try:
@@ -295,6 +294,11 @@ async def _(match: Tuple = RegexGroup()):
     except:
         msg = '随机命令错误，请检查语法'
     await random_song.finish(msg, reply_message=True)
+
+
+@mai_what.handle()
+async def _():
+    await mai_what.finish(await draw_music_info_to_message_segment(mai.total_list.random()), reply_message=True)
 
 
 @search.handle()
@@ -383,11 +387,11 @@ async def _(event: MessageEvent, end: str = Endswith()):
             msg.append(f'ID：{songs.ID}\n{alias_list}')
         await alias_song.finish(f'找到{len(aliases)}个相同别名的曲目：\n' + '\n======\n'.join(msg), reply_message=True)
 
-    if len(alias[0].Alias) == 1:
+    if len(aliases[0].Alias) == 1:
         await alias_song.finish('该曲目没有别名', reply_message=True)
 
-    msg = f'该曲目有以下别名：\nID：{alias[0].ID}\n'
-    msg += '\n'.join(alias[0].Alias)
+    msg = f'该曲目有以下别名：\nID：{aliases[0].ID}\n'
+    msg += '\n'.join(aliases[0].Alias)
     await alias_song.finish(msg, reply_message=True)
 
 
@@ -438,7 +442,7 @@ async def _(event: GroupMessageEvent):
         votes = status[tag]['votes']
         msg.append(
             await draw_music_info_to_message_segment(mai.total_list.by_id(id_)) +
-            f'{tag}：\n别名：{alias_name}\n票数：{usernum}/{votes}'
+            f'\n{tag}：\n别名：{alias_name}\n票数：{usernum}/{votes}'
         )
     msg.append(f'浏览{public_addr}查看详情或查看以下合并消息')
     bot = get_bot()
@@ -591,16 +595,16 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     elif by_t := mai.total_list.by_title(args):
         id = by_t.id
     else:
-        alias = mai.total_alias_list.by_alias(args)
-        if not alias:
+        aliases = mai.total_alias_list.by_alias(args)
+        if not aliases:
             await minfo.finish('未找到曲目', reply_message=True)
-        elif len(alias) != 1:
+        elif len(aliases) != 1:
             msg = '找到相同别名的曲目，请使用以下ID查询：\n'
-            for songs in alias:
+            for songs in aliases:
                 msg += f'{songs.ID}：{songs.Name}\n'
             await minfo.finish(msg.strip(), reply_message=True)
         else:
-            id = str(alias[0].ID)
+            id = str(aliases[0].ID)
 
     data = await music_play_data(payload, id)
     if not data:
