@@ -1,4 +1,3 @@
-import io
 import math
 import os
 from typing import Dict, List, Optional, Tuple, Union
@@ -9,7 +8,7 @@ from nonebot.adapters.onebot.v11 import MessageSegment
 from .. import BOTNAME, static
 from .image import get_user_logo, image_to_bytesio
 from .maimaidx_api_data import get_player_data
-from .maimaidx_music import get_cover_len4_id
+from .maimaidx_music import get_cover_len4_id, mai
 
 scoreRank = ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 's+', 'ss', 'ss+', 'sss', 'sss+']
 comboRank = ['fc', 'fc+', 'ap', 'ap+']
@@ -21,8 +20,6 @@ levelList = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9', '9+', '10'
 achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 BaseRa = [0.0, 5.0, 6.0, 7.0, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13.0, 13.2, 13.5, 14.0]
 BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
-adobe = os.path.join(static, 'adobe_simhei.otf')
-msyh = os.path.join(static, 'msyh.ttc')
 
 class DrawText:
 
@@ -67,17 +64,19 @@ class DrawText:
 
 class ChartInfo(object):
 
-    def __init__(self, id: str, title: str, level: int, achievement: float, rate: int, ra: int, fc: int, fs: int, ds: float):
+    def __init__(self, id: str, title: str, level: int, achievement: float, dxscore: int, rate: int, ra: int, fc: int, fs: int, ds: float, type: str):
         self.id = id
         self.title = title
         self.level = level
         self.achievement = achievement
+        self.dxscore = dxscore
         self.rate = rate
         self.ra = ra
         self.fc = fc
         self.fs = fs
         self.ds = ds
-    
+        self.type = type
+
     def __eq__(self, other):
         return self.ra == other.ra
 
@@ -97,11 +96,13 @@ class ChartInfo(object):
             title = data['title'],
             level = data['level_index'],
             achievement = data['achievements'],
+            dxscore = data['dxScore'],
             rate = ri,
             ra = data['ra'],
             fc = fi,
             fs = si,
-            ds = data['ds']
+            ds = data['ds'],
+            type = data['type']
         )
 
 class BestList(object):
@@ -129,7 +130,8 @@ class DrawBest:
                        userName: str, 
                        addRating: int, 
                        rankRating: int, 
-                       qqId: Optional[Union[int, str]] = None, 
+                       plate: str,
+                       qqId: Optional[Union[int, str]] = None,
                        b50: Optional[bool] = False) -> None:
         self.sdBest = sdBest
         self.dxBest = dxBest
@@ -137,6 +139,7 @@ class DrawBest:
         self.addRating = addRating
         self.rankRating = rankRating
         self.Rating = addRating + rankRating
+        self.plate = plate
         self.qqId = qqId
         self.b50 = b50
         if self.b50:
@@ -147,12 +150,60 @@ class DrawBest:
             for dx in dxBest:
                 dx: ChartInfo
                 self.Rating += computeRa(dx.ds, dx.achievement, True)
-        self.pic_dir = os.path.join(static, 'mai', 'pic')
         self.cover_dir = os.path.join(static, 'mai', 'cover')
-        self.new_dir = os.path.join(static, 'mai', 'new')
+        self.maimai_dir = os.path.join(static, 'mai', 'pic')
+
+    def _getCharWidth(self, o) -> int:
+        widths = [
+            (126, 1), (159, 0), (687, 1), (710, 0), (711, 1), (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
+            (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1), (8426, 0), (9000, 1), (9002, 2), (11021, 1),
+            (12350, 2), (12351, 1), (12438, 2), (12442, 0), (19893, 2), (19967, 1), (55203, 2), (63743, 1),
+            (64106, 2), (65039, 1), (65059, 0), (65131, 2), (65279, 1), (65376, 2), (65500, 1), (65510, 2),
+            (120831, 1), (262141, 2), (1114109, 1),
+        ]
+        if o == 0xe or o == 0xf:
+            return 0
+        for num, wid in widths:
+            if o <= num:
+                return wid
+        return 1
+
+    def _coloumWidth(self, s: str) -> int:
+        res = 0
+        for ch in s:
+            res += self._getCharWidth(ord(ch))
+        return res
+
+    def _changeColumnWidth(self, s: str, len: int) -> str:
+        res = 0
+        sList = []
+        for ch in s:
+            res += self._getCharWidth(ord(ch))
+            if res <= len:
+                sList.append(ch)
+        return ''.join(sList)
+
+    def _dxScore(self, info: ChartInfo) -> Tuple[int, int]:
+        notes: list[int] = mai.total_list.by_id(str(info.id)).charts[info.level]['notes']
+        value = 0
+        for i in notes:
+            value += i
+        dx = info.dxscore / (value * 3) * 100
+        if dx <= 85:
+            result = (0, 0)
+        elif dx <= 90:
+            result = (0, 1)
+        elif dx <= 93:
+            result = (0, 2)
+        elif dx <= 95:
+            result = (1, 3)
+        elif dx <= 97:
+            result = (1, 4)
+        else:
+            result = (2, 5)
+        return result
 
     def _findRaPic(self) -> str:
-        num = '10'
         if self.Rating < 1000:
             num = '01'
         elif self.Rating < 2000:
@@ -167,158 +218,141 @@ class DrawBest:
             num = '06'
         elif self.Rating < (7000 if not self.b50 else 13000):
             num = '07'
-        elif self.Rating < (8000 if not self.b50 else 14500):
+        elif self.Rating < (8000 if not self.b50 else 14000):
             num = '08'
-        elif self.Rating < (8500 if not self.b50 else 15000):
+        elif self.Rating < (8500 if not self.b50 else 14500):
             num = '09'
-        return f'UI_CMN_DXRating_S_{num}.png'
-        
-    def _findMatchLevel(self) -> str:
-        t = '01'
-        if self.addRating < 250:
-            t = '01'
-        elif self.addRating < 500:
-            t = '02'
-        elif self.addRating < 750:
-            t = '03'
-        elif self.addRating < 1000:
-            t = '04'
-        elif self.addRating < 1200:
-            t = '05'
-        elif self.addRating < 1400:
-            t = '06'
-        elif self.addRating < 1500:
-            t = '07'
-        elif self.addRating < 1600:
-            t = '08'
-        elif self.addRating < 1700:
-            t = '09'
-        elif self.addRating < 1800:
-            t = '10'
-        elif self.addRating < 1850:
-            t = '11'
-        elif self.addRating < 1900:
-            t = '12'
-        elif self.addRating < 1950:
-            t = '13'
-        elif self.addRating < 2000:
-            t = '14'
-        elif self.addRating < 2010:
-            t = '15'
-        elif self.addRating < 2020:
-            t = '16'
-        elif self.addRating < 2030:
-            t = '17'
-        elif self.addRating < 2040:
-            t = '18'
-        elif self.addRating < 2050:
-            t = '19'
-        elif self.addRating < 2060:
-            t = '20'
-        elif self.addRating < 2070:
-            t = '21'
-        elif self.addRating < 2080:
-            t = '22'
-        elif self.addRating < 2090:
-            t = '23'
-        elif self.addRating < 2100:
-            t = '24'
+        elif self.b50 and self.Rating < 15000:
+            num = '10'
         else:
-            t = '25'
+            num = '11'
+        return f'UI_CMN_DXRating_{num}.png'
 
-        return f'UI_CMN_MatchLevel_{t}.png'
+    def _findMatchLevel(self) -> str:
+        if self.b50:
+            ra = [1000, 1200, 1400, 1500, 1600, 1700, 1800, 1850, 1900, 1950, 2000, 2010, 2020, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100]
+            for n, v in enumerate(ra):
+                if self.addRating < v:
+                    return f'UI_DNM_DaniPlate_{n:02d}.png'
+                elif n == (len(ra) -1) and self.addRating >= v:
+                    return f'UI_DNM_DaniPlate_{n:02d}.png'
+        else:
+            ra = [250, 500, 750, 1000, 1200, 1400, 1500, 1600, 1700, 1800, 1850, 1900, 1950, 2000, 2010, 2020, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2100]
+            for n, v in enumerate(ra):
+                if self.addRating < v:
+                    return f'UI_CMN_MatchLevel_{n + 1:02d}.png'
+                elif n == (len(ra) -1) and self.addRating >= v:
+                    return f'UI_CMN_MatchLevel_{n + 1:02d}.png'
 
-    def whiledraw(self, data: BestList, xi: int, yi: int) -> Image.Image:
-        y = yi
-        color = [(17, 177, 54, 255), (199, 69, 12, 255), (192, 32, 56, 255), (103, 20, 141, 255), (142, 44, 215, 255)]
-        rankPic = 'D C B BB BBB A AA AAA S Sp SS SSp SSS SSSp'.split(' ')
-        comboPic = ' FC FCp AP APp'.split(' ')
-        syncPic = ' FS FSp FSD FSDp'.split(' ')
-        for n, i in enumerate(data.data):
-            i: ChartInfo
-            if n % 5 == 0:
-                x = xi
-                y += 180 if n != 0 else 0
+    def whiledraw(self, data: BestList, type: bool, b50: bool = False) -> Image.Image:
+        # y为第一排纵向坐标，dy为各排间距
+        if b50:
+            y = 430 if type else 1670
+            dy = 170
+        else:
+            y = 500 if type else 1500
+            dy = 190
+
+        TITLE_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (192, 32, 56, 255), (103, 20, 141, 255), (230, 230, 230, 255)]
+        TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
+        rankPic = ['D', 'C', 'B', 'BB', 'BBB', 'A', 'AA', 'AAA', 'S', 'Sp', 'SS', 'SSp', 'SSS', 'SSSp']
+        comboPic = ['', 'FC', 'FCp', 'AP', 'APp']
+        syncPic = ['', 'FS', 'FSp', 'FSD', 'FSDp']
+
+        dxstar = [Image.open(os.path.join(self.maimai_dir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
+
+        for num, info in enumerate(data.data):
+            info: ChartInfo
+            if num % 5 == 0:
+                x = 100
+                y += dy if num != 0 else 0
             else:
-                x += 330
+                x += 404
 
-            if i.level == 4:
-                tcolor = (142, 44, 215, 255)
-            else:
-                tcolor = (255, 255, 255, 255)
+            songid = get_cover_len4_id(info.id)
+            cover = Image.open(os.path.join(self.cover_dir, f'{songid}.png')).resize((135, 135))
+            version = Image.open(os.path.join(self.maimai_dir, f'UI_RSL_MBase_Parts_{info.type}.png')).resize((55, 19))
+            rate = Image.open(os.path.join(self.maimai_dir, f'UI_TTR_PhotoParts_{rankPic[info.rate]}.png')).resize((80, 50))
 
-            songid = get_cover_len4_id(i.id)
-            cover = Image.open(os.path.join(self.cover_dir, f'{songid}.png')).convert('RGBA').resize((124, 124))
-            rate = Image.open(os.path.join(self.pic_dir, f'UI_GAM_Rank_{rankPic[i.rate]}.png')).convert('RGBA')
-
-            self._im.alpha_composite(self._diff[i.level], (x, y))
-            self._im.alpha_composite(cover, (x + 7, y + 29))
-            self._im.alpha_composite(rate.resize((int(rate.size[0] * 0.78), int((rate.size[1] - 2) * 0.78))), (x + 140, y + 90))
-            if i.fc:
-                fc = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{comboPic[i.fc]}.png')).convert('RGBA')
-                self._im.alpha_composite(fc.resize((int(fc.size[0] * 0.8), int(fc.size[1] * 0.8))), (x + 220, y + 90))
-            if i.fs:
-                fs = Image.open(os.path.join(self.pic_dir, f'UI_MSS_MBase_Icon_{syncPic[i.fs]}.png')).convert('RGBA')
-                self._im.alpha_composite(fs.resize((int(fs.size[0] * 0.8), int(fs.size[1] * 0.8))), (x + 260, y + 90))
-
-            if len(i.title) > 20:
-                title = f'{i.title[:19]}...'
-            else:
-                title = i.title
+            self._im.alpha_composite(self._diff[info.level], (x, y))
+            self._im.alpha_composite(cover, (x + 5, y + 5))
+            self._im.alpha_composite(version, (x + 80, y + 141))
+            self._im.alpha_composite(rate, (x + 153, y + 68))
+            if info.fc:
+                fc = Image.open(os.path.join(self.maimai_dir, f'UI_MSS_MBase_Icon_{comboPic[info.fc]}.png')).resize((45, 45))
+                self._im.alpha_composite(fc, (x + 240, y + 70))
+            if info.fs:
+                fs = Image.open(os.path.join(self.maimai_dir, f'UI_MSS_MBase_Icon_{syncPic[info.fs]}.png')).resize((45, 45))
+                self._im.alpha_composite(fs, (x + 285, y + 70))
             
-            p, s = f'{i.achievement:.4f}'.split('.')
-            r = self._fontb.get_box(p, 24)
+            dx = self._dxScore(info)
+            for _ in range(dx[1]):
+                self._im.alpha_composite(dxstar[dx[0]], (x + 355, y + 40 + 20 * _))
 
-            self._font.draw(x + 155, y + 18, 14, title, color[i.level], 'mm')
-            self._fontb.draw(x + 140, y + 45, 24, p, tcolor, 'lm')
-            self._fontb.draw(x + 140 + r[2], y + 60, 15, f'.{s}%', tcolor, 'ld')
-            self._fontb.draw(x + 140, y + 70, 15, f'ID | {i.id}', tcolor, 'lm')
-            self._fontb.draw(x + 140, y + 142, 15, f'Rating {i.ds} -> {computeRa(i.ds, i.achievement, True) if self.b50 else i.ra}', tcolor, 'lm')
+            self._tb.draw(x + 40, y + 148, 20, info.id, anchor='mm')
+            title = info.title
+            if self._coloumWidth(title) > 16:
+                title = self._changeColumnWidth(title, 15) + '...'
+            self._siyuan.draw(x + 155, y + 20, 20, title, TITLE_COLOR[info.level], anchor='lm')
+            p, s = f'{info.achievement:.4f}'.split('.')
+            r = self._tb.get_box(p, 35)
+            self._tb.draw(x + 155, y + 70, 35, p, TEXT_COLOR[info.level], anchor='ld')
+            self._tb.draw(x + 155 + r[2], y + 68, 25, f'.{s}%', TEXT_COLOR[info.level], anchor='ld')
+            self._tb.draw(x + 155, y + 125, 22, f'Rating {info.ds} -> {computeRa(info.ds, info.achievement, True) if self.b50 else info.ra}', TEXT_COLOR[info.level], anchor='lm')
 
     async def draw(self):
         
         meiryo = os.path.join(static, 'meiryo.ttc')
-        meiryob = os.path.join(static, 'meiryob.ttc')
-        basic = Image.open(os.path.join(self.new_dir, 'b40_basic.png'))
-        advanced = Image.open(os.path.join(self.new_dir, 'b40_advanced.png'))
-        expert = Image.open(os.path.join(self.new_dir, 'b40_expert.png'))
-        master = Image.open(os.path.join(self.new_dir, 'b40_master.png'))
-        remaster = Image.open(os.path.join(self.new_dir, 'b40_remaster.png'))
-        ratingbg = Image.open(os.path.join(self.pic_dir, self._findRaPic()))
-        MatchLevel = Image.open(os.path.join(self.pic_dir, self._findMatchLevel())).resize((90, 38))
+        siyuan = os.path.join(static, 'SourceHanSansSC-Bold.otf')
+        Torus_SemiBold = os.path.join(static, 'Torus SemiBold.otf')
+        basic = Image.open(os.path.join(self.maimai_dir, 'b40_score_basic.png'))
+        advanced = Image.open(os.path.join(self.maimai_dir, 'b40_score_advanced.png'))
+        expert = Image.open(os.path.join(self.maimai_dir, 'b40_score_expert.png'))
+        master = Image.open(os.path.join(self.maimai_dir, 'b40_score_master.png'))
+        remaster = Image.open(os.path.join(self.maimai_dir, 'b40_score_remaster.png'))
+        logo = Image.open(os.path.join(self.maimai_dir, 'logo.png')).resize((378, 172))
+        dx_rating = Image.open(os.path.join(self.maimai_dir, self._findRaPic())).resize((425, 80))
+        Name = Image.open(os.path.join(self.maimai_dir, 'Name.png'))
+        MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55) if self.b50 else (128, 58))
+        rating = Image.open(os.path.join(self.maimai_dir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
         self._diff = [basic, advanced, expert, master, remaster]
 
-        self._im = Image.open(os.path.join(self.new_dir, 'b50_bg.png')).convert('RGBA')
+        # 作图
+        self._im = Image.open(os.path.join(self.maimai_dir, 'b40_bg.png')).convert('RGBA')
 
+        self._im.alpha_composite(logo, (5, 130))
+        if self.plate:
+            plate = Image.open(os.path.join(self.maimai_dir, f'{self.plate}.png')).resize((1420, 230))
+        else:
+            plate = Image.open(os.path.join(self.maimai_dir, 'UI_Plate_000011.png')).resize((1420, 230))
+        self._im.alpha_composite(plate, (390, 100))
+        icon = Image.open(os.path.join(self.maimai_dir, 'UI_Icon_0000.png')).resize((214, 214))
+        self._im.alpha_composite(icon, (398, 108))
         if self.qqId:
             qqLogo = await get_user_logo(self.qqId)
-            self._im.alpha_composite(qqLogo.convert('RGBA').resize((132, 132)), (402, 48))
-        else:
-            chara_l = Image.open(os.path.join(self.new_dir, 'chara_l.png'))
-            chara_r = Image.open(os.path.join(self.new_dir, 'chara_r.png'))
-            self._im.alpha_composite(chara_l, (400, 70))
-            self._im.alpha_composite(chara_r, (475, 70))
-
-        text_im = ImageDraw.Draw(self._im)
-        self._font = DrawText(text_im, meiryo)
-        self._fontb = DrawText(text_im, meiryob)
-        self._im.alpha_composite(ratingbg, (555, 40))
-
+            self._im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
+            self._im.alpha_composite(qqLogo.convert('RGBA').resize((201, 201)), (405, 115))
+        self._im.alpha_composite(dx_rating, (620, 108))
         self.Rating = f'{self.Rating:05d}'
         for n, i in enumerate(self.Rating):
             if n == 0 and i == 0:
                 continue
-            self._im.alpha_composite(Image.open(os.path.join(self.pic_dir, f'UI_NUM_Drating_{i}.png')).resize((15, 18)), (640 + 15 * n, 50))
+            self._im.alpha_composite(Image.open(os.path.join(self.maimai_dir, f'UI_NUM_Drating_{i}.png')), (820 + 33 * n, 133))
+        self._im.alpha_composite(Name, (620, 200))
+        self._im.alpha_composite(MatchLevel, (935, 205))
+        self._im.alpha_composite(rating, (620, 275))
 
-        self._im.alpha_composite(MatchLevel, (750, 40))
-        self._font.draw(570, 120, 35, self.userName, (0, 0, 0, 255), 'lm')
-        self._font.draw(740, 175, 20, f'底分：{self.rankRating} + 段位分：{self.addRating}' if not self.b50 else 'Simulation of Splash PLUS Rating', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
+        text_im = ImageDraw.Draw(self._im)
+        self._meiryo = DrawText(text_im, meiryo)
+        self._siyuan = DrawText(text_im, siyuan)
+        self._tb = DrawText(text_im, Torus_SemiBold)
 
-        for n, i in enumerate(['Credit to', 'XybBot & Diving-fish', 'Generated by', f'{BOTNAME} BOT']):
-            self._fontb.draw(1240, 90 + 30 * n, 25, i, (0, 0, 0, 255), 'mm')
+        self._meiryo.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
+        self._meiryo.draw(847, 300, 22, f'底分：{self.rankRating} + 段位分：{self.addRating}' if not self.b50 else 'Simulation of New Rating System', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
+        self._meiryo.draw(900, 2365, 35, f'Designed by Yuri-YuzuChaN & BlueDeer233 | Generated by {BOTNAME} BOT', (103, 20, 141, 255), 'mm', 3, (255, 255, 255, 255))
 
-        self.whiledraw(self.sdBest, 130, 295)
-        self.whiledraw(self.dxBest, 50, 1630)
+        self.whiledraw(self.sdBest, True, self.b50)
+        self.whiledraw(self.dxBest, False, self.b50)
 
         return self._im
 
@@ -408,6 +442,6 @@ async def generate(payload: dict) -> Union[MessageSegment, str]:
         sd_best.push(ChartInfo.from_json(c))
     for c in dx:
         dx_best.push(ChartInfo.from_json(c))
-    draw_best = DrawBest(sd_best, dx_best, obj['nickname'], obj['additional_rating'], obj['rating'], qqId, b50)
+    draw_best = DrawBest(sd_best, dx_best, obj['nickname'], obj['additional_rating'], obj['rating'], obj['plate'], qqId, b50)
     pic = await draw_best.draw()
     return MessageSegment.image(image_to_bytesio(pic))

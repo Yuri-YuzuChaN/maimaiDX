@@ -70,7 +70,7 @@ guess_music_solve = on_message(rule=is_now_playing_guess_music, priority=5)
 guess_music_enable = on_command('开启猜歌', aliases={'开启mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
 guess_music_disable = on_command('关闭猜歌', aliases={'关闭mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
 
-public_addr = 'http://localhost:8081'
+public_addr = 'https://vote.yuzuai.xyz/'
 
 help_text = dedent('''\
         可用命令如下：
@@ -107,19 +107,6 @@ help_text = dedent('''\
     ''')
 
 
-def random_music(music: Music) -> str:
-    len4id = get_cover_len4_id(music.id)
-    if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
-        img = file
-    else:
-        img = os.path.join(static, 'mai', 'cover', '0000.png')
-    msg = dedent(f'''\
-        {music.id}. {music.title}
-        {MessageSegment.image(f"file:///{img}")}
-        {'/'.join(list(map(str, music.ds)))}''')
-    return msg
-
-
 def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
     music_data = mai.total_list.filter(ds=(ds1, ds2))
@@ -127,12 +114,12 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
         if stats2:
             stats1 = stats1 + ' ' + stats2
             stats1 = stats1.title()
-        for music in sorted(music_data, key=lambda i: int(i['id'])):
+        for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
                 if music.stats[i].difficulty.lower() == stats1.lower():
                     result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     else:
-        for music in sorted(music_data, key=lambda i: int(i['id'])):
+        for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
                 result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
@@ -149,7 +136,10 @@ async def get_music():
     """
     bot启动时开始获取所有数据
     """
+    log.info('正在获取maimai所有曲目信息')
     await mai.get_music()
+    log.info('正在获取maimai所有曲目别名信息')
+    await mai.get_music_alias()
     mai.guess()
 
 
@@ -321,8 +311,8 @@ async def _(args: Message = CommandArg()):
         await search.finish(msg, reply_message=True)
     elif len(result) < 50:
         search_result = ''
-        for music in sorted(result, key=lambda i: int(i['id'])):
-            search_result += f'{music["id"]}. {music["title"]}\n'
+        for music in sorted(result, key=lambda i: int(i.id)):
+            search_result += f'{music.id}. {music.title}\n'
         await search.finish(MessageSegment.image(to_bytes_io(search_result)), reply_message=True)
     else:
         await search.finish(f'结果过多（{len(result)} 条），请缩小查询范围。', reply_message=True)
@@ -350,7 +340,7 @@ async def _(event: MessageEvent):
             msg += f'宜 {wm_list[i]}\n'
         elif wm_value[i] == 0:
             msg += f'忌 {wm_list[i]}\n'
-    msg += 'Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
+    msg += f'{BOTNAME} Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：'
     music = mai.total_list[h % len(mai.total_list)]
     msg += await draw_music_info_to_message_segment(music)
     await mai_today.finish(msg, reply_message=True)
@@ -360,27 +350,27 @@ async def _(event: MessageEvent):
 async def _(event: MessageEvent, end: str = Endswith()):
     name = event.get_plaintext().lower().removesuffix(end).strip()
 
-    data = await get_alias('songs', {'alias_name': name})
-    if 'error' in data:
+    data = mai.total_alias_list.by_alias(name)
+    if not data:
         await what_song.finish('未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', reply_message=True)
     if len(data) != 1:
         msg = f'找到{len(data)}个相同别名的曲目：\n'
         for songs in data:
-            msg += f'{songs["ID"]}：{songs["Name"]}\n'
+            msg += f'{songs.ID}：{songs.Name}\n'
         await what_song.finish(msg.strip(), reply_message=True)
 
-    music = mai.total_list.by_id(str(data[0]['ID']))
-    await what_song.finish(await draw_music_info_to_message_segment(music), reply_message=True)
+    music = mai.total_list.by_id(str(data[0].ID))
+    await what_song.finish('您要找的是不是：' + await draw_music_info_to_message_segment(music), reply_message=True)
 
 
 @alias_song.handle()
 async def _(event: MessageEvent, end: str = Endswith()):
     name = event.get_plaintext().lower().removesuffix(end).strip()
 
-    aliases = await get_alias('alias', {'name': name})
+    aliases = mai.total_alias_list.by_alias(name)
     if not aliases:
         if name.isdigit():
-            alias_id = await get_alias('alias', {'id': name})
+            alias_id = mai.total_alias_list.by_id(name)
             if not alias_id:
                 await alias_song.finish('未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', reply_message=True)
             else:
@@ -390,15 +380,15 @@ async def _(event: MessageEvent, end: str = Endswith()):
     if len(aliases) != 1:
         msg = []
         for songs in aliases:
-            alias_list = '\n'.join(songs['Alias'])
-            msg.append(f'ID：{songs["ID"]}\n{alias_list}')
+            alias_list = '\n'.join(songs.Alias)
+            msg.append(f'ID：{songs.ID}\n{alias_list}')
         await alias_song.finish(f'找到{len(aliases)}个相同别名的曲目：\n' + '\n======\n'.join(msg), reply_message=True)
 
-    if len(aliases[0]['Alias']) == 1:
+    if len(alias[0].Alias) == 1:
         await alias_song.finish('该曲目没有别名', reply_message=True)
 
-    msg = f'该曲目有以下别名：\nID：{aliases[0]["ID"]}\n'
-    msg += '\n'.join(aliases[0]['Alias'])
+    msg = f'该曲目有以下别名：\nID：{alias[0].ID}\n'
+    msg += '\n'.join(alias[0].Alias)
     await alias_song.finish(msg, reply_message=True)
 
 
@@ -432,6 +422,8 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     status = await post_alias('agree', {'tag': tag, 'uid': event.user_id})
     if isinstance(status, dict):
         await alias_agree.finish(status['content'], reply_message=True)
+    else:
+        await alias_agree.finish(str(status), reply_message=True)
 
 
 @alias_status.handle()
@@ -449,7 +441,7 @@ async def _(event: GroupMessageEvent):
             await draw_music_info_to_message_segment(mai.total_list.by_id(id_)) +
             f'{tag}：\n别名：{alias_name}\n票数：{usernum}/{votes}'
         )
-    msg.append(f'浏览{public_addr + "/vote"}查看详情')
+    msg.append(f'浏览{public_addr}查看详情或查看以下合并消息')
     bot = get_bot()
     await bot.send_group_forward_msg(group_id=event.group_id, messages=render_forward_msg(msg))
 
@@ -494,12 +486,13 @@ async def alias_apply_status():
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                 except:
                     continue
     await asyncio.sleep(5)
     end = await get_alias('end')
     if end:
+        await mai.get_music_alias()
         msg2 = ['以下是已成功添加别名的曲目']
         for ta in end:
             id_ = str(end[ta]['ID'])
@@ -513,7 +506,7 @@ async def alias_apply_status():
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                 except:
                     continue
 
@@ -545,20 +538,20 @@ async def _(arg: Message = CommandArg()):
             chart_id = result.group(2)
             line = float(args[-1])
             music = mai.total_list.by_id(chart_id)
-            chart = music['charts'][level_index]
-            tap = int(chart['notes'][0])
-            slide = int(chart['notes'][2])
-            hold = int(chart['notes'][1])
-            touch = int(chart['notes'][3]) if len(chart['notes']) == 5 else 0
-            brk = int(chart['notes'][-1])
-            total_score = 500 * tap + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
+            chart = music.charts[level_index]
+            tap = int(chart.tap)
+            slide = int(chart.slide)
+            hold = int(chart.hold)
+            touch = int(chart.touch) if len(chart['notes']) == 5 else 0
+            brk = int(chart.brk)
+            total_score = tap * 500 + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
             break_bonus = 0.01 / brk
             break_50_reduce = total_score * break_bonus / 4
             reduce = 101 - line
             if reduce <= 0 or reduce >= 101:
                 raise ValueError
             msg = dedent(f'''\
-                {music['title']} {level_labels2[level_index]}
+                {music.title} {level_labels2[level_index]}
                 分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
                 BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)''')
             await score.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
@@ -590,27 +583,25 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     args = arg.extract_plain_text().strip()
     if not args:
         await minfo.finish('请输入曲目id或曲名', reply_message=True)
-
     payload = {
         'qq': qqid,
         'version': list(set(version for version in plate_to_version.values()))
     }
-
     if mai.total_list.by_id(args):
         id = args
     elif by_t := mai.total_list.by_title(args):
         id = by_t.id
     else:
-        alias = await get_alias('songs', {'alias_name': args})
-        if 'error' in alias:
+        alias = mai.total_alias_list.by_alias(args)
+        if not alias:
             await minfo.finish('未找到曲目', reply_message=True)
         elif len(alias) != 1:
             msg = '找到相同别名的曲目，请使用以下ID查询：\n'
             for songs in alias:
-                msg += f'{songs["ID"]}：{songs["Name"]}\n'
+                msg += f'{songs.ID}：{songs.Name}\n'
             await minfo.finish(msg.strip(), reply_message=True)
         else:
-            id = str(alias[0]["ID"])
+            id = str(alias[0].ID)
 
     data = await music_play_data(payload, id)
     if not data:
@@ -750,13 +741,13 @@ async def guess_music_loop(event: GroupMessageEvent):
         await asyncio.sleep(8)
     else:
         await asyncio.sleep(4)
-    guess_: MaiMusic = guess.Group[gid]['object']
-    if gid not in guess.config['enable'] or guess_.is_end:
+    _guess = guess.Group[gid]['object']
+    if gid not in guess.config['enable'] or _guess.is_end:
         return
     if cycle < 6:
-        await guess_music_start.send(f'{cycle + 1}/7 这首歌{guess_.guess_options[cycle]}')
+        await guess_music_start.send(f'{cycle + 1}/7 这首歌{_guess.guess_options[cycle]}')
     else:
-        await guess_music_start.send('7/7 这首歌封面的一部分是：\n' + MessageSegment.image(guess_.image) + '\n答案将在30秒后揭晓')
+        await guess_music_start.send('7/7 这首歌封面的一部分是：\n' + MessageSegment.image(_guess.image) + '\n答案将在30秒后揭晓')
         await give_answer(event)
     guess.Group[gid]['cycle'] += 1
     await guess_music_loop(event)
@@ -765,12 +756,12 @@ async def guess_music_loop(event: GroupMessageEvent):
 async def give_answer(event: GroupMessageEvent):
     gid = event.group_id
     await asyncio.sleep(30)
-    guess_: MaiMusic = guess.Group[gid]['object']
-    if gid not in guess.config['enable'] or guess_.is_end:
+    _guess = guess.Group[gid]['object']
+    if gid not in guess.config['enable'] or _guess.is_end:
         return
-    guess_.is_end = True
+    _guess.is_end = True
     guess.end(gid)
-    await guess_music_solve.finish('答案是：' + await draw_music_info_to_message_segment(guess_.music), reply_message=True)
+    await guess_music_solve.finish('答案是：' + await draw_music_info_to_message_segment(_guess.music), reply_message=True)
 
 
 @guess_music_solve.handle()

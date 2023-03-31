@@ -200,6 +200,33 @@ class MusicList(List[Music]):
             new_list.append(music)
         return new_list
 
+class Alias(Dict):
+
+    ID: Optional[int] = None
+    Name: Optional[str] = None
+    Alias: Optional[List[str]] = None
+
+    def __getattribute__(self, item: str) -> Any:
+        if item in self:
+            return self[item]
+        return super().__getattribute__(item)
+
+class AliasList(List[Alias]):
+
+    def by_id(self, music_id: int) -> Optional[List[Alias]]:
+        alias_list = []
+        for music in self:
+            if music.ID == int(music_id):
+                alias_list.append(music)
+        return alias_list
+
+    def by_alias(self, music_alias: str) -> Optional[List[Alias]]:
+        alias_list = []
+        for music in self:
+            if music_alias in music.Alias:
+                alias_list.append(music)
+        return alias_list
+
 def get_cover_len4_id(mid: str) -> str:
     mid = int(mid)
 
@@ -238,11 +265,22 @@ async def get_music_list() -> MusicList:
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):
         total_list[i] = Music(total_list[i])
-        total_list[i]['stats'] = stats[total_list[i].id]
+        total_list[i].stats = stats[total_list[i].id]
         for j in range(len(total_list[i].charts)):
             total_list[i].charts[j] = Chart(total_list[i].charts[j])
             total_list[i].stats[j] = Stats(total_list[i].stats[j])
     return total_list
+
+async def get_music_alias_list() -> AliasList:
+    """
+    获取所有别名
+    """
+    data = await get_alias('all')
+    total_alias_list = AliasList(data)
+    for _ in range(len(total_alias_list)):
+        total_alias_list[_] = Alias(total_alias_list[_])
+
+    return total_alias_list
 
 class MaiMusic:
 
@@ -259,6 +297,12 @@ class MaiMusic:
         """
         self.total_list = await get_music_list()
 
+    async def get_music_alias(self) -> AliasList:
+        """
+        获取所有曲目别名
+        """
+        self.total_alias_list = await get_music_alias_list()
+
     def guess(self):
         """
         初始化猜歌数据
@@ -271,22 +315,22 @@ class MaiMusic:
         """
         self.music = Music(random.choice(self.guess_data))
         self.guess_options = [
-            f'的 Expert 难度是 {self.music["level"][2]}',
-            f'的 Master 难度是 {self.music["level"][3]}',
-            f'的分类是 {self.music["basic_info"]["genre"]}',
-            f'的版本是 {self.music["basic_info"]["from"]}',
-            f'的艺术家是 {self.music["basic_info"]["artist"]}',
-            f'{"不" if self.music["type"] == "SD" else ""}是 DX 谱面',
-            f'{"没" if len(self.music["ds"]) == 4 else ""}有白谱',
-            f'的 BPM 是 {self.music["basic_info"]["bpm"]}'
+            f'的 Expert 难度是 {self.music.level[2]}',
+            f'的 Master 难度是 {self.music.level[3]}',
+            f'的分类是 {self.music.genre}',
+            f'的版本是 {self.music.version}',
+            f'的艺术家是 {self.music.artist}',
+            f'{"不" if self.music.type == "SD" else ""}是 DX 谱面',
+            f'{"没" if len(self.music.ds) == 4 else ""}有白谱',
+            f'的 BPM 是 {self.music.bpm}'
         ]
-        music = await get_alias('alias', {'id': self.music.id})
-        self.answer = music[0]['Alias']
+        music = mai.total_alias_list.by_id(self.music.id)
+        self.answer = music[0].Alias
         self.answer.append(self.music.id)
         self.guess_options = random.sample(self.guess_options, 6)
-        pngPath = os.path.join(cover_dir, f'{get_cover_len4_id(int(self.music["id"]))}.jpg')
+        pngPath = os.path.join(cover_dir, f'{get_cover_len4_id(int(self.music.id))}.jpg')
         if not os.path.exists(pngPath):
-            pngPath = os.path.join(cover_dir, f'{get_cover_len4_id(int(self.music["id"]))}.png')
+            pngPath = os.path.join(cover_dir, f'{get_cover_len4_id(int(self.music.id))}.png')
         if not os.path.exists(pngPath):
             pngPath = os.path.join(cover_dir, '1000.png')
         img = Image.open(pngPath)
@@ -315,12 +359,18 @@ class Guess:
                 json.dump({'enable': [], 'disable': []}, f)
         self.config: Dict[str, List[int]] = json.load(open(self.config_json, 'r', encoding='utf-8'))
     
-    def add(self, gid: int, music: MaiMusic, cycle: int = 0):
+    def add(self, gid: int):
         """
-        新增猜歌群
+        新增猜歌群，防止重复指令
+        """
+        self.Group[gid] = {}
+
+    def start(self, gid: int, music: MaiMusic, cycle: int = 0):
+        """
+        正式开始猜歌
         """
         self.Group[gid] = {
-            'object':  music,
+            'object': music,
             'cycle': cycle
         }
 
@@ -352,7 +402,7 @@ class Guess:
 
 guess = Guess()
 
-class Alias:
+class GroupAlias:
 
     def __init__(self) -> None:
         self.group_alias = os.path.join(static, 'group_alias.json')
@@ -381,4 +431,4 @@ class Alias:
         except:
             log.error(traceback.format_exc())
 
-alias = Alias()
+alias = GroupAlias()
