@@ -409,7 +409,7 @@ class GroupAlias:
 
     def alias_change(self, gid: int, set: bool):
         """
-        猜歌开关
+        别名推送开关
         """
         if set:
             if gid not in self.config['enable']:
