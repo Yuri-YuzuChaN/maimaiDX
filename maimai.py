@@ -452,7 +452,7 @@ async def alias_apply_status():
         if len(msg) != 1:
             for group in await bot.get_group_list():
                 gid = group['group_id']
-                if gid in alias.config['disable']:
+                if gid in alias.config['disable'] and gid not in alias.config['enable']:
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
@@ -472,7 +472,7 @@ async def alias_apply_status():
         if len(msg2) != 1:
             for group in await bot.get_group_list():
                 gid = group['group_id']
-                if gid in alias.config['disable']:
+                if gid in alias.config['disable'] and gid not in alias.config['enable']:
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
