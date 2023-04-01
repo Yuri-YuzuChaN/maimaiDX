@@ -82,8 +82,8 @@ async def get_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union
             else:
                 data = resp.json()
     except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
+        log.exception(e)
+        data = dict()
     return data
 
 async def post_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
