@@ -693,8 +693,9 @@ async def _(event: GroupMessageEvent):
         await guess_music_start.finish('该群已关闭猜歌功能，开启请输入 开启mai猜歌', reply_message=True)
     if gid in guess.Group:
         await guess_music_start.finish('该群已有正在进行的猜歌', reply_message=True)
+    guess.add(gid)
     await mai.start()
-    guess.add(gid, mai, 0)
+    guess.start(gid, mai, 0)
     await guess_music_start.send(
         '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，'
         '请输入歌曲的 id 标题 或 别名（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。'
