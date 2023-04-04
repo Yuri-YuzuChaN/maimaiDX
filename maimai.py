@@ -318,7 +318,7 @@ async def _(event: MessageEvent):
 
 @what_song.handle()
 async def _(event: MessageEvent, end: str = Endswith()):
-    name = event.get_plaintext().lower().removesuffix(end).strip()
+    name = event.get_plaintext().lower()[0:-len(end)].strip()  # before 3.9
 
     data = mai.total_alias_list.by_alias(name)
     if not data:
@@ -335,7 +335,7 @@ async def _(event: MessageEvent, end: str = Endswith()):
 
 @alias_song.handle()
 async def _(event: MessageEvent, end: str = Endswith()):
-    name = event.get_plaintext().lower().removesuffix(end).strip()
+    name = event.get_plaintext().lower()[0:-len(end)].strip()  # before 3.9
 
     aliases = mai.total_alias_list.by_alias(name)
     if not aliases:
