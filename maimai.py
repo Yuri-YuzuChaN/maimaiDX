@@ -97,7 +97,7 @@ def get_at_qq(message: Message) -> Optional[int]:
             return int(item.data['qq'])
 
 
-@driver.on_startup
+@driver.on_bot_connect
 async def get_music():
     """
     bot启动时开始获取所有数据
