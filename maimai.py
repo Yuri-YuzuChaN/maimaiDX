@@ -3,7 +3,7 @@ import re
 from random import sample
 from string import ascii_uppercase, digits
 
-from nonebot import NoneBot, on_startup
+from nonebot import NoneBot, on_websocket_connect
 
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
@@ -80,8 +80,8 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
                 result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
     return result
 
-@on_startup
-async def get_music():
+@on_websocket_connect
+async def get_music(event: CQEvent):
     """
     bot启动时开始获取所有数据
     """

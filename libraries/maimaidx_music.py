@@ -59,23 +59,23 @@ def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
 
 
 class Stats(Dict):
-    count: Optional[int] = None
-    avg: Optional[float] = None
-    sss_count: Optional[int] = None
+    count: Optional[float] = None
     difficulty: Optional[str] = None
-    rank: Optional[int] = None
-    total: Optional[int] = None
+    fit_difficulty: Optional[float] = None
+    avg: Optional[float] = None
+    avg_dx: Optional[float] = None
+    std_dev: Optional[float]
+    dist: Optional[List[int]] = None
+    fc_dist: Optional[List[float]] = None
 
     def __getattribute__(self, item):
         try:
-            if item == 'sss_count':
-                return self['sssp_count']
-            elif item == 'rank':
-                return self['v'] + 1
-            elif item == 'total':
-                return self['t']
+            if item == 'count':
+                return self['cnt']
             elif item == 'difficulty':
-                return self['tag']
+                return self['diff']
+            elif item == 'fit_difficulty':
+                return self['fit_diff']
             elif item in self:
                 return self[item]
             return super().__getattribute__(item)
@@ -262,7 +262,7 @@ async def get_music_list() -> MusicList:
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):
         total_list[i] = Music(total_list[i])
-        total_list[i].stats = stats[total_list[i].id]
+        total_list[i].stats = stats['charts'][total_list[i].id]
         for j in range(len(total_list[i].charts)):
             total_list[i].charts[j] = Chart(total_list[i].charts[j])
             total_list[i].stats[j] = Stats(total_list[i].stats[j])
