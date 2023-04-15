@@ -197,8 +197,7 @@ TAP: {chart.tap}
 HOLD: {chart.hold}
 SLIDE: {chart.slide}
 BREAK: {chart.brk}
-谱师: {chart.charter}
-难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
+谱师: {chart.charter}'''
             else:
                 result = f'''{level_name[level_index]} {level}({ds})
 TAP: {chart.tap}
@@ -206,8 +205,7 @@ HOLD: {chart.hold}
 SLIDE: {chart.slide}
 TOUCH: {chart.touch}
 BREAK: {chart.brk}
-谱师: {chart.charter}
-难易度参考: {stats['tag'] if 'tag' in stats else '无'}'''
+谱师: {chart.charter}'''
 
             len4id = get_cover_len4_id(music.id)
             if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
