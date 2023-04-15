@@ -15,18 +15,13 @@
 
 ## 使用方法
 
-1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
+1. clone本项目
     ``` git
-    git clone -b del-arcade https://github.com/Yuri-YuzuChaN/maimaiDX
+    git clone -b nonebot2 https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
-3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`
-4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
-5. 重启HoshinoBot
-
-**请务必将 `nonebot` 以及 `aiocqhttp` 依赖升级为最新版本，否则无法使用 `b40/b50` 指令**
-
-**插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
+3. pip以下依赖：`pillow`, `aiofiles`, `httpx`
+4. 重启Bot
 
 ## 指令
 
@@ -59,6 +54,10 @@
 | 查看排名,查看排行 <页数>/<名字>                            | 查看水鱼网站的用户ra排行   |
 
 ## 更新说明
+
+**2023-04-15**
+
+1. 修复因查分器API内容变动而无法启动Bot的问题
 
 **2023-03-29**
 

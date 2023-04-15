@@ -199,8 +199,7 @@ async def query_chart_data(match: Tuple) -> str:
                     HOLD: {chart.hold}
                     SLIDE: {chart.slide}
                     BREAK: {chart.brk}
-                    谱师: {chart.charter}
-                    难易度参考: {stats['tag'] if 'tag' in stats else '无'}''')
+                    谱师: {chart.charter}''')
             else:
                 result = dedent(f'''\
                     {level_name[level_index]} {level}({ds})
@@ -209,8 +208,7 @@ async def query_chart_data(match: Tuple) -> str:
                     SLIDE: {chart.slide}
                     TOUCH: {chart.touch}
                     BREAK: {chart.brk}
-                    谱师: {chart.charter}
-                    难易度参考: {stats['tag'] if 'tag' in stats else '无'}''')
+                    谱师: {chart.charter}''')
             len4id = get_cover_len4_id(music.id)
             if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
                 img = file
