@@ -6,7 +6,8 @@ from string import ascii_uppercase, digits
 from nonebot import NoneBot, on_websocket_connect
 
 from hoshino import Service, priv
-from hoshino.typing import CQEvent, MessageSegment
+from hoshino.service import sucmd
+from hoshino.typing import CommandSession, CQEvent, MessageSegment
 
 from . import *
 from .libraries.image import *
@@ -402,8 +403,21 @@ async def alias_off(bot: NoneBot, ev: CQEvent):
         msg = '已关闭该群别名推送功能'
     await bot.send(ev, msg, at_sender=True)
 
+@sucmd('aliasswitch', aliases=('全局关闭别名推送', '全局开启别名推送'))
+async def _(session: CommandSession):
+    if session.ctx.raw_message == '全局关闭别名推送':
+        alias.alias_global_change(False)
+        await session.send('已全局关闭maimai别名推送')
+    elif session.ctx.raw_message == '全局开启别名推送':
+        alias.alias_global_change(True)
+        await session.send('已全局开启maimai别名推送')
+    else:
+        return
+
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
+    if not alias.config['global']:
+        return
     group = await sv.get_enable_groups()
     status = await get_alias('status')
     if status:
