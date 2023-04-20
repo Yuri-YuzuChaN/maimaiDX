@@ -7,7 +7,7 @@ from textwrap import dedent
 from typing import Tuple, Optional
 
 from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger, on_message
-from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot
+from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot, PrivateMessageEvent
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
 from nonebot.permission import SUPERUSER
@@ -56,6 +56,7 @@ alias_agree = on_command('同意别名', aliases={'同意别称'}, priority=5)
 alias_status = on_command('当前投票', aliases={'当前别名投票', '当前别称投票'}, priority=5)
 alias_on = on_command('开启别名推送', aliases={'开启别称推送'}, priority=5, permission=SUPERUSER)
 alias_off = on_command('关闭别名推送', aliases={'关闭别称推送'}, priority=5, permission=SUPERUSER)
+alias_global_switch = on_command('aliasswitch', aliases={'全局关闭别称推送', '全局开启别称推送'}, priority=5, permission=SUPERUSER)
 score = on_command('分数线', priority=5)
 best40 = on_command('b40', aliases={'B40'}, priority=5)
 best50 = on_command('b50', aliases={'B50'}, priority=5)
@@ -438,7 +439,21 @@ async def _(event: GroupMessageEvent):
     await alias_off.finish(msg, reply_message=True)
 
 
+@alias_global_switch.handle()
+async def _(event: PrivateMessageEvent):
+    if event.raw_message == '全局关闭别称推送':
+        alias.alias_global_change(False)
+        await alias_global_switch.send('已全局关闭maimai别名推送')
+    elif event.raw_message == '全局开启别名推送':
+        alias.alias_global_change(True)
+        await alias_global_switch.send('已全局开启maimai别名推送')
+    else:
+        return
+
+
 async def alias_apply_status():
+    if not alias.config['global']:
+        return
     bot = get_bot()
     status = await get_alias('status')
     if status:

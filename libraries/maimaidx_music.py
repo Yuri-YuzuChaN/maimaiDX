@@ -408,12 +408,15 @@ class GroupAlias:
         self.group_alias = os.path.join(static, 'group_alias.json')
         if not os.path.exists(self.group_alias):
             with open(self.group_alias, 'w', encoding='utf-8') as f:
-                json.dump({'enable': [], 'disable': []}, f)
+                json.dump({'enable': [], 'disable': [], 'global': True}, f)
         self.config: Dict[str, List[int]] = json.load(open(self.group_alias, 'r', encoding='utf-8'))
+        if 'global' not in self.config:
+            self.config['global'] = True
+            self.alias_save()
 
     def alias_change(self, gid: int, set: bool):
         """
-        猜歌开关
+        别名推送开关
         """
         if set:
             if gid not in self.config['enable']:
@@ -425,6 +428,16 @@ class GroupAlias:
                 self.config['disable'].append(gid)
             if gid in self.config['enable']:
                 self.config['enable'].remove(gid)
+        self.alias_save()
+
+    def alias_global_change(self, set: bool):
+        if set:
+            self.config['global'] = True
+        else:
+            self.config['global'] = False
+        self.alias_save()
+
+    def alias_save(self):
         try:
             with open(self.group_alias, 'w', encoding='utf-8') as f:
                 json.dump(self.config, f, ensure_ascii=True, indent=4)
