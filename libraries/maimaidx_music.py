@@ -306,7 +306,16 @@ class MaiMusic:
         """
         初始化猜歌数据
         """
-        self.guess_data = list(filter(lambda x: x['id'] in hot_music_ids, mai.total_list))
+        self.hot_music_ids = []
+        for music in self.total_list:
+            if music.stats:
+                count = 0
+                for stats in music.stats:
+                    if stats:
+                        count += stats.count
+                if count > 10000:
+                    self.hot_music_ids.append(music.id)  # 游玩次数超过1w次加入猜歌库
+        self.guess_data = list(filter(lambda x: x['id'] in self.hot_music_ids, self.total_list))
 
     async def start(self):
         """
