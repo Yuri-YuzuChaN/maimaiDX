@@ -1,4 +1,5 @@
 import asyncio
+import aiofiles
 import re
 from random import sample
 from string import ascii_uppercase, digits
@@ -90,6 +91,8 @@ async def get_music(event: CQEvent):
     await mai.get_music()
     log.info('正在获取maimai所有曲目别名信息')
     await mai.get_music_alias()
+    log.info('正在获取maimai所有机厅信息')
+    await download_arcade_info()
     log.info('获取完成')
     mai.guess()
 
@@ -973,15 +976,16 @@ async def arcade_query_person(bot: NoneBot, ev: CQEvent):
     else:
         await bot.send(ev, '该群未订阅任何机厅，请使用 订阅机厅 <名称> 指令订阅机厅', at_sender=True)
 
-@sv.scheduled_job('cron', hour='5')
+@sv.scheduled_job('cron', hour='4')
 async def Data_Update():
     try:
+        await download_arcade_info(save=False)
         for a in arcades:
             a['person'] = 0
             a['by'] = '自动清零'
             a['time'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        with open(arcades_json, 'w', encoding='utf-8') as f:
-            json.dump(arcades, f, ensure_ascii=False, indent=4)
+        async with aiofiles.open(arcades_json, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(arcades, ensure_ascii=False, indent=4))
         await mai.get_music()
     except:
         return

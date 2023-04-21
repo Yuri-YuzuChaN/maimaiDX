@@ -1,6 +1,7 @@
 import io
 import os
 import time
+import aiofiles
 import traceback
 from re import Match
 from typing import Optional, Union
@@ -66,6 +67,37 @@ category = {
     'ゲームバラエティ': 'game',
     'オンゲキCHUNITHM': 'ongeki'
 }
+
+async def download_arcade_info(save=True):
+    async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location') as req:
+        if req.status == 200:
+            arcades_data = await req.json()
+            current_names = [c_a['name'] for c_a in arcades]
+            for arcade in arcades_data:
+                if arcade['arcadeName'] not in current_names:
+                    arcade_dict = {
+                        'name': arcade['arcadeName'],
+                        'location': arcade['address'],
+                        'province': arcade['province'],
+                        'mall': arcade['mall'],
+                        'num': arcade['machineCount'],
+                        'id': arcade['id'],
+                        'alias': [], 'group': [],
+                        'person': 0, 'by': '', 'time': ''
+                    }
+                    arcades.append(arcade_dict)
+                else:
+                    arcade_dict = arcades[current_names.index(arcade['arcadeName'])]
+                    arcade_dict['location'] = arcade['address']
+                    arcade_dict['province'] = arcade['province']
+                    arcade_dict['mall'] = arcade['mall']
+                    arcade_dict['num'] = arcade['machineCount']
+                    arcade_dict['id'] = arcade['id']
+            if save:
+                async with aiofiles.open(arcades_json, 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(arcades, ensure_ascii=False, indent=4))
+        else:
+            log.info('获取机厅信息失败')
 
 async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
     try:
