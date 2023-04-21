@@ -1,4 +1,5 @@
 import io
+import os
 import time
 import traceback
 from re import Match
@@ -6,7 +7,13 @@ from typing import Optional, Union
 
 from PIL import Image, ImageDraw
 
+from quart.utils import run_sync
 from hoshino.typing import MessageSegment
+
+import pyecharts.options as opts
+from pyecharts.charts import Pie
+from pyecharts.render import make_snapshot
+from snapshot_phantomjs import snapshot
 
 from .. import *
 from .image import *
@@ -180,6 +187,113 @@ async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment
 
     return msg
 
+async def music_global_data(music: Music, level_index: int) -> Union[str, MessageSegment, None]:
+    stats = music.stats[level_index]
+    fc_data_pair = [list(z) for z in zip([c.upper() if c else "Not FC" for c in [""] + comboRank], stats.fc_dist)]
+    acc_data_pair = [list(z) for z in zip([s.upper() for s in scoreRank], stats.dist)]
+
+    Pie(
+        init_opts=opts.InitOpts(
+            width="1000px",
+            height="800px",
+            bg_color="#fff",
+            js_host=static + '/'
+        )
+    ).add(
+        series_name="全连等级",
+        data_pair=fc_data_pair,
+        radius=[0, "30%"],
+        label_opts=opts.LabelOpts(
+            position="outside",
+            formatter="{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ",
+            background_color="#eee",
+            border_color="#aaa",
+            border_width=1,
+            border_radius=4,
+            rich={
+                "a": {"color": "#999", "lineHeight": 22, "align": "center"},
+                "abg": {
+                    "backgroundColor": "#e3e3e3",
+                    "width": "100%",
+                    "align": "right",
+                    "height": 22,
+                    "borderRadius": [4, 4, 0, 0],
+                },
+                "hr": {
+                    "borderColor": "#aaa",
+                    "width": "100%",
+                    "borderWidth": 0.5,
+                    "height": 0,
+                },
+                "b": {"fontSize": 16, "lineHeight": 33},
+                "per": {
+                    "color": "#eee",
+                    "backgroundColor": "#334455",
+                    "padding": [2, 4],
+                    "borderRadius": 2,
+                },
+            },
+        )
+    ).add(
+        series_name="达成率等级",
+        data_pair=acc_data_pair,
+        radius=["50%", "70%"],
+        is_clockwise=True,
+        label_opts=opts.LabelOpts(
+            position="outside",
+            formatter="{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ",
+            background_color="#eee",
+            border_color="#aaa",
+            border_width=1,
+            border_radius=4,
+            rich={
+                "a": {"color": "#999", "lineHeight": 22, "align": "center"},
+                "abg": {
+                    "backgroundColor": "#e3e3e3",
+                    "width": "100%",
+                    "align": "right",
+                    "height": 22,
+                    "borderRadius": [4, 4, 0, 0],
+                },
+                "hr": {
+                    "borderColor": "#aaa",
+                    "width": "100%",
+                    "borderWidth": 0.5,
+                    "height": 0,
+                },
+                "b": {"fontSize": 16, "lineHeight": 33},
+                "per": {
+                    "color": "#eee",
+                    "backgroundColor": "#334455",
+                    "padding": [2, 4],
+                    "borderRadius": 2,
+                },
+            },
+        )
+    ).set_global_opts(
+        title_opts=opts.TitleOpts(
+            title=f"{music.title} {diffs[level_index]}",
+            pos_left="center",
+            pos_top="20",
+            title_textstyle_opts=opts.TextStyleOpts(color="#2c343c"),
+        ),
+        legend_opts=opts.LegendOpts(
+            pos_left=15,
+            pos_top=10,
+            orient="vertical"
+        )
+    ).set_series_opts(
+        tooltip_opts=opts.TooltipOpts(
+            trigger="item", formatter="{a} <br/>{b}: {c} ({d}%)"
+        )
+    ).render(os.path.join(static, "temp_pie.html"))
+    await run_sync(make_snapshot)(snapshot, os.path.join(static, "temp_pie.html"), os.path.join(static, "temp_pie.png"), is_remove_html=False)
+
+    im = Image.open(os.path.join(static, "temp_pie.png"))
+    msg = MessageSegment.image(image_to_base64(im))
+
+    return msg
+
 async def query_chart_data(match: Match) -> str:
     if match.group(1) != '':
         try:
@@ -197,7 +311,8 @@ TAP: {chart.tap}
 HOLD: {chart.hold}
 SLIDE: {chart.slide}
 BREAK: {chart.brk}
-谱师: {chart.charter}'''
+谱师: {chart.charter}
+拟合难度: {stats.fit_difficulty:.2f}'''
             else:
                 result = f'''{level_name[level_index]} {level}({ds})
 TAP: {chart.tap}
@@ -205,7 +320,8 @@ HOLD: {chart.hold}
 SLIDE: {chart.slide}
 TOUCH: {chart.touch}
 BREAK: {chart.brk}
-谱师: {chart.charter}'''
+谱师: {chart.charter}
+拟合难度: {stats.fit_difficulty:.2f}'''
 
             len4id = get_cover_len4_id(music.id)
             if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
@@ -272,20 +388,20 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
                     if [int(music.id), i] in player_dx_id_list:
                         player_ra = player_dx_list[player_dx_id_list.index([int(music.id), i])][2]
                         if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
-                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
+                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                     else:
                         if music_ra - dx_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_dx_list:
-                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
+                            music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                 else:
                     music_ra = computeRa(ds, achievement)
                     if music_ra < sd_ra_lowest: continue
                     if [int(music.id), i] in player_sd_id_list:
                         player_ra = player_sd_list[player_sd_id_list.index([int(music.id), i])][2]
                         if music_ra - player_ra == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
-                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
+                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                     else:
                         if music_ra - sd_ra_lowest == int(match.group(2)) and [int(music.id), i, music_ra] not in player_sd_list:
-                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra, music.stats[i].difficulty])
+                            music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
 
     if len(music_dx_list) == 0 and len(music_sd_list) == 0:
         return '没有找到这样的乐曲'
@@ -296,12 +412,12 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
     msg = ''
     if len(music_sd_list) != 0:
         msg += f'为{appellation}推荐以下标准乐曲：\n'
-        for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
-            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
+        for music, diff, ds, achievement, rank, ra in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
+            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
     if len(music_dx_list) != 0:
         msg += f'\n为{appellation}推荐以下new乐曲：\n'
-        for music, diff, ds, achievement, rank, ra, difficulty in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
-            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra} {difficulty}\n'
+        for music, diff, ds, achievement, rank, ra in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
+            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
 
     return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
@@ -391,7 +507,7 @@ async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]
     for song in song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master:
         music = mai.total_list.by_id(str(song[0]))
         if music.ds[song[1]] > 13.6:
-            song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+            song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], song[1]])
 
     appellation = nickname if nickname else '您'
 
@@ -420,7 +536,7 @@ Master剩余{len(song_remain_master)}首
                     elif match.group(2) == '舞舞':
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
-                msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+                msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {self_record}'.strip() + '\n'
             if len(song_remain_difficult) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
@@ -445,7 +561,7 @@ Master剩余{len(song_remain_master)}首
                     elif match.group(2) == '舞舞':
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
-                msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {m.stats[s[1]].difficulty} {self_record}'.strip() + '\n'
+                msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {self_record}'.strip() + '\n'
             if len(song_remain) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
@@ -491,7 +607,7 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
     songs = []
     for song in song_remain:
         music = mai.total_list.by_id(str(song[0]))
-        songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], music.stats[song[1]].difficulty, song[1]])
+        songs.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], song[1]])
 
     appellation = nickname if nickname else '您'
 
@@ -512,7 +628,7 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
                     elif match.group(2).lower() in syncRank:
                         if data['verlist'][record_index]['fs']:
                             self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
-                msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {s[4]} {self_record}'.strip() + '\n'
+                msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {self_record}'.strip() + '\n'
             if len(songs) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
         else:
@@ -542,7 +658,7 @@ async def level_achievement_list_data(payload: dict, match: Match, nickname: Opt
     for i, s in enumerate(sorted(song_list, key=lambda i: i['achievements'], reverse=True)):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             m = mai.total_list.by_id(str(s['id']))
-            msg += f'No.{i + 1} {s["achievements"]:.4f} {m.id}. {m.title} {diffs[s["level_index"]]} {m.ds[s["level_index"]]} {m.stats[s["level_index"]].difficulty}'
+            msg += f'No.{i + 1} {s["achievements"]:.4f} {m.id}. {m.title} {diffs[s["level_index"]]} {m.ds[s["level_index"]]}'
             if s["fc"]: msg += f' {comboRank[combo_rank.index(s["fc"])].upper()}'
             if s["fs"]: msg += f' {syncRank[sync_rank.index(s["fs"])].upper()}'
             msg += '\n'

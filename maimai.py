@@ -90,6 +90,7 @@ async def get_music(event: CQEvent):
     await mai.get_music()
     log.info('正在获取maimai所有曲目别名信息')
     await mai.get_music_alias()
+    log.info('获取完成')
     mai.guess()
 
 @sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
@@ -551,6 +552,44 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
         else:
             id = str(alias[0].ID)
     await bot.send(ev, await music_play_data(payload, id), at_sender=True)
+
+@sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
+async def globinfo(bot: NoneBot, ev: CQEvent):
+    args: str = ev.message.extract_plain_text().strip()
+    if args[0] not in '绿黄红紫白':
+        await bot.finish(ev, '请输入难度名（绿黄红紫白）', at_sender=True)
+    level_index = '绿黄红紫白'.index(args[0])
+    args = args[1:].strip()
+    if not args:
+        await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+    if mai.total_list.by_id(args):
+        id = args
+    elif by_t := mai.total_list.by_title(args):
+        id = by_t.id
+    else:
+        alias = mai.total_alias_list.by_alias(args)
+        if not alias:
+            await bot.finish(ev, '未找到曲目', at_sender=True)
+        elif len(alias) != 1:
+            msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
+            for songs in alias:
+                msg += f'{songs.ID}：{songs.Name}\n'
+            await bot.finish(ev, msg.strip(), at_sender=True)
+        else:
+            id = str(alias[0].ID)
+    music = mai.total_list.by_id(id)
+    if not music.stats:
+        await bot.finish(ev, '该乐曲还没有统计信息', at_sender=True)
+    if level_index >= len(music.stats):
+        await bot.finish(ev, '该乐曲没有这个等级', at_sender=True)
+    stats = music.stats[level_index]
+    await bot.send(ev, await music_global_data(music, level_index) + f'''
+游玩次数：{round(stats.count)}
+拟合难度：{stats.fit_difficulty:.2f}
+平均达成率：{stats.avg:.2f}
+平均 DX 分数：{stats.avg_dx:.1f}
+谱面成绩标准差：{stats.std_dev:.2f}', at_sender=True
+''')
 
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot: NoneBot, ev: CQEvent):
