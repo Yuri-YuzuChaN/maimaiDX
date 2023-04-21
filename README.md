@@ -10,6 +10,7 @@
 - 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭
 - 新增第三方python包，pip以下依赖：`pyecharts`, `snapshot-phantomjs`
 - 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持
+- 机厅已无需手动添加，请自行备份arcades.json，更新至最新代码后，将备份的文件覆盖回后重启bot即可
 
 **2023-03-29**
 - 现版本 `static` 文件夹内容全部更换，需要重新进行[使用方法第二步](#使用方法)
