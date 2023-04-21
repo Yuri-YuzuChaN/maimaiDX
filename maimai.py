@@ -588,8 +588,8 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
 拟合难度：{stats.fit_difficulty:.2f}
 平均达成率：{stats.avg:.2f}
 平均 DX 分数：{stats.avg_dx:.1f}
-谱面成绩标准差：{stats.std_dev:.2f}', at_sender=True
-''')
+谱面成绩标准差：{stats.std_dev:.2f}'
+''', at_sender=True)
 
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot: NoneBot, ev: CQEvent):
