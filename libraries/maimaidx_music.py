@@ -265,10 +265,12 @@ async def get_music_list() -> MusicList:
     total_list: MusicList = MusicList(data)
     for i in range(len(total_list)):
         total_list[i] = Music(total_list[i])
-        total_list[i].stats = stats['charts'][total_list[i].id]
+        if total_list[i].id in stats['charts']:
+            total_list[i].stats = stats['charts'][total_list[i].id]
         for j in range(len(total_list[i].charts)):
             total_list[i].charts[j] = Chart(total_list[i].charts[j])
-            total_list[i].stats[j] = Stats(total_list[i].stats[j])
+            if total_list[i].id in stats['charts']:
+                total_list[i].stats[j] = Stats(total_list[i].stats[j])
     return total_list
 
 async def get_music_alias_list() -> AliasList:
