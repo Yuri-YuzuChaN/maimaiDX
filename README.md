@@ -8,6 +8,7 @@
 
 **2023-04-21**
 - 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭
+- 新增第三方python包，pip以下依赖：`pyecharts`, `snapshot-phantomjs`
 
 **2023-03-29**
 - 现版本 `static` 文件夹内容全部更换，需要重新进行[使用方法第二步](#使用方法)
@@ -27,7 +28,7 @@
     - 如果使用的 `nonebot2` 框架，前往查看分支 [nonebot2](https://github.com/Yuri-YuzuChaN/maimaiDX/tree/nonebot2) **（暂未完成移植，无法使用）**
 
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
-3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`
+3. pip以下依赖：`pillow`, `aiofiles`, `aiohttp`, `pyecharts`, `snapshot-phantomjs`
 4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 5. 重启HoshinoBot
 
