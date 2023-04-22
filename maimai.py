@@ -43,7 +43,9 @@ XXXmaimaiXXX什么 随机一首歌
 分数线 <难度+歌曲id> <分数线> 详情请输入“分数线 帮助”查看
 开启/关闭mai猜歌 开关猜歌功能
 猜歌 顾名思义，识别id，歌名和别名
+重置猜歌 猜歌卡住时使用
 minfo<@> <id/别称/曲名> 查询单曲成绩
+ginfo [绿黄红紫白] <id/别称/曲名> 查询乐曲游玩总览，不加难度默认为紫谱
 b40 <名字> 或 @某人 查B40
 b50 <名字> 或 @某人 查B50
 我要(在<难度>)上<分数>分 <名字> 或 @某人 查看推荐的上分乐曲
@@ -60,6 +62,9 @@ b50 <名字> 或 @某人 查B50
 查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
 <名称>人数设置,设定,=,增加,加,+,减少,减,-<人数> 操作排卡人数
 <名称>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
+
+BOT管理员私聊指令：
+全局关闭/开启别名推送 开关所有群的别名推送
 '''.strip()
 
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
@@ -593,8 +598,7 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
 拟合难度：{stats.fit_difficulty:.2f}
 平均达成率：{stats.avg:.2f}%
 平均 DX 分数：{stats.avg_dx:.1f}
-谱面成绩标准差：{stats.std_dev:.2f}
-''', at_sender=True)
+谱面成绩标准差：{stats.std_dev:.2f}''', at_sender=True)
 
 @sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')  # 慎用，垃圾代码非常吃机器性能
 async def rise_score(bot: NoneBot, ev: CQEvent):
@@ -772,6 +776,18 @@ async def guess_music_solve(bot: NoneBot, ev: CQEvent):
         msg = f'''猜对了，答案是：
 {await draw_music_info(_guess.music)}'''
         await bot.finish(ev, msg, at_sender=True)
+
+@sv.on_fullmatch('重置猜歌')
+async def reset_guess(bot: NoneBot, ev: CQEvent):
+    gid = str(ev.group_id)
+    if not priv.check_priv(ev, priv.ADMIN):
+        msg = '仅允许管理员开启'
+    elif gid in guess.Group:
+        msg = '已重置该群猜歌'
+        guess.end(gid)
+    else:
+        msg = '该群未处在猜歌状态'
+    await bot.send(ev, msg)
 
 @sv.on_fullmatch('开启mai猜歌')
 async def guess_on(bot: NoneBot, ev: CQEvent):
@@ -981,7 +997,7 @@ async def arcade_query_person(bot: NoneBot, ev: CQEvent):
 @sv.scheduled_job('cron', hour='4')
 async def Data_Update():
     try:
-        await download_arcade_info(save=False)
+        await download_arcade_info(False)
         for a in arcades:
             a['person'] = 0
             a['by'] = '自动清零'

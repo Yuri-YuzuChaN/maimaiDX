@@ -1,20 +1,19 @@
 import io
 import os
 import time
-import aiofiles
 import traceback
 from re import Match
 from typing import Optional, Union
 
-from PIL import Image, ImageDraw
-
-from quart.utils import run_sync
-from hoshino.typing import MessageSegment
-
+import aiofiles
 import pyecharts.options as opts
+from PIL import Image, ImageDraw
 from pyecharts.charts import Pie
 from pyecharts.render import make_snapshot
+from quart.utils import run_sync
 from snapshot_phantomjs import snapshot
+
+from hoshino.typing import MessageSegment
 
 from .. import *
 from .image import *
@@ -68,7 +67,7 @@ category = {
     'オンゲキCHUNITHM': 'ongeki'
 }
 
-async def download_arcade_info(save=True):
+async def download_arcade_info(save: bool = True):
     try:
         async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=5)) as req:
             if req.status == 200:
@@ -225,107 +224,107 @@ async def music_play_data(payload: dict, song: str) -> Union[str, MessageSegment
 
 async def music_global_data(music: Music, level_index: int) -> Union[str, MessageSegment, None]:
     stats = music.stats[level_index]
-    fc_data_pair = [list(z) for z in zip([c.upper() if c else "Not FC" for c in [""] + comboRank], stats.fc_dist)]
+    fc_data_pair = [list(z) for z in zip([c.upper() if c else 'Not FC' for c in [''] + comboRank], stats.fc_dist)]
     acc_data_pair = [list(z) for z in zip([s.upper() for s in scoreRank], stats.dist)]
 
     Pie(
         init_opts=opts.InitOpts(
-            width="1000px",
-            height="800px",
-            bg_color="#fff",
+            width='1000px',
+            height='800px',
+            bg_color='#fff',
             js_host='./'
         )
     ).add(
-        series_name="全连等级",
+        series_name='全连等级',
         data_pair=fc_data_pair,
-        radius=[0, "30%"],
+        radius=[0, '30%'],
         label_opts=opts.LabelOpts(
-            position="outside",
-            formatter="{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ",
-            background_color="#eee",
-            border_color="#aaa",
+            position='outside',
+            formatter='{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ',
+            background_color='#eee',
+            border_color='#aaa',
             border_width=1,
             border_radius=4,
             rich={
-                "a": {"color": "#999", "lineHeight": 22, "align": "center"},
-                "abg": {
-                    "backgroundColor": "#e3e3e3",
-                    "width": "100%",
-                    "align": "right",
-                    "height": 22,
-                    "borderRadius": [4, 4, 0, 0],
+                'a': {'color': '#999', 'lineHeight': 22, 'align': 'center'},
+                'abg': {
+                    'backgroundColor': '#e3e3e3',
+                    'width': '100%',
+                    'align': 'right',
+                    'height': 22,
+                    'borderRadius': [4, 4, 0, 0],
                 },
-                "hr": {
-                    "borderColor": "#aaa",
-                    "width": "100%",
-                    "borderWidth": 0.5,
-                    "height": 0,
+                'hr': {
+                    'borderColor': '#aaa',
+                    'width': '100%',
+                    'borderWidth': 0.5,
+                    'height': 0,
                 },
-                "b": {"fontSize": 16, "lineHeight": 33},
-                "per": {
-                    "color": "#eee",
-                    "backgroundColor": "#334455",
-                    "padding": [2, 4],
-                    "borderRadius": 2,
+                'b': {'fontSize': 16, 'lineHeight': 33},
+                'per': {
+                    'color': '#eee',
+                    'backgroundColor': '#334455',
+                    'padding': [2, 4],
+                    'borderRadius': 2,
                 },
             },
         )
     ).add(
-        series_name="达成率等级",
+        series_name='达成率等级',
         data_pair=acc_data_pair,
-        radius=["50%", "70%"],
+        radius=['50%', '70%'],
         is_clockwise=True,
         label_opts=opts.LabelOpts(
-            position="outside",
-            formatter="{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ",
-            background_color="#eee",
-            border_color="#aaa",
+            position='outside',
+            formatter='{a|{a}}{abg|}\n{hr|}\n {b|{b}: }{c}  {per|{d}%}  ',
+            background_color='#eee',
+            border_color='#aaa',
             border_width=1,
             border_radius=4,
             rich={
-                "a": {"color": "#999", "lineHeight": 22, "align": "center"},
-                "abg": {
-                    "backgroundColor": "#e3e3e3",
-                    "width": "100%",
-                    "align": "right",
-                    "height": 22,
-                    "borderRadius": [4, 4, 0, 0],
+                'a': {'color': '#999', 'lineHeight': 22, 'align': 'center'},
+                'abg': {
+                    'backgroundColor': '#e3e3e3',
+                    'width': '100%',
+                    'align': 'right',
+                    'height': 22,
+                    'borderRadius': [4, 4, 0, 0],
                 },
-                "hr": {
-                    "borderColor": "#aaa",
-                    "width": "100%",
-                    "borderWidth": 0.5,
-                    "height": 0,
+                'hr': {
+                    'borderColor': '#aaa',
+                    'width': '100%',
+                    'borderWidth': 0.5,
+                    'height': 0,
                 },
-                "b": {"fontSize": 16, "lineHeight": 33},
-                "per": {
-                    "color": "#eee",
-                    "backgroundColor": "#334455",
-                    "padding": [2, 4],
-                    "borderRadius": 2,
+                'b': {'fontSize': 16, 'lineHeight': 33},
+                'per': {
+                    'color': '#eee',
+                    'backgroundColor': '#334455',
+                    'padding': [2, 4],
+                    'borderRadius': 2,
                 },
             },
         )
     ).set_global_opts(
         title_opts=opts.TitleOpts(
-            title=f"{music.id} {music.title} {diffs[level_index]}",
-            pos_left="center",
-            pos_top="20",
-            title_textstyle_opts=opts.TextStyleOpts(color="#2c343c"),
+            title=f'{music.id} {music.title} {diffs[level_index]}',
+            pos_left='center',
+            pos_top='20',
+            title_textstyle_opts=opts.TextStyleOpts(color='#2c343c'),
         ),
         legend_opts=opts.LegendOpts(
             pos_left=15,
             pos_top=10,
-            orient="vertical"
+            orient='vertical'
         )
     ).set_series_opts(
         tooltip_opts=opts.TooltipOpts(
-            trigger="item", formatter="{a} <br/>{b}: {c} ({d}%)"
+            trigger='item', formatter='{a} <br/>{b}: {c} ({d}%)'
         )
-    ).render(os.path.join(static, "temp_pie.html"))
-    await run_sync(make_snapshot)(snapshot, os.path.join(static, "temp_pie.html"), os.path.join(static, "temp_pie.png"), is_remove_html=False)
+    ).render(os.path.join(static, 'temp_pie.html'))
+    await run_sync(make_snapshot)(snapshot, os.path.join(static, 'temp_pie.html'), os.path.join(static, 'temp_pie.png'), is_remove_html=False)
 
-    im = Image.open(os.path.join(static, "temp_pie.png"))
+    im = Image.open(os.path.join(static, 'temp_pie.png'))
     msg = MessageSegment.image(image_to_base64(im))
 
     return msg
