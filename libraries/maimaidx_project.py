@@ -233,7 +233,7 @@ async def music_global_data(music: Music, level_index: int) -> Union[str, Messag
             width="1000px",
             height="800px",
             bg_color="#fff",
-            js_host=static + '/'
+            js_host='./'
         )
     ).add(
         series_name="全连等级",
