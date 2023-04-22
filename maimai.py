@@ -559,12 +559,15 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
 @sv.on_prefix(['ginfo', 'Ginfo', 'GINFO'])
 async def globinfo(bot: NoneBot, ev: CQEvent):
     args: str = ev.message.extract_plain_text().strip()
-    if args[0] not in '绿黄红紫白':
-        await bot.finish(ev, '请输入难度名（绿黄红紫白）', at_sender=True)
-    level_index = '绿黄红紫白'.index(args[0])
-    args = args[1:].strip()
     if not args:
         await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
+    if args[0] not in '绿黄红紫白':
+        level_index = 3
+    else:
+        level_index = '绿黄红紫白'.index(args[0])
+        args = args[1:].strip()
+        if not args:
+            await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
     if mai.total_list.by_id(args):
         id = args
     elif by_t := mai.total_list.by_title(args):

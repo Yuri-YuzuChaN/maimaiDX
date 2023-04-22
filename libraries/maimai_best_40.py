@@ -446,8 +446,12 @@ class DrawBest(object):
 
     async def draw(self):
         if self.qqId:
-            async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
-                qqLogo = Image.open(BytesIO(await resp.read()))
+            try:
+                async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    qqLogo = Image.open(BytesIO(await resp.read()))
+            except Exception:
+                qqLogo = Image.open(os.path.join(self.pic_dir, 'UI_CMN_TabTitle_MaimaiTitle_Ver214.png')).convert('RGBA')
+                qqLogo = self._resizePic(qqLogo, 0.65)
             borderImg1 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             borderImg2 = Image.fromarray(np.zeros((200, 200, 4), dtype=np.uint8)).convert('RGBA')
             self._drawRoundRec(borderImg1, (255, 0, 80), 0, 0, 200, 200, 40)

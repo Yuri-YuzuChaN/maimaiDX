@@ -331,10 +331,13 @@ class DrawBest:
         icon = Image.open(os.path.join(self.maimai_dir, 'UI_Icon_0000.png')).resize((214, 214))
         self._im.alpha_composite(icon, (398, 108))
         if self.qqId:
-            async with aiohttp.request('GET', f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100') as resp:
-                qqLogo = Image.open(io.BytesIO(await resp.read()))
-            self._im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
-            self._im.alpha_composite(qqLogo.convert('RGBA').resize((201, 201)), (405, 115))
+            try:
+                async with aiohttp.request('GET', f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    qqLogo = Image.open(io.BytesIO(await resp.read()))
+                self._im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
+                self._im.alpha_composite(qqLogo.convert('RGBA').resize((201, 201)), (405, 115))
+            except Exception:
+                pass
         self._im.alpha_composite(dx_rating, (620, 108))
         self.Rating = f'{self.Rating:05d}'
         for n, i in enumerate(self.Rating):
