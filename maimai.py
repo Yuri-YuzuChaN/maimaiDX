@@ -74,12 +74,11 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
             stats1 = stats1.title()
         for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
-                if music.stats[i].difficulty.lower() == stats1.lower():
-                    result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
+                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     else:
         for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
+                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     return result
 
 @on_websocket_connect
