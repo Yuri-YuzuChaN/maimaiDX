@@ -308,7 +308,7 @@ async def music_global_data(music: Music, level_index: int) -> Union[str, Messag
         )
     ).set_global_opts(
         title_opts=opts.TitleOpts(
-            title=f"{music.title} {diffs[level_index]}",
+            title=f"{music.id} {music.title} {diffs[level_index]}",
             pos_left="center",
             pos_top="20",
             title_textstyle_opts=opts.TextStyleOpts(color="#2c343c"),
