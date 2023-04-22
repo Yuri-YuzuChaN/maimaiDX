@@ -22,7 +22,7 @@ from .libraries.maimaidx_project import (
     draw_music_info_to_message_segment,
     plate_to_version,
     music_play_data, query_chart_data, rise_score_data,
-    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data,
+    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data, music_global_data,
 )
 from .libraries.tool import render_forward_msg
 
@@ -61,6 +61,7 @@ score = on_command('分数线', priority=5)
 best40 = on_command('b40', aliases={'B40'}, priority=5)
 best50 = on_command('b50', aliases={'B50'}, priority=5)
 minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
+ginfo = on_command('ginfo', aliases={'ginfo', 'Ginfo', 'GINFO'}, priority=5)
 rise_score = on_regex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?', priority=5)
 plate_process = on_regex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?', priority=5)
 level_process = on_regex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?', priority=5)
@@ -83,12 +84,11 @@ def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -
             stats1 = stats1.title()
         for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
-                if music.stats[i].difficulty.lower() == stats1.lower():
-                    result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
+                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     else:
         for music in sorted(music_data, key=lambda i: int(i.id)):
             for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i], music.stats[i].difficulty))
+                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     return result
 
 
@@ -107,6 +107,7 @@ async def get_music():
     await mai.get_music()
     log.info('正在获取maimai所有曲目别名信息')
     await mai.get_music_alias()
+    log.info('获取完成')
     mai.guess()
 
 
@@ -145,7 +146,7 @@ async def _(args: Message = CommandArg()):
         await search_base.finish(f'结果过多（{len(result)} 条），请缩小搜索范围', reply_message=True)
     msg = ''
     for i in result:
-        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
+        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]})\n'
     await search_base.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
 
@@ -414,7 +415,7 @@ async def _(event: GroupMessageEvent):
         )
     msg.append(f'浏览{public_addr}查看详情或查看以下合并消息')
     bot = get_bot()
-    await bot.send_group_forward_msg(group_id=event.group_id, messages=render_forward_msg(msg))
+    await bot.send_group_forward_msg(group_id=event.group_id, messages=render_forward_msg(msg, name=BOTNAME))
 
 
 @alias_on.handle()
@@ -471,7 +472,7 @@ async def alias_apply_status():
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                 except:
                     continue
     await asyncio.sleep(5)
@@ -491,7 +492,7 @@ async def alias_apply_status():
                     continue
                 try:
                     await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                 except:
                     continue
 
@@ -592,6 +593,48 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     if not data:
         data = '您未游玩该曲目'
     await minfo.finish(data, reply_message=True)
+
+
+@ginfo.handle()
+async def _(event: MessageEvent, arg: Message = CommandArg()):
+    args = arg.extract_plain_text().strip()
+    if not args:
+        await ginfo.finish('请输入曲目id或曲名', reply_message=True)
+    if args[0] not in '绿黄红紫白':
+        level_index = 3
+    else:
+        level_index = '绿黄红紫白'.index(args[0])
+        args = args[1:].strip()
+        if not args:
+            await ginfo.finish('请输入曲目id或曲名', reply_message=True)
+    if mai.total_list.by_id(args):
+        id = args
+    elif by_t := mai.total_list.by_title(args):
+        id = by_t.id
+    else:
+        alias = mai.total_alias_list.by_alias(args)
+        if not alias:
+            await ginfo.finish('未找到曲目', reply_message=True)
+        elif len(alias) != 1:
+            msg = '找到相同别名的曲目，请使用以下ID查询：\n'
+            for songs in alias:
+                msg += f'{songs.ID}：{songs.Name}\n'
+            await ginfo.finish(msg.strip(), reply_message=True)
+        else:
+            id = str(alias[0].ID)
+    music = mai.total_list.by_id(id)
+    if not music.stats:
+        await ginfo.finish('该乐曲还没有统计信息', reply_message=True)
+    if level_index >= len(music.stats) or not music.stats[level_index]:
+        await ginfo.finish('该乐曲没有这个等级', reply_message=True)
+    stats = music.stats[level_index]
+    await ginfo.finish(await music_global_data(music, level_index) + dedent(f'''\
+        游玩次数：{round(stats.count)}
+        拟合难度：{stats.fit_difficulty:.2f}
+        平均达成率：{stats.avg:.2f}%
+        平均 DX 分数：{stats.avg_dx:.1f}
+        谱面成绩标准差：{stats.std_dev:.2f}
+        '''), at_sender=True)
 
 
 @rise_score.handle()  # 慎用，垃圾代码非常吃机器性能
@@ -786,4 +829,4 @@ async def Data_Update():
 
 
 scheduler.add_job(alias_apply_status, 'interval', minutes=5)
-scheduler.add_job(Data_Update, 'cron', hour=5)
+scheduler.add_job(Data_Update, 'cron', hour=4)

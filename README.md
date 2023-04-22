@@ -4,14 +4,17 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
-## 重要更新
-
-**2023-04-21**
-- 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭
-
 # 请注意：当前分支为面向 [nonebot2](https://v2.nonebot.dev/) 而进行重构的分支
 
 面向的 nonebot2 的版本是 `2.0.0rc3`
+
+## 重要更新
+
+**2023-04-21**
+- 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭 
+- 新增第三方python包，pip以下依赖：`pyecharts`, `snapshot-phantomjs`
+- 新增指令 `ginfo`，查看指定谱面游玩数据
+- 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加系统环境，否则使用指令时会因找不到运行文件而强制关闭bot进程
 
 ## 使用方法
 
@@ -20,8 +23,9 @@
     git clone -b nonebot2 https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
-3. pip以下依赖：`pillow`, `aiofiles`, `httpx`
-4. 重启Bot
+3. pip以下依赖：`pillow`, `aiofiles`, `httpx`, `pyecharts`, `snapshot-phantomjs`
+4. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持
+5. 重启Bot
 
 ## 指令
 
@@ -43,6 +47,7 @@
 | 分数线 <难度+歌曲id> <分数线>                            | 展示歌曲的分数线        |
 | 开启/关闭mai猜歌                                     | 开关猜歌功能          |
 | minfo<@> <id/别称/曲名>                           | 查询单曲成绩              |
+| ginfo[绿黄红紫白] <id/别称/曲名>                        | 查询乐曲游玩总览，不加难度默认为紫谱         |
 | b40 <游戏名>                                      | 查询b40           |
 | b50 <游戏名>                                      | 查询b50           |
 | 我要在<难度>上<分数>分 <游戏名>                            | 查看推荐的上分乐曲       |
@@ -52,12 +57,19 @@
 | <等级><评价>进度 <名字>                                | 查看等级评价完成进度      |
 | <等级> 分数列表 <名字>                                 | 查看等级评价列表        |
 | 查看排名,查看排行 <页数>/<名字>                            | 查看水鱼网站的用户ra排行   |
+| 全局[关闭/开启]别名推送                               | Bot管理员私聊指令，开关所有群的别名推送   |
 
 ## 更新说明
+
+**2023-04-22**
+1. 限制所有网络请求时长
+2. 新增别名文件本地备份
+3. 新增 `ginfo` 指令，默认使用紫谱数据
 
 **2023-04-21**
 1. 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭
 2. 修复新版本更新后API暂未收录曲目的问题
+3. 新增乐曲游玩总览 `ginfo` 指令
 
 **2023-04-15**
 

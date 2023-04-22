@@ -240,24 +240,24 @@ async def get_music_list() -> MusicList:
     获取所有数据
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=5) as client:
             obj_data = await client.get('https://www.diving-fish.com/api/maimaidxprober/music_data')
             obj_data.raise_for_status()
             data = obj_data.json()
             async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(data, ensure_ascii=False, indent=4))
-    except:
+    except:  # noqa
         log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
         async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
             data = json.loads(await f.read())
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=5) as client:
             obj_stats = await client.get('https://www.diving-fish.com/api/maimaidxprober/chart_stats')
             obj_stats.raise_for_status()
             stats = obj_stats.json()
             async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
                 await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
-    except:
+    except:  # noqa
         log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
         async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
             stats = json.loads(await f.read())
@@ -278,6 +278,13 @@ async def get_music_alias_list() -> AliasList:
     获取所有别名
     """
     data = await get_alias('all')
+    if isinstance(data, str):
+        log.info('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
+        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+            data = json.loads(await f.read())
+    else:
+        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
     total_alias_list = AliasList(data)
     for _ in range(len(total_alias_list)):
         total_alias_list[_] = Alias(total_alias_list[_])
@@ -309,7 +316,16 @@ class MaiMusic:
         """
         初始化猜歌数据
         """
-        self.guess_data = list(filter(lambda x: x['id'] in hot_music_ids, mai.total_list))
+        self.hot_music_ids = []
+        for music in self.total_list:
+            if music.stats:
+                count = 0
+                for stats in music.stats:
+                    if stats:
+                        count += stats.count
+                if count > 10000:
+                    self.hot_music_ids.append(music.id)  # 游玩次数超过1w次加入猜歌库
+        self.guess_data = list(filter(lambda x: x['id'] in self.hot_music_ids, self.total_list))
 
     async def start(self):
         """
