@@ -128,7 +128,7 @@ async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
     for i in result:
-        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]}) {i[5]}\n'
+        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]})\n'
     await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['bpm查歌', 'search bpm'])
