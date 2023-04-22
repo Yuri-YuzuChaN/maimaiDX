@@ -70,7 +70,7 @@ category = {
 
 async def download_arcade_info(save=True):
     try:
-        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=5)) as req:
+        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
             if req.status == 200:
                 arcades_data = await req.json()
                 current_names = [c_a['name'] for c_a in arcades]
@@ -108,7 +108,7 @@ async def download_music_pictrue(id: Union[int, str]) -> io.BytesIO:
         len4id = get_cover_len4_id(id)
         if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{len4id}.png')):
             return file
-        async with aiohttp.request('GET', f"https://www.diving-fish.com/covers/{len4id}.png", timeout=aiohttp.ClientTimeout(total=5)) as req:
+        async with aiohttp.request('GET', f"https://www.diving-fish.com/covers/{len4id}.png", timeout=aiohttp.ClientTimeout(total=60)) as req:
             if req.status == 200:
                 return io.BytesIO(await req.read())
             else:

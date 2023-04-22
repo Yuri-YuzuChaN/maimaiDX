@@ -34,7 +34,7 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
     else:
         return '项目错误'
     try:
-        async with aiohttp.request('POST', f'https://www.diving-fish.com/api/maimaidxprober/query/{p}', json=payload, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+        async with aiohttp.request('POST', f'https://www.diving-fish.com/api/maimaidxprober/query/{p}', json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status == 400:
                 data = player_error
             elif resp.status == 403:
@@ -53,7 +53,7 @@ async def get_rating_ranking_data() -> Union[dict, str]:
     获取排名，获取失败时返回字符串
     """
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/rating_ranking', timeout=aiohttp.ClientTimeout(total=5)) as resp:
+        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/rating_ranking', timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
@@ -72,7 +72,7 @@ async def get_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union
     - `end`: 已结束的别名申请
     """
     try:
-        async with aiohttp.request('GET', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+        async with aiohttp.request('GET', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
@@ -88,7 +88,7 @@ async def post_alias(api: str, params: dict = None) -> Union[List[Dict[str, Unio
     - `agree`: 同意别名
     """
     try:
-        async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+        async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             if resp.status != 200:
                 data = '未知错误，请联系BOT管理员'
             else:
