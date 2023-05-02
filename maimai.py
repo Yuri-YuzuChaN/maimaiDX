@@ -455,46 +455,44 @@ async def _(event: PrivateMessageEvent):
 async def alias_apply_status():
     bot = get_bot()
     if status := await get_alias('status'):
-        if not alias.config['global']:
-            return
-        msg = ['检测到新的别名申请']
-        for tag in status:
-            if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < (votes := status[tag]['votes']):
-                id_ = str(status[tag]['ID'])
-                alias_name = status[tag]['ApplyAlias']
-                music = mai.total_list.by_id(id_)
-                msg.append(f'{tag}：\nID：{id_}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/{votes}')
-        if len(msg) != 1:
-            for group in await bot.get_group_list():
-                gid = group['group_id']
-                if gid in alias.config['disable'] or gid not in alias.config['enable']:
-                    continue
-                try:
-                    await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
-                    await asyncio.sleep(5)
-                except:
-                    continue
+        if alias.config['global']:
+            msg = ['检测到新的别名申请']
+            for tag in status:
+                if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < (votes := status[tag]['votes']):
+                    id_ = str(status[tag]['ID'])
+                    alias_name = status[tag]['ApplyAlias']
+                    music = mai.total_list.by_id(id_)
+                    msg.append(f'{tag}：\nID：{id_}\n标题：{music.title}\n别名：{alias_name}\n票数：{usernum}/{votes}')
+            if len(msg) != 1:
+                for group in await bot.get_group_list():
+                    gid = group['group_id']
+                    if gid in alias.config['disable'] or gid not in alias.config['enable']:
+                        continue
+                    try:
+                        await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg))
+                        await asyncio.sleep(5)
+                    except:
+                        continue
     await asyncio.sleep(5)
     if end := await get_alias('end'):
-        if not alias.config['global']:
-            await mai.get_music_alias()
-            return
-        msg2 = ['以下是已成功添加别名的曲目']
-        for ta in end:
-            id_ = str(end[ta]['ID'])
-            alias_name = end[ta]['ApplyAlias']
-            music = mai.total_list.by_id(id_)
-            msg2.append(f'标题：{music.title}\nID：{id_}\n别名：{alias_name}')
-        if len(msg2) != 1:
-            for group in await bot.get_group_list():
-                gid = group['group_id']
-                if gid in alias.config['disable'] or gid not in alias.config['enable']:
-                    continue
-                try:
-                    await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                    await asyncio.sleep(5)
-                except:
-                    continue
+        if alias.config['global']:
+            msg2 = ['以下是已成功添加别名的曲目']
+            for ta in end:
+                id_ = str(end[ta]['ID'])
+                alias_name = end[ta]['ApplyAlias']
+                music = mai.total_list.by_id(id_)
+                msg2.append(f'标题：{music.title}\nID：{id_}\n别名：{alias_name}')
+            if len(msg2) != 1:
+                for group in await bot.get_group_list():
+                    gid = group['group_id']
+                    if gid in alias.config['disable'] or gid not in alias.config['enable']:
+                        continue
+                    try:
+                        await bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
+                        await asyncio.sleep(5)
+                    except:
+                        continue
+        await mai.get_music_alias()
 
 
 @score.handle()
