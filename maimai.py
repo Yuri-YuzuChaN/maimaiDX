@@ -424,11 +424,10 @@ async def _(session: CommandSession):
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
-    if not alias.config['global']:
-        return
     group = await sv.get_enable_groups()
-    status = await get_alias('status')
-    if status:
+    if status := await get_alias('status'):
+        if not alias.config['global']:
+            return
         msg = ['检测到新的别名申请']
         for tag in status:
             if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < (votes := status[tag]['votes']):
@@ -442,13 +441,14 @@ async def alias_apply_status():
                     continue
                 try:
                     await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg) + f'\n浏览{public_addr}查看详情')
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                 except: 
                     continue
     await asyncio.sleep(5)
-    end = await get_alias('end')
-    if end:
-        await mai.get_music_alias()
+    if end := await get_alias('end'):
+        if not alias.config['global']:
+            await mai.get_music_alias()
+            return
         msg2 = ['以下是已成功添加别名的曲目']
         for ta in end:
             id = str(end[ta]['ID'])
@@ -461,7 +461,7 @@ async def alias_apply_status():
                     continue
                 try:
                     await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                 except:
                     continue
 
