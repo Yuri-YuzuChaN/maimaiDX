@@ -447,7 +447,7 @@ class DrawBest(object):
     async def draw(self):
         if self.qqId:
             try:
-                async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                async with aiohttp.request("GET", f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     qqLogo = Image.open(BytesIO(await resp.read()))
             except Exception:
                 qqLogo = Image.open(os.path.join(self.pic_dir, 'UI_CMN_TabTitle_MaimaiTitle_Ver214.png')).convert('RGBA')

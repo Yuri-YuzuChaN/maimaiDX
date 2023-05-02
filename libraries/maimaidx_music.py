@@ -241,7 +241,7 @@ async def get_music_list() -> MusicList:
     获取所有数据
     """
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=5)) as obj_data:
+        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
             if obj_data.status != 200:
                 log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
                 async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
@@ -256,7 +256,7 @@ async def get_music_list() -> MusicList:
         async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
             data = json.loads(await f.read())
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=5)) as obj_stats:
+        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
             if obj_stats.status != 200:
                 log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
                 async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
