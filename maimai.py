@@ -251,8 +251,8 @@ async def _(match: Tuple = RegexGroup()):
             tp = ['SD']
         else:
             tp = ['SD', 'DX']
-        level = match[1]
-        if match[2] == '':
+        level = match[2]
+        if match[1] == '':
             music_data = mai.total_list.filter(level=level, type=tp)
         else:
             music_data = mai.total_list.filter(level=level, diff=['绿黄红紫白'.index(match[1])], type=tp)
@@ -556,7 +556,8 @@ async def _(event: MessageEvent, matcher: Matcher, arg: Message = CommandArg()):
     else:  # b40 @xxxx
         payload = {'qq': specific_qq}
 
-    payload['b50'] = type(matcher) is best50
+    if type(matcher) is best50:
+        payload['b50'] = True
 
     await matcher.finish(await generate(payload), reply_message=True)
 
