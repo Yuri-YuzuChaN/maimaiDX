@@ -69,6 +69,7 @@ BOT管理员私聊指令：
 
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
+sv_arcade = Service('maimaiDX 排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
@@ -815,7 +816,7 @@ async def guess_off(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_prefix('添加机厅')
+@sv_arcade.on_prefix('添加机厅', '新增机厅')
 async def add_arcade(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().lower().split()
     if not priv.check_priv(ev, priv.SUPERUSER):
@@ -837,7 +838,7 @@ async def add_arcade(bot: NoneBot, ev: CQEvent):
 
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_prefix('删除机厅')
+@sv_arcade.on_prefix('删除机厅', '移除机厅')
 async def delele_arcade(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().lower()
     if not priv.check_priv(ev, priv.SUPERUSER):
@@ -848,7 +849,7 @@ async def delele_arcade(bot: NoneBot, ev: CQEvent):
         msg = modify('delete', None, {'name': args})
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_prefix('修改机厅')
+@sv_arcade.on_prefix('修改机厅', '编辑机厅')
 async def modify_arcade(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().lower().split()
     if not priv.check_priv(ev, priv.ADMIN):
@@ -871,7 +872,7 @@ async def modify_arcade(bot: NoneBot, ev: CQEvent):
     
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_prefix('订阅机厅')
+@sv_arcade.on_prefix('订阅机厅')
 async def subscribe_arcade(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
     args = ev.message.extract_plain_text().strip().lower()
@@ -887,7 +888,7 @@ async def subscribe_arcade(bot: NoneBot, ev: CQEvent):
         
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_fullmatch('查看订阅')
+@sv_arcade.on_fullmatch('查看订阅', '查看订阅机厅')
 async def check_subscribe(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
     result = None
@@ -902,7 +903,7 @@ async def check_subscribe(bot: NoneBot, ev: CQEvent):
         msg = '该群未订阅任何机厅'
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_fullmatch(['取消订阅', '取消订阅机厅'])
+@sv_arcade.on_fullmatch(['取消订阅', '取消订阅机厅'])
 async def unsubscribe_arcade(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
     if not priv.check_priv(ev, priv.ADMIN):
@@ -919,7 +920,7 @@ async def unsubscribe_arcade(bot: NoneBot, ev: CQEvent):
     
     await bot.send(ev, msg, at_sender=True)
 
-@sv.on_prefix(['查找机厅', '查询机厅', '机厅查找', '机厅查询'])
+@sv_arcade.on_prefix(['查找机厅', '查询机厅', '机厅查找', '查找机厅', '机厅查询', '查询机厅', '搜素机厅', '机厅搜素'])
 async def search_arcade(bot: NoneBot, ev: CQEvent):
     args: str = ev.message.extract_plain_text().strip().lower()
     if not args:
@@ -948,7 +949,7 @@ async def search_arcade(bot: NoneBot, ev: CQEvent):
     else:
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
-@sv.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
+@sv_arcade.on_rex(r'^(.+)?\s?(设置|设定|＝|=|增加|添加|加|＋|\+|减少|降低|减|－|-)\s?([0-9]+|＋|\+|－|-)(人|卡)?$')
 async def arcade_person(bot: NoneBot, ev: CQEvent):
     try:
         match: Match[str] = ev['match']
@@ -962,7 +963,7 @@ async def arcade_person(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, msg, at_sender=True)
     except: pass
 
-@sv.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
+@sv_arcade.on_suffix(['有多少人', '有几人', '有几卡', '多少人', '多少卡', '几人', 'jr', '几卡'])
 async def arcade_query_person(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
     arg = ev.message.extract_plain_text().strip().lower()
