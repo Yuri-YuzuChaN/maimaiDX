@@ -4,17 +4,16 @@
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
-# 请注意：当前分支为面向 [nonebot2](https://v2.nonebot.dev/) 而进行重构的分支
-
-面向的 nonebot2 的版本是 `2.0.0rc3`
-
 ## 重要更新
 
-**2023-04-21**
-- 新增BOT管理员私聊指令 `全局关闭别名推送` 和 `全局开启别名推送`，关闭所有群的推送消息，无论先前开启还是关闭 
-- 新增第三方python包，pip以下依赖：`pyecharts`, `snapshot-phantomjs`
-- 新增指令 `ginfo`，查看指定谱面游玩数据
-- 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加系统环境，否则使用指令时会因找不到运行文件而强制关闭bot进程
+**2023-06-10**
+
+1. 更新至 `舞萌DX 2023`
+2. pip依赖：`pydantic`
+3. 移除指令 `b40`
+4. 由于查分器谱面ID全部更换，新版本需要更换所有静态资源，请删除 `maimaiDX/static/mai` 文件夹并重新进行[使用方法第二步](#使用方法)
+5. 如果您拥有查分器的开发者 `token`，`minfo` 指令可显示 `dxscore`，修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
+6. 修改指令 `b50` 部分绘图
 
 ## 使用方法
 
@@ -23,9 +22,11 @@
     git clone -b nonebot2 https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
-3. pip以下依赖：`pillow`, `aiofiles`, `httpx`, `pyecharts`, `snapshot-phantomjs`
-4. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持
-5. 重启Bot
+3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
+4. pip以下依赖：`pillow`，`aiofiles`，`httpx`，`pyecharts`，`snapshot-phantomjs`，`pydantic`
+5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持
+6. 修改 `__init__.py` 文件的 `BOTNAME` 为自己的BOT昵称
+7. 重启Bot
 
 ## 指令
 
@@ -48,7 +49,6 @@
 | 开启/关闭mai猜歌                                     | 开关猜歌功能          |
 | minfo<@> <id/别称/曲名>                           | 查询单曲成绩              |
 | ginfo[绿黄红紫白] <id/别称/曲名>                        | 查询乐曲游玩总览，不加难度默认为紫谱         |
-| b40 <游戏名>                                      | 查询b40           |
 | b50 <游戏名>                                      | 查询b50           |
 | 我要在<难度>上<分数>分 <游戏名>                            | 查看推荐的上分乐曲       |
 | 猜歌                                             | 顾名思义，识别id，歌名和别称 |
@@ -60,6 +60,13 @@
 | 全局[关闭/开启]别名推送                               | Bot管理员私聊指令，开关所有群的别名推送   |
 
 ## 更新说明
+
+**2023-06-10**
+
+1. 更新至 `舞萌DX 2023`
+2. 移除指令 `b40`
+3. 更换静态资源
+4. 修改指令 `b50` 部分绘图
 
 **2023-04-22**
 1. 限制所有网络请求时长

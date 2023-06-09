@@ -12,17 +12,17 @@ from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
 from nonebot.permission import SUPERUSER
 
-from . import BOTNAME, log
+from . import BOTNAME, log, token
 from .libraries.image import to_bytes_io
 from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
-from .libraries.maimaidx_api_data import get_alias, post_alias
+from .libraries.maimaidx_api_data import get_music_alias, post_music_alias
 from .libraries.maimaidx_music import mai, guess, alias
 from .libraries.maimaidx_project import (
     SONGS_PER_PAGE,
     draw_music_info_to_message_segment,
     plate_to_version,
     music_play_data, query_chart_data, rise_score_data,
-    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data, music_global_data,
+    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data, music_global_data, music_play_data_dev
 )
 from .libraries.tool import render_forward_msg
 
@@ -58,7 +58,6 @@ alias_on = on_command('开启别名推送', aliases={'开启别称推送'}, prio
 alias_off = on_command('关闭别名推送', aliases={'关闭别称推送'}, priority=5, permission=SUPERUSER)
 alias_global_switch = on_command('aliasswitch', aliases={'全局关闭别称推送', '全局开启别称推送'}, priority=5, permission=SUPERUSER)
 score = on_command('分数线', priority=5)
-best40 = on_command('b40', aliases={'B40'}, priority=5)
 best50 = on_command('b50', aliases={'B50'}, priority=5)
 minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
 ginfo = on_command('ginfo', aliases={'ginfo', 'Ginfo', 'GINFO'}, priority=5)
@@ -372,11 +371,11 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     id_, alias_name = args
     if not mai.total_list.by_id(id_):
         await alias_apply.finish('未找到ID为 [{id_}] 的曲目', reply_message=True)
-    isexist = await get_alias('alias', {'id': id_})
-    if alias_name in isexist[0]['Alias']:
+    isexist = await get_music_alias('alias', {'id': id_})
+    if alias_name in isexist[id_]:
         await alias_apply.finish(f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名', reply_message=True)
     tag = ''.join(sample(ascii_uppercase + digits, 5))
-    status = await post_alias('apply', {'id': id_, 'alias_name': alias_name, 'tag': tag, 'uid': event.user_id})
+    status = await post_music_alias('apply', {'id': id_, 'aliasname': alias_name, 'tag': tag, 'uid': event.user_id})
     if 'error' in status:
         await alias_apply.finish(status['error'], reply_message=True)
     await alias_apply.finish(dedent(f'''\
@@ -391,24 +390,26 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
 @alias_agree.handle()
 async def _(event: MessageEvent, arg: Message = CommandArg()):
     tag = arg.extract_plain_text().strip().upper()
-    status = await post_alias('agree', {'tag': tag, 'uid': event.user_id})
-    if isinstance(status, dict):
+    status = await post_music_alias('agree', {'tag': tag, 'uid': event.user_id})
+    if 'content' in status:
         await alias_agree.finish(status['content'], reply_message=True)
+    if 'error' in status:
+        await alias_agree.finish(status['error'], reply_message=True)
     else:
         await alias_agree.finish(str(status), reply_message=True)
 
 
 @alias_status.handle()
 async def _(event: GroupMessageEvent):
-    status = await get_alias('status')
+    status = await get_music_alias('status')
     if not status:
         await alias_status.finish('未查询到正在进行的别名投票', reply_message=True)
     msg = [f'浏览{public_addr + "/vote"}查看详情']
     for tag in status:
         id_ = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
-        usernum = len(status[tag]['User'])
-        votes = status[tag]['votes']
+        usernum = status[tag]['Users']
+        votes = status[tag]['Votes']
         msg.append(
             await draw_music_info_to_message_segment(mai.total_list.by_id(id_)) +
             f'\n{tag}：\n别名：{alias_name}\n票数：{usernum}/{votes}'
@@ -454,7 +455,10 @@ async def _(event: PrivateMessageEvent):
 
 async def alias_apply_status():
     bot = get_bot()
-    if status := await get_alias('status'):
+    if status := await get_music_alias('status'):
+        if 'error' in status:
+            log.error(f'发生错误：{status["error"]}')
+            raise ValueError
         if alias.config['global']:
             msg = ['检测到新的别名申请']
             for tag in status:
@@ -474,7 +478,10 @@ async def alias_apply_status():
                     except:
                         continue
     await asyncio.sleep(5)
-    if end := await get_alias('end'):
+    if end := await get_music_alias('end'):
+        if 'error' in end:
+            log.error(f'发生错误：{status["error"]}')
+            raise ValueError
         if alias.config['global']:
             msg2 = ['以下是已成功添加别名的曲目']
             for ta in end:
@@ -523,11 +530,11 @@ async def _(arg: Message = CommandArg()):
             line = float(args[-1])
             music = mai.total_list.by_id(chart_id)
             chart = music.charts[level_index]
-            tap = int(chart.tap)
-            slide = int(chart.slide)
-            hold = int(chart.hold)
-            touch = int(chart.touch) if len(chart['notes']) == 5 else 0
-            brk = int(chart.brk)
+            tap = int(chart.notes.tap)
+            slide = int(chart.notes.slide)
+            hold = int(chart.notes.hold)
+            touch = int(chart.notes.touch) if len(chart.notes) == 5 else 0
+            brk = int(chart.notes.brk)
             total_score = tap * 500 + slide * 1500 + hold * 1000 + touch * 500 + brk * 2500
             break_bonus = 0.01 / brk
             break_50_reduce = total_score * break_bonus / 4
@@ -544,7 +551,6 @@ async def _(arg: Message = CommandArg()):
             await score.finish('格式错误，输入“分数线 帮助”以查看帮助信息', reply_message=True)
 
 
-@best40.handle()
 @best50.handle()
 async def _(event: MessageEvent, matcher: Matcher, arg: Message = CommandArg()):
     specific_qq = get_at_qq(arg)
@@ -556,8 +562,7 @@ async def _(event: MessageEvent, matcher: Matcher, arg: Message = CommandArg()):
     else:  # b40 @xxxx
         payload = {'qq': specific_qq}
 
-    if type(matcher) is best50:
-        payload['b50'] = True
+    payload['b50'] = True
 
     await matcher.finish(await generate(payload), reply_message=True)
 
@@ -588,10 +593,12 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
         else:
             id = str(aliases[0].ID)
 
-    data = await music_play_data(payload, id)
-    if not data:
-        data = '您未游玩该曲目'
-    await minfo.finish(data, reply_message=True)
+    if token:
+        pic = await music_play_data_dev(payload, id)
+    else:
+        pic = await music_play_data(payload, id)
+
+    await minfo.finish(pic, reply_message=True)
 
 
 @ginfo.handle()
@@ -628,8 +635,8 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
         await ginfo.finish('该乐曲没有这个等级', reply_message=True)
     stats = music.stats[level_index]
     await ginfo.finish(await music_global_data(music, level_index) + dedent(f'''\
-        游玩次数：{round(stats.count)}
-        拟合难度：{stats.fit_difficulty:.2f}
+        游玩次数：{round(stats.cnt)}
+        拟合难度：{stats.fit_diff:.2f}
         平均达成率：{stats.avg:.2f}%
         平均 DX 分数：{stats.avg_dx:.1f}
         谱面成绩标准差：{stats.std_dev:.2f}
