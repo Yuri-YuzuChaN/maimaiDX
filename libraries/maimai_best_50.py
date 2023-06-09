@@ -142,26 +142,6 @@ class DrawBest:
                 sList.append(ch)
         return ''.join(sList)
 
-    def _dxScore(self, info: ChartInfo) -> Tuple[int, int]:
-        notes: list[int] = mai.total_list.by_id(str(info.id)).charts[info.level_index].notes
-        value = 0
-        for i in notes:
-            value += i
-        dx = info.dxScore / (value * 3) * 100
-        if dx <= 85:
-            result = (0, 0)
-        elif dx <= 90:
-            result = (0, 1)
-        elif dx <= 93:
-            result = (0, 2)
-        elif dx <= 95:
-            result = (1, 3)
-        elif dx <= 97:
-            result = (1, 4)
-        else:
-            result = (2, 5)
-        return result
-
     def _findRaPic(self) -> str:
         if self.Rating < 1000:
             num = '01'
