@@ -351,7 +351,7 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     if not mai.total_list.by_id(id):
         await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
     isexist = await get_music_alias('alias', {'id': id})
-    if alias_name in isexist[int(id)]:
+    if alias_name in isexist[id]:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名')
     tag = ''.join(sample(ascii_uppercase + digits, 5))
     status = await post_music_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
