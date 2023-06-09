@@ -388,7 +388,7 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
     for tag in status:
         id = str(status[tag]['ID'])
         alias_name = status[tag]['ApplyAlias']
-        usernum = status[tag]['User']
+        usernum = status[tag]['Users']
         votes = status[tag]['Votes']
         msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/{votes}')
     await bot.send(ev, f'浏览{public_addr}查看详情或查看以下合并消息')
