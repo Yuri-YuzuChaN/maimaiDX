@@ -51,6 +51,7 @@ class Data(BaseModel):
 
 class UserInfo(BaseModel):
 
+    additional_rating: Optional[int]
     charts: Optional[Data]
     nickname: Optional[str]
     plate: Optional[str] = None
@@ -105,6 +106,7 @@ class DrawBest:
 
         self.userName = UserInfo.username
         self.plate = UserInfo.plate
+        self.addRating = UserInfo.additional_rating
         self.Rating = UserInfo.rating
         self.sdBest = UserInfo.charts.sd
         self.dxBest = UserInfo.charts.dx
@@ -167,6 +169,13 @@ class DrawBest:
             num = '11'
         return f'UI_CMN_DXRating_{num}.png'
 
+    def _findMatchLevel(self) -> str:
+        if self.addRating <= 10:
+            num = f'{self.addRating:02d}'
+        else:
+            num = f'{self.addRating + 1:02d}'
+        return f'UI_DNM_DaniPlate_{num}.png'
+
     async def whiledraw(self, data: List[ChartInfo], type: bool) -> Image.Image:
         # y为第一排纵向坐标，dy为各排间距
         y = 430 if type else 1670
@@ -228,7 +237,7 @@ class DrawBest:
         logo = Image.open(os.path.join(self.maimai_dir, 'logo.png')).resize((378, 172))
         dx_rating = Image.open(os.path.join(self.maimai_dir, self._findRaPic())).resize((300, 59))
         Name = Image.open(os.path.join(self.maimai_dir, 'Name.png'))
-        # MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55))
+        MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55))
         ClassLevel = Image.open(os.path.join(self.maimai_dir, 'UI_FBR_Class_00.png')).resize((144, 87))
         rating = Image.open(os.path.join(self.maimai_dir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
         self._diff = [basic, advanced, expert, master, remaster]
@@ -261,7 +270,7 @@ class DrawBest:
         for n, i in enumerate(Rating):
             self._im.alpha_composite(Image.open(os.path.join(self.maimai_dir, f'UI_NUM_Drating_{i}.png')).resize((20, 26)), (763 + 23 * n, 140))
         self._im.alpha_composite(Name, (620, 200))
-        # self._im.alpha_composite(MatchLevel, (935, 205))
+        self._im.alpha_composite(MatchLevel, (935, 205))
         self._im.alpha_composite(ClassLevel, (926, 105))
         self._im.alpha_composite(rating, (620, 275))
 
