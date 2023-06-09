@@ -13,3 +13,5 @@ arcades_json = os.path.join(static, 'arcades.json')
 if not os.path.exists(arcades_json):
     raise FileNotFoundError
 arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
+
+token = json.load(open(os.path.join(static, 'config.json'), 'r', encoding='utf-8'))['token']
