@@ -29,8 +29,8 @@ class Stats(BaseModel):
     fc_dist: Optional[List[float]] = None
 
 
-Notes1 = namedtuple('Notes', ['tap', 'slide', 'hold', 'touch'])
-Notes2 = namedtuple('Notes', ['tap', 'slide', 'hold', 'touch', 'brk'])
+Notes1 = namedtuple('Notes', ['tap', 'hold', 'slide', 'brk'])
+Notes2 = namedtuple('Notes', ['tap', 'hold', 'slide', 'touch', 'brk'])
 
 
 class Chart(BaseModel):
