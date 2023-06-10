@@ -68,7 +68,7 @@ BOT管理员私聊指令：
 
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
-sv_arcade = Service('maimaiDX 排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
+sv_arcade = Service('maimaiDX排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
