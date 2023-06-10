@@ -62,7 +62,7 @@ best50 = on_command('b50', aliases={'B50'}, priority=5)
 minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
 ginfo = on_command('ginfo', aliases={'ginfo', 'Ginfo', 'GINFO'}, priority=5)
 rise_score = on_regex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?', priority=5)
-plate_process = on_regex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?', priority=5)
+plate_process = on_regex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸星宙])([極极将舞神者]舞?)进度\s?(.+)?', priority=5)
 level_process = on_regex(r'^([0-9]+\+?)\s?(.+)进度\s?(.+)?', priority=5)
 level_achievement_list = on_regex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?', priority=5)
 rating_ranking = on_command('查看排名', aliases={'查看排行'}, priority=5)
@@ -680,7 +680,7 @@ async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
 
     if match[0] in ['霸', '舞']:
-        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
     else:
         payload['version'] = [plate_to_version[match[0]]]
 

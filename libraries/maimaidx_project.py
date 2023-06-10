@@ -36,15 +36,14 @@ plate_to_version = {
     '輝': 'maimai FiNALE',
     '辉': 'maimai FiNALE',
     '熊': 'maimai でらっくす',
-    '華': 'maimai でらっくす',
     '華': 'maimai でらっくす PLUS',
     '华': 'maimai でらっくす PLUS',
-    '华': 'maimai でらっくす',
     '爽': 'maimai でらっくす Splash',
-    '煌': 'maimai でらっくす Splash',
     '煌': 'maimai でらっくす Splash PLUS',
     '宙': 'maimai でらっくす UNiVERSE',
     '星': 'maimai でらっくす UNiVERSE PLUS',
+    'fes': 'maimai でらっくす FESTiVAL',
+    'fesp': 'maimai でらっくす FESTiVAL PLUS'
 }
 
 maimaidir = os.path.join(static, 'mai', 'pic')
