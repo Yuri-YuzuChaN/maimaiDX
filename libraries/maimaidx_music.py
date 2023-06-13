@@ -9,9 +9,10 @@ from typing import Dict, List, Optional, Tuple, Union
 import aiofiles
 import aiohttp
 from PIL import Image
+from numpy.core.defchararray import upper
 from pydantic import BaseModel, Field
 
-from .. import log, static
+from .. import log, static, update_channel
 from .image import image_to_base64
 from .maimaidx_api_data import *
 
@@ -177,11 +178,28 @@ def search_charts(checker: List[Chart], elem: str, diff: List[int]):
     return ret, diff_ret
 
 
+def parse_xray_data(xray_data):
+    with open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+        origin = json.load(f)
+        '''
+        读取原始数据进行合并操作, 防止覆盖已有数据
+        '''
+    for keys in xray_data:
+        if len(xray_data[keys]) != 0:
+            for song_id in xray_data[keys]:
+                if song_id in origin:
+                    if keys not in origin[song_id]["Alias"]:
+                        origin[song_id]["Alias"].append(keys)
+    log.info('别名库合并完成, yoooo↗')
+    return origin
+
+
 class Alias(BaseModel):
 
     ID: Optional[int] = None
     Name: Optional[str] = None
     Alias: Optional[List[str]] = None
+
 
 class AliasList(List[Alias]):
 
@@ -258,16 +276,27 @@ async def get_music_list() -> MusicList:
 
     return total_list
 
+
 async def get_music_alias_list() -> AliasList:
     """
     获取所有别名
     """
-    data = await get_music_alias('all')
+    data = await get_music_alias('all') if upper(update_channel) != 'XRAY' else await get_xray_alias()
     if isinstance(data, str):
         log.info('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
         async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
             data = json.loads(await f.read())
     else:
+        if upper(update_channel) == 'XRAY':
+            '''
+            防最新最热装置(防止因为缺少all_alias.json报错)
+            '''
+            if os.path.isfile(os.path.join(static, 'all_alias.json')):
+                data = parse_xray_data(data)
+                log.info('当前使用的曲目别名信息库由 XrayBot 提供')
+            else:
+                data = await get_music_alias('all')
+                log.info('你似乎是第一次使用本插件，若要启用 XrayBot 的别名库，需要重新运行一次机器人')
         async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'w', encoding='utf-8') as f:
             await f.write(json.dumps(data, ensure_ascii=False, indent=4))
     
@@ -276,6 +305,43 @@ async def get_music_alias_list() -> AliasList:
         total_alias_list[_] = Alias(ID=total_alias_list[_], Name=data[total_alias_list[_]]['Name'], Alias=data[total_alias_list[_]]['Alias'])
 
     return total_alias_list
+
+
+async def get_local_music_list() -> MusicList:
+    try:
+        log.info('当前使用离线模式，已跳过曲目数据和别名更新')
+        async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
+            data = json.loads(await f.read())
+    except Exception:
+        log.error(f'Error: {traceback.format_exc()}')
+        log.error('本地曲目文件读取失败')
+    try:
+        async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
+            stats = json.loads(await f.read())
+    except Exception:
+        log.error(f'Error: {traceback.format_exc()}')
+        log.error('本地曲目统计数据读取失败')
+
+    total_list: MusicList = MusicList(data)
+    for num, music in enumerate(total_list):
+        if music['id'] in stats['charts']:
+            _stats = stats['charts'][music['id']]
+        else:
+            _stats = None
+        total_list[num] = Music(stats=_stats, **total_list[num])
+
+    return total_list
+
+
+async def get_local_music_alias_list() -> AliasList:
+    async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+        data = json.loads(await f.read())
+    total_alias_list = AliasList(data)
+    for _ in range(len(total_alias_list)):
+        total_alias_list[_] = Alias(ID=total_alias_list[_], Name=data[total_alias_list[_]]['Name'], Alias=data[total_alias_list[_]]['Alias'])
+
+    return total_alias_list
+
 
 class MaiMusic:
 
@@ -290,13 +356,13 @@ class MaiMusic:
         """
         获取所有曲目数据
         """
-        self.total_list = await get_music_list()
+        self.total_list = await get_music_list() if upper(update_channel)!='OFFLINE' else await get_local_music_list()
 
     async def get_music_alias(self) -> AliasList:
         """
         获取所有曲目别名
         """
-        self.total_alias_list = await get_music_alias_list()
+        self.total_alias_list = await get_music_alias_list() if upper(update_channel)!='OFFLINE' else await get_local_music_alias_list()
 
     def guess(self):
         """
