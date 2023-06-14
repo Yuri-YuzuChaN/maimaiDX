@@ -462,7 +462,7 @@ async def alias_apply_status():
         if alias.config['global']:
             msg = ['检测到新的别名申请']
             for tag in status:
-                if status[tag]['isNew'] and (usernum := len(status[tag]['User'])) < (votes := status[tag]['votes']):
+                if status[tag]['IsNew'] and (usernum := status[tag]['Users']) < (votes := status[tag]['Votes']):
                     id_ = str(status[tag]['ID'])
                     alias_name = status[tag]['ApplyAlias']
                     music = mai.total_list.by_id(id_)
