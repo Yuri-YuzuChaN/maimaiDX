@@ -179,11 +179,14 @@ def search_charts(checker: List[Chart], elem: str, diff: List[int]):
 
 
 async def parse_xray_data(xray_data):
-    async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
-        origin = json.loads(await f.read())
+    if os.path.isfile(os.path.join(static, 'all_alias.json')):
+        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+            origin = json.loads(await f.read())
+    else:
         '''
-        读取原始数据进行合并操作, 防止覆盖已有数据
+        防最新最热装置(防止因为缺少all_alias.json报错)
         '''
+        origin = await get_music_alias('all')
     for keys in xray_data:
         if len(xray_data[keys]) != 0:
             for song_id in xray_data[keys]:
@@ -301,15 +304,8 @@ async def get_music_alias_list() -> AliasList:
             data = json.loads(await f.read())
     else:
         if upper(update_channel) == 'XRAY':
-            '''
-            防最新最热装置(防止因为缺少all_alias.json报错)
-            '''
-            if os.path.isfile(os.path.join(static, 'all_alias.json')):
-                data = parse_xray_data(data)
-                log.info('当前使用的曲目别名信息库由 XrayBot 提供')
-            else:
-                data = await get_music_alias('all')
-                log.info('你似乎是第一次使用本插件，若要启用 XrayBot 的别名库，需要重新运行一次机器人')
+            data = parse_xray_data(data)
+            log.info('当前使用的曲目别名信息库由 XrayBot 提供')
         else:
             if os.path.isfile(os.path.join(static, 'all_alias.json')):
                 data = await merge_local_alias(data)
@@ -325,20 +321,32 @@ async def get_music_alias_list() -> AliasList:
 
 
 async def get_local_music_list() -> MusicList:
-    try:
-        log.info('当前使用离线模式，已跳过曲目数据和别名更新')
+    if os.path.isfile(os.path.join(static, 'music_data.json')):
+        log.info('当前使用离线模式，跳过曲目数据和别名更新')
         async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
-            data = json.loads(await f.read())
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('本地曲目文件读取失败')
-    try:
-        async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
-            stats = json.loads(await f.read())
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('本地曲目统计数据读取失败')
+                data = json.loads(await f.read())
+    else:
+        log.info('本地还没有曲目数据, 正在联网获取.')
+        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
+            if obj_data.status != 200:
+                log.error('maimaiDX曲目数据获取失败，请检查网络环境。')
+            else:
+                data = await obj_data.json()
+                async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(data, ensure_ascii=False, indent=4))
 
+    if os.path.isfile(os.path.join(static, 'chart_stats.json')):
+        async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
+                stats = json.loads(await f.read())
+    else:
+        log.info('本地还没有曲目统计信息, 正在联网获取.')
+        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
+            if obj_stats.status != 200:
+                log.error('maimaiDX数据获取错误，请检查网络环境。')
+            else:
+                stats = await obj_stats.json()
+                async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
+                    await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
     total_list: MusicList = MusicList(data)
     for num, music in enumerate(total_list):
         if music['id'] in stats['charts']:
@@ -351,8 +359,11 @@ async def get_local_music_list() -> MusicList:
 
 
 async def get_local_music_alias_list() -> AliasList:
-    async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
-        data = json.loads(await f.read())
+    if os.path.isfile(os.path.join(static, 'chart_stats.json')):
+        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+            data = json.loads(await f.read())
+    else:
+        data = await get_music_alias('all')
     total_alias_list = AliasList(data)
     for _ in range(len(total_alias_list)):
         total_alias_list[_] = Alias(ID=total_alias_list[_], Name=data[total_alias_list[_]]['Name'], Alias=data[total_alias_list[_]]['Alias'])
