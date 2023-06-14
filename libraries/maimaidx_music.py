@@ -178,9 +178,9 @@ def search_charts(checker: List[Chart], elem: str, diff: List[int]):
     return ret, diff_ret
 
 
-def parse_xray_data(xray_data):
-    with open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
-        origin = json.load(f)
+async def parse_xray_data(xray_data):
+    async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+        origin = json.loads(await f.read())
         '''
         读取原始数据进行合并操作, 防止覆盖已有数据
         '''
@@ -190,7 +190,20 @@ def parse_xray_data(xray_data):
                 if song_id in origin:
                     if keys not in origin[song_id]["Alias"]:
                         origin[song_id]["Alias"].append(keys)
-    log.info('别名库合并完成, yoooo↗')
+    log.info('Xray别名库合并完成, yoooo↗')
+    return origin
+
+
+async def merge_local_alias(remote_data):
+    async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
+        origin = json.loads(await f.read())
+        '''
+        读取原始数据进行合并操作, 防止覆盖已有数据
+        '''
+    for key in remote_data:
+        if key in origin:
+            origin[key]["Alias"] = list(set(origin[key]["Alias"] + remote_data[key]["Alias"]))
+    log.info('官方别名库合并完成, yoooo↗')
     return origin
 
 
@@ -297,6 +310,10 @@ async def get_music_alias_list() -> AliasList:
             else:
                 data = await get_music_alias('all')
                 log.info('你似乎是第一次使用本插件，若要启用 XrayBot 的别名库，需要重新运行一次机器人')
+        else:
+            if os.path.isfile(os.path.join(static, 'all_alias.json')):
+                data = await merge_local_alias(data)
+            log.info('当前使用官方的曲目别名信息库')
         async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'w', encoding='utf-8') as f:
             await f.write(json.dumps(data, ensure_ascii=False, indent=4))
     
