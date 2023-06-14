@@ -22,7 +22,6 @@ sync_rank = ['fs', 'fsp', 'fsd', 'fsdp']
 diffs = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
 levelList = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9', '9+', '10', '10+', '11', '11+', '12', '12+', '13', '13+', '14', '14+', '15']
 achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
-BaseRa = [0.0, 5.0, 6.0, 7.0, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13.0, 13.2, 13.5, 14.0]
 BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 
 
@@ -51,6 +50,7 @@ class Data(BaseModel):
 
 class UserInfo(BaseModel):
 
+    additional_rating: Optional[int]
     charts: Optional[Data]
     nickname: Optional[str]
     plate: Optional[str] = None
@@ -105,6 +105,7 @@ class DrawBest:
 
         self.userName = UserInfo.username
         self.plate = UserInfo.plate
+        self.addRating = UserInfo.additional_rating
         self.Rating = UserInfo.rating
         self.sdBest = UserInfo.charts.sd
         self.dxBest = UserInfo.charts.dx
@@ -167,6 +168,13 @@ class DrawBest:
             num = '11'
         return f'UI_CMN_DXRating_{num}.png'
 
+    def _findMatchLevel(self) -> str:
+        if self.addRating <= 10:
+            num = f'{self.addRating:02d}'
+        else:
+            num = f'{self.addRating + 1:02d}'
+        return f'UI_DNM_DaniPlate_{num}.png'
+
     async def whiledraw(self, data: List[ChartInfo], type: bool) -> Image.Image:
         # y为第一排纵向坐标，dy为各排间距
         y = 430 if type else 1670
@@ -228,7 +236,7 @@ class DrawBest:
         logo = Image.open(os.path.join(self.maimai_dir, 'logo.png')).resize((378, 172))
         dx_rating = Image.open(os.path.join(self.maimai_dir, self._findRaPic())).resize((300, 59))
         Name = Image.open(os.path.join(self.maimai_dir, 'Name.png'))
-        # MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55))
+        MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55))
         ClassLevel = Image.open(os.path.join(self.maimai_dir, 'UI_FBR_Class_00.png')).resize((144, 87))
         rating = Image.open(os.path.join(self.maimai_dir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
         self._diff = [basic, advanced, expert, master, remaster]
@@ -261,7 +269,7 @@ class DrawBest:
         for n, i in enumerate(Rating):
             self._im.alpha_composite(Image.open(os.path.join(self.maimai_dir, f'UI_NUM_Drating_{i}.png')).resize((20, 26)), (763 + 23 * n, 140))
         self._im.alpha_composite(Name, (620, 200))
-        # self._im.alpha_composite(MatchLevel, (935, 205))
+        self._im.alpha_composite(MatchLevel, (935, 205))
         self._im.alpha_composite(ClassLevel, (926, 105))
         self._im.alpha_composite(rating, (620, 275))
 
@@ -297,48 +305,49 @@ def dxScore(dx: int) -> Tuple[int, int]:
         result = (2, 5)
     return result
 
-def computeRa(ds: float, achievement: float, spp: bool = False, israte: bool = False) -> Union[int, Tuple[int, str]]:
-    baseRa = 22.4 if spp else 14.0
-    rate = 'SSSp'
+def computeRa(ds: float, achievement: float, israte: bool = False) -> Union[int, Tuple[int, str]]:
     if achievement < 50:
-        baseRa = 7.0 if spp else 0.0
+        baseRa = 7.0
         rate = 'D'
     elif achievement < 60:
-        baseRa = 8.0 if spp else 5.0
+        baseRa = 8.0
         rate = 'C'
     elif achievement < 70:
-        baseRa = 9.6 if spp else 6.0
+        baseRa = 9.6
         rate = 'B'
     elif achievement < 75:
-        baseRa = 11.2 if spp else 7.0
+        baseRa = 11.2
         rate = 'BB'
     elif achievement < 80:
-        baseRa = 12.0 if spp else 7.5
+        baseRa = 12.0
         rate = 'BBB'
     elif achievement < 90:
-        baseRa = 13.6 if spp else 8.5
+        baseRa = 13.6
         rate = 'A'
     elif achievement < 94:
-        baseRa = 15.2 if spp else 9.5
+        baseRa = 15.2
         rate = 'AA'
     elif achievement < 97:
-        baseRa = 16.8 if spp else 10.5
+        baseRa = 16.8
         rate = 'AAA'
     elif achievement < 98:
-        baseRa = 20.0 if spp else 12.5
+        baseRa = 20.0
         rate = 'S'
     elif achievement < 99:
-        baseRa = 20.3 if spp else 12.7
+        baseRa = 20.3
         rate = 'Sp'
     elif achievement < 99.5:
-        baseRa = 20.8 if spp else 13.0
+        baseRa = 20.8
         rate = 'SS'
     elif achievement < 100:
-        baseRa = 21.1 if spp else 13.2
+        baseRa = 21.1
         rate = 'SSp'
     elif achievement < 100.5:
-        baseRa = 21.6 if spp else 13.5
+        baseRa = 21.6
         rate = 'SSS'
+    else:
+        baseRa = 22.4
+        rate = 'SSSp'
     
     if israte:
         data = (math.floor(ds * (min(100.5, achievement) / 100) * baseRa), rate)
@@ -347,17 +356,17 @@ def computeRa(ds: float, achievement: float, spp: bool = False, israte: bool = F
 
     return data
 
-def generateAchievementList(ds: float, spp: bool=False):
+def generateAchievementList(ds: float):
     _achievementList = []
     for index, acc in enumerate(achievementList):
         if index == len(achievementList) - 1:
             continue
         _achievementList.append(acc)
-        c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
+        c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / BaseRaSpp[index + 1] * 100
         c_acc = math.ceil(c_acc * 10000) / 10000
         while c_acc < achievementList[index + 1]:
             _achievementList.append(c_acc)
-            c_acc = (computeRa(ds, c_acc + 0.0001) + 1) / ds / (BaseRaSpp[index + 1] if spp else BaseRa[index + 1]) * 100
+            c_acc = (computeRa(ds, c_acc + 0.0001) + 1) / ds / BaseRaSpp[index + 1] * 100
             c_acc = math.ceil(c_acc * 10000) / 10000
     _achievementList.append(100.5)
     return _achievementList

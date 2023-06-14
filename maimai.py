@@ -68,7 +68,7 @@ BOT管理员私聊指令：
 
 SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
-sv_arcade = Service('maimaiDX 排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
+sv_arcade = Service('maimaiDX排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
 def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
     result = []
@@ -187,7 +187,7 @@ async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(music_data):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
-            msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
+            msg += f'No.{i + 1} {m.id}. {m.title} {m.basic_info.artist}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
@@ -351,10 +351,10 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
     if not mai.total_list.by_id(id):
         await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
     isexist = await get_music_alias('alias', {'id': id})
-    if alias_name in isexist[int(id)]:
+    if alias_name in isexist[id]:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名')
     tag = ''.join(sample(ascii_uppercase + digits, 5))
-    status = await post_music_alias('apply', {'id': id, 'alias_name': alias_name, 'tag': tag, 'uid': ev.user_id})
+    status = await post_music_alias('apply', {'id': id, 'aliasname': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
         await bot.finish(ev, status['error'])
     elif isinstance(status, str):
@@ -631,7 +631,7 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     data = await rise_score_data(payload, match, nickname)
     await bot.send(ev, data, at_sender=True)
 
-@sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸])([極极将舞神者]舞?)进度\s?(.+)?')
+@sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸宙星])([極极将舞神者]舞?)进度\s?(.+)?')
 async def plate_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
@@ -652,7 +652,7 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
     
     if match.group(1) in ['霸', '舞']:
-        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-5]))
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
     else:
         payload['version'] = [plate_to_version[match.group(1)]]
 
