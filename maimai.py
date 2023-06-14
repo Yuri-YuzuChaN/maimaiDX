@@ -202,7 +202,7 @@ async def _(event: MessageEvent, args: Message = CommandArg()):
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(music_data):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
-            msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
+            msg += f'No.{i + 1} {m.id}. {m.title} {m.basic_info.artist}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await search_artist.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
