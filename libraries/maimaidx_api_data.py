@@ -106,19 +106,6 @@ async def get_music_alias(api: str, params: dict = None) -> Union[
     return data
 
 
-async def get_xray_alias() -> Union[list, str]:
-    try:
-        async with aiohttp.request('GET', f'https://download.fanyu.site/maimai/alias.json', timeout=aiohttp.ClientTimeout(total=30)) as resp:
-            if resp.status != 200:
-                data = '别名服务器错误，请联系Xray Bot开发者'
-            else:
-                data = await resp.json()
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取别名时发生错误，请联系BOT管理员: {type(e)}'
-    return data
-
-
 async def post_music_alias(api: str, params: dict = None) -> Union[
     List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
     """

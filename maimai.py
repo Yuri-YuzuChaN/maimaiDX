@@ -13,7 +13,7 @@ from hoshino.typing import CommandSession, CQEvent, MessageSegment
 from . import *
 from .libraries.image import *
 from .libraries.maimaidx_api_data import *
-from .libraries.maimaidx_music import alias, guess, mai
+from .libraries.maimaidx_music import alias, guess, mai, update_local_alias
 from .libraries.maimaidx_project import *
 from .libraries.tool import *
 
@@ -340,6 +340,25 @@ async def how_song(bot: NoneBot, ev: CQEvent):
     msg += '\n'.join(alias[0].Alias)
     await bot.send(ev, msg, at_sender=True)
 
+@sv.on_prefix(['添加本地别名', '添加本地别称'])
+async def apply_local_alias(bot: NoneBot, ev: CQEvent):
+    args: list[str] = ev.message.extract_plain_text().strip().split()
+    id, alias_name = args
+    if not mai.total_list.by_id(id):
+        await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
+    server_exist = await get_music_alias('alias', {'id': id})
+    if alias_name in server_exist[id]:
+        await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
+    local_exist = mai.total_alias_list.by_alias(alias_name)
+    if local_exist:
+        await bot.finish(ev, f'本地别名库已存在该别名', at_sender=True)
+    issave = await update_local_alias(id, alias_name)
+    if not issave:
+        msg = '添加本地别名失败'
+    else:
+        msg = f'已成功为ID <{id}> 添加别名 <{alias_name}> 到本地别名库'
+    await bot.send(ev, msg, at_sender=True)
+
 @sv.on_prefix(['添加别名', '增加别名', '增添别名', '添加别称'])
 async def apply_alias(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().split()
@@ -352,7 +371,7 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
     isexist = await get_music_alias('alias', {'id': id})
     if alias_name in isexist[id]:
-        await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名')
+        await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
     tag = ''.join(sample(ascii_uppercase + digits, 5))
     status = await post_music_alias('apply', {'id': id, 'aliasname': alias_name, 'tag': tag, 'uid': ev.user_id})
     if 'error' in status:
@@ -428,6 +447,10 @@ async def _(session: CommandSession):
         await session.send('已全局开启maimai别名推送')
     else:
         return
+    
+@sucmd('updatealias', aliases=('更新别名库'))
+async def _(session: CommandSession):
+    await mai.get_music_alias()
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
