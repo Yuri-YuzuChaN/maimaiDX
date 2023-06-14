@@ -359,7 +359,7 @@ async def get_local_music_list() -> MusicList:
 
 
 async def get_local_music_alias_list() -> AliasList:
-    if os.path.isfile(os.path.join(static, 'chart_stats.json')):
+    if os.path.isfile(os.path.join(static, 'all_alias.json')):
         async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
             data = json.loads(await f.read())
     else:
