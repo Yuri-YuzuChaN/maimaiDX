@@ -187,7 +187,7 @@ async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
     for i, m in enumerate(music_data):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
-            msg += f'No.{i + 1} {m.id}. {m.title} {m.artist}\n'
+            msg += f'No.{i + 1} {m.id}. {m.title} {m.basic_info.artist}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
