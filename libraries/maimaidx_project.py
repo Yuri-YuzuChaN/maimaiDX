@@ -24,7 +24,7 @@ SONGS_PER_PAGE = 25
 level_labels = ['绿', '黄', '红', '紫', '白']
 realAchievementList = {}
 for acc in [i / 10 for i in range(10, 151)]:
-    realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc, True)
+    realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc)
 plate_to_version = {
     '初': 'maimai',
     '真': 'maimai PLUS',
