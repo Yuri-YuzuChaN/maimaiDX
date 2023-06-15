@@ -306,10 +306,10 @@ async def update_local_alias(id: str, alias_name: str):
             'Name': music_alias.Name,
             'Alias': new_list
         }
-        mai.total_alias_list[index] = Alias(ID=int(id), **new_alias)
+        mai.total_alias_list[index] = Alias(ID=id, **new_alias)
         local_alias_data[id]['Alias'] = new_list
         async with aiofiles.open(alias_file, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
+            await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
         return True
     except Exception as e:
         log.error('添加本地别名失败')
