@@ -342,8 +342,8 @@ async def apply_local_alias(bot: NoneBot, ev: CQEvent):
     server_exist = await get_music_alias('alias', {'id': id})
     if alias_name in server_exist[id]:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
-    local_exist = mai.total_alias_list.by_alias(alias_name)
-    if local_exist:
+    local_exist = mai.total_alias_list.by_id(id)
+    if local_exist and alias_name.lower() in local_exist[0].Alias:
         await bot.finish(ev, f'本地别名库已存在该别名', at_sender=True)
     issave = await update_local_alias(id, alias_name)
     if not issave:
