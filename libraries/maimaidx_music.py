@@ -366,7 +366,7 @@ class MaiMusic:
             f'的 BPM 是 {self.music.basic_info.bpm}'
         ]
         music = mai.total_alias_list.by_id(self.music.id)
-        self.answer = music.Alias
+        self.answer = music[0].Alias
         self.answer.append(self.music.id)
         self.guess_options = random.sample(self.guess_options, 6)
         img = Image.open(await download_music_pictrue(self.music.id))
