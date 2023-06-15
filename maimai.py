@@ -70,20 +70,12 @@ SV_HELP = '请使用 帮助maimaiDX 查看帮助'
 sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 sv_arcade = Service('maimaiDX排卡', manage_priv=priv.ADMIN, enable_on_default=False, help_=SV_HELP)
 
-def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
+def song_level(ds1: float, ds2: float) -> list:
     result = []
     music_data = mai.total_list.filter(ds=(ds1, ds2))
-    if stats1:
-        if stats2:
-            stats1 = stats1 + ' ' + stats2
-            stats1 = stats1.title()
-        for music in sorted(music_data, key=lambda i: int(i.id)):
-            for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
-    else:
-        for music in sorted(music_data, key=lambda i: int(i.id)):
-            for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
+    for music in sorted(music_data, key=lambda i: int(i.id)):
+        for i in music.diff:
+            result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     return result
 
 
@@ -112,29 +104,30 @@ async def dx_github(bot: NoneBot, ev: CQEvent):
 @sv.on_prefix(['定数查歌', 'search base'])
 async def search_dx_song_level(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().split()
-    if len(args) > 4 or len(args) == 0:
-        await bot.finish(ev, '命令格式为\n定数查歌 <定数>\n定数查歌 <定数下限> <定数上限>', at_sender=True)
+    if len(args) > 3 or len(args) == 0:
+        await bot.finish(ev, '命令格式为\n定数查歌 <定数> [页数]\n定数查歌 <定数下限> <定数上限> [页数]', at_sender=True)
+    page = 1
     if len(args) == 1:
         result = song_level(float(args[0]), float(args[0]))
     elif len(args) == 2:
-        try:
+        if float(args[1]) > float(args[0]):
             result = song_level(float(args[0]), float(args[1]))
-        except:
-            result = song_level(float(args[0]), float(args[0]), str(args[1]))
-    elif len(args) == 3:
-        try:
-            result = song_level(float(args[0]), float(args[1]), str(args[2]))
-        except:
-            result = song_level(float(args[0]), float(args[0]), str(args[1]), str(args[2]))
+        else:
+            result = song_level(float(args[0]), float(args[0]))
+            page = int(args[1])
     else:
-        result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
+        result = song_level(float(args[0]), float(args[1]))
+        page = int(args[2])
     if not result:
         await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
-    if len(result) >= 60:
-        await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
+    # if len(result) >= 60:
+    #     await bot.finish(ev, f'结果过多（{len(result)} 条），请缩小搜索范围', at_sender=True)
     msg = ''
-    for i in result:
-        msg += f'{i[0]}. {i[1]} {i[3]} {i[4]}({i[2]})\n'
+    page = max(min(page, len(result) // SONGS_PER_PAGE + 1), 1)
+    for i, r in enumerate(result):
+        if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
+            msg += f'{r[0]}. {r[1]} {r[3]} {r[4]}({r[2]})\n'
+    msg += f'第{page}页，共{len(result) // SONGS_PER_PAGE + 1}页'
     await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
 @sv.on_prefix(['bpm查歌', 'search bpm'])
