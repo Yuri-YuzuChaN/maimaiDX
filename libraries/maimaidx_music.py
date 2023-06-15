@@ -15,7 +15,7 @@ from .maimaidx_api_data import *
 from .. import static
 
 cover_dir = os.path.join(static, 'mai', 'cover')
-
+alias_file = os.path.join(static, 'all_alias.json')
 
 class Stats(BaseModel):
 
@@ -178,19 +178,18 @@ def search_charts(checker: List[Chart], elem: str, diff: List[int]):
 
 class Alias(BaseModel):
 
-    ID: Optional[int] = None
+    ID: Optional[str] = None
     Name: Optional[str] = None
     Alias: Optional[List[str]] = None
 
 
 class AliasList(List[Alias]):
 
-    def by_id(self, music_id: int) -> Optional[List[Alias]]:
-        alias_list = []
+    def by_id(self, music_id: int) -> Optional[Alias]:
         for music in self:
             if music.ID == int(music_id):
-                alias_list.append(music)
-        return alias_list
+                return music
+        return None
     
     def by_alias(self, music_alias: str) -> Optional[List[Alias]]:
         alias_list = []
@@ -255,19 +254,59 @@ async def get_music_alias_list() -> AliasList:
     """
     获取所有别名
     """
-    data = await get_music_alias('all')
-    if isinstance(data, str):
-        log.info('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
-        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'r', encoding='utf-8') as f:
-            data = json.loads(await f.read())
+    if os.path.exists(alias_file):
+        async with aiofiles.open(alias_file, 'r', encoding='utf-8') as f:
+            local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = json.loads(await f.read())
     else:
-        async with aiofiles.open(os.path.join(static, 'all_alias.json'), 'w', encoding='utf-8') as f:
-            await f.write(json.dumps(data, ensure_ascii=False, indent=4))
+        local_alias_data = {}
+    
+    alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await get_music_alias('all')
+    if isinstance(alias_data, str):
+        log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
+        if not local_alias_data:
+            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中')
+    else:
+        for id, music in alias_data.items():
+            if id in local_alias_data:
+                for alias_name in music['Alias']:
+                    if alias_name.lower() not in local_alias_data[id]['Alias']:
+                        local_alias_data[id]['Alias'].append(alias_name.lower())
+            else:
+                local_alias_data[id] = {
+                    'Name': music['Name'],
+                    'Alias': music['Alias']
+                }
+        async with aiofiles.open(alias_file, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
+    data = local_alias_data
+    
     total_alias_list = AliasList(data)
     for _ in range(len(total_alias_list)):
         total_alias_list[_] = Alias(ID=total_alias_list[_], Name=data[total_alias_list[_]]['Name'], Alias=data[total_alias_list[_]]['Alias'])
 
     return total_alias_list
+
+async def update_local_alias(id: str, alias_name: str):
+    try:
+        async with aiofiles.open(alias_file, 'r', encoding='utf-8') as f:
+            local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = json.loads(await f.read())
+            
+        music_alias = mai.total_alias_list.by_id(id)
+        index = mai.total_alias_list.index(music_alias)
+        new_list = music_alias.Alias
+        new_list.append(alias_name)
+        new_alias = {
+            'Name': music_alias.Name,
+            'Alias': new_list
+        }
+        mai.total_alias_list[index] = Alias(ID=id, **new_alias)
+        local_alias_data[id]['Alias'] = new_list
+        async with aiofiles.open(alias_file, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
+        return True
+    except Exception as e:
+        log.error('添加本地别名失败')
+        return False
 
 class MaiMusic:
 
@@ -308,7 +347,7 @@ class MaiMusic:
         """
         开始猜歌
         """
-        self.music = Music(random.choice(self.guess_data))
+        self.music: Music = random.choice(self.guess_data)
         self.guess_options = [
             f'的 Expert 难度是 {self.music.level[2]}',
             f'的 Master 难度是 {self.music.level[3]}',
@@ -320,7 +359,7 @@ class MaiMusic:
             f'的 BPM 是 {self.music.basic_info.bpm}'
         ]
         music = mai.total_alias_list.by_id(self.music.id)
-        self.answer = music[0].Alias
+        self.answer = music.Alias
         self.answer.append(self.music.id)
         self.guess_options = random.sample(self.guess_options, 6)
         img = Image.open(await download_music_pictrue(self.music.id))

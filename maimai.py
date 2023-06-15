@@ -10,13 +10,13 @@ from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, requ
 from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot, PrivateMessageEvent
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
-from nonebot.permission import SUPERUSER
+from nonebot.permission import SUPERUSER, GROUP_ADMIN
 
 from . import BOTNAME, log, token
 from .libraries.image import to_bytes_io
 from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
 from .libraries.maimaidx_api_data import get_music_alias, post_music_alias
-from .libraries.maimaidx_music import mai, guess, alias
+from .libraries.maimaidx_music import mai, guess, alias, update_local_alias
 from .libraries.maimaidx_project import (
     SONGS_PER_PAGE,
     draw_music_info_to_message_segment,
@@ -51,12 +51,14 @@ query_chart = on_regex(r'^([绿黄红紫白]?)\s?id\s?([0-9]+)$', priority=5)
 mai_today = on_command('今日mai', aliases={'今日舞萌', '今日运势'}, priority=5)
 what_song = on_endswith(('是什么歌', '是啥歌'), priority=5)
 alias_song = on_endswith(('有什么别称', '有什么别名'), priority=5)
-alias_apply = on_command('添加别名', aliases={'增加别名', '增添别名', '添加别称'}, priority=5, permission=SUPERUSER)
+alias_local_apply = on_command('添加本地别名', aliases={'添加本地别称'}, priority=5)
+alias_apply = on_command('添加别名', aliases={'增加别名', '增添别名', '添加别称'}, priority=5, permission=GROUP_ADMIN)
 alias_agree = on_command('同意别名', aliases={'同意别称'}, priority=5)
 alias_status = on_command('当前投票', aliases={'当前别名投票', '当前别称投票'}, priority=5)
-alias_on = on_command('开启别名推送', aliases={'开启别称推送'}, priority=5, permission=SUPERUSER)
-alias_off = on_command('关闭别名推送', aliases={'关闭别称推送'}, priority=5, permission=SUPERUSER)
+alias_on = on_command('开启别名推送', aliases={'开启别称推送'}, priority=5, permission=GROUP_ADMIN)
+alias_off = on_command('关闭别名推送', aliases={'关闭别称推送'}, priority=5, permission=GROUP_ADMIN)
 alias_global_switch = on_command('aliasswitch', aliases={'全局关闭别称推送', '全局开启别称推送'}, priority=5, permission=SUPERUSER)
+alias_update = on_command('aliasupdate', aliases={'更新别名库'}, priority=5, permission=SUPERUSER)
 score = on_command('分数线', priority=5)
 best50 = on_command('b50', aliases={'B50'}, priority=5)
 minfo = on_command('minfo', aliases={'minfo', 'Minfo', 'MINFO'}, priority=5)
@@ -68,8 +70,8 @@ level_achievement_list = on_regex(r'^([0-9]+\+?)分数列表\s?([0-9]+)?\s?(.+)?
 rating_ranking = on_command('查看排名', aliases={'查看排行'}, priority=5)
 guess_music_start = on_command('猜歌', priority=5)
 guess_music_solve = on_message(rule=is_now_playing_guess_music, priority=5)
-guess_music_enable = on_command('开启猜歌', aliases={'开启mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
-guess_music_disable = on_command('关闭猜歌', aliases={'关闭mai猜歌'}, priority=5, permission=SUPERUSER | is_group_admin)
+guess_music_enable = on_command('开启猜歌', aliases={'开启mai猜歌'}, priority=5, permission=GROUP_ADMIN | is_group_admin)
+guess_music_disable = on_command('关闭猜歌', aliases={'关闭mai猜歌'}, priority=5, permission=GROUP_ADMIN | is_group_admin)
 
 public_addr = 'https://vote.yuzuai.xyz/'
 
@@ -163,15 +165,14 @@ async def _(event: MessageEvent, args: Message = CommandArg()):
         music_data = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
         page = int(args[2])
     else:
-        music_data = None
         await search_bpm.finish('命令格式为：\nbpm查歌 <bpm>\nbpm查歌 <bpm下限> <bpm上限> (<页数>)', reply_message=True)
     if not music_data:
         await search_bpm.finish('没有找到这样的乐曲。', reply_message=True)
     msg = ''
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
-    for i, m in enumerate(sorted(music_data, key=lambda i: int(i.bpm))):
+    for i, m in enumerate(sorted(music_data, key=lambda i: int(i.basic_info.bpm))):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
-            msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.bpm}\n'
+            msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.basic_info.bpm}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await search_bpm.finish(MessageSegment.image(to_bytes_io(msg)), reply_message=True)
 
@@ -363,6 +364,27 @@ async def _(event: MessageEvent, end: str = Endswith()):
     await alias_song.finish(msg, reply_message=True)
 
 
+@alias_local_apply.handle()
+async def _(event: MessageEvent, arg: Message = CommandArg()):
+    args = arg.extract_plain_text().strip().split()
+    if len(args) != 2:
+        await alias_local_apply.finish('参数错误', reply_message=True)
+    id_, alias_name = args
+    if not mai.total_list.by_id(id_):
+        await alias_local_apply.finish(f'未找到ID为 [{id_}] 的曲目', reply_message=True)
+    server_exist = await get_music_alias('alias', {'id': id_})
+    if alias_name in server_exist[id_]:
+        await alias_local_apply.finish(f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
+    local_exist = mai.total_alias_list.by_alias(alias_name)
+    if local_exist:
+        await alias_local_apply.finish(f'本地别名库已存在该别名', reply_message=True)
+    issave = await update_local_alias(id_, alias_name)
+    if not issave:
+        msg = '添加本地别名失败'
+    else:
+        msg = f'已成功为ID <{id_}> 添加别名 <{alias_name}> 到本地别名库'
+    await alias_local_apply.send(msg, reply_message=True)
+
 @alias_apply.handle()
 async def _(event: MessageEvent, arg: Message = CommandArg()):
     args = arg.extract_plain_text().strip().split()
@@ -373,11 +395,13 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
         await alias_apply.finish('未找到ID为 [{id_}] 的曲目', reply_message=True)
     isexist = await get_music_alias('alias', {'id': id_})
     if alias_name in isexist[id_]:
-        await alias_apply.finish(f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名', reply_message=True)
+        await alias_apply.finish(f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>', reply_message=True)
     tag = ''.join(sample(ascii_uppercase + digits, 5))
     status = await post_music_alias('apply', {'id': id_, 'aliasname': alias_name, 'tag': tag, 'uid': event.user_id})
     if 'error' in status:
         await alias_apply.finish(status['error'], reply_message=True)
+    elif isinstance(status, str):
+        await alias_apply.finish(status, reply_message=True)
     await alias_apply.finish(dedent(f'''\
         您已提交以下别名申请
         ID：{id_}
@@ -451,6 +475,17 @@ async def _(event: PrivateMessageEvent):
         await alias_global_switch.send('已全局开启maimai别名推送')
     else:
         return
+
+
+@alias_update.handle()
+async def _(event: PrivateMessageEvent):
+    try:
+        await mai.get_music_alias()
+        log.error('手动更新别名库成功')
+        await alias_update.send('手动更新别名库成功')
+    except:
+        log.error('手动更新别名库失败')
+        await alias_update.send('手动更新别名库失败')
 
 
 async def alias_apply_status():
