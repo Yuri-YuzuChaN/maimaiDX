@@ -451,6 +451,16 @@ async def _(session: CommandSession):
         log.error('手动更新别名库失败')
         await session.send('手动更新别名库失败')
 
+@sucmd('updatealias', aliases=('更新别名库'))
+async def _(session: CommandSession):
+    try:
+        await mai.get_music_alias()
+        log.error('手动更新别名库成功')
+        await session.send('手动更新别名库成功')
+    except:
+        log.error('手动更新别名库失败')
+        await session.send('手动更新别名库失败')
+
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
     group = await sv.get_enable_groups()
