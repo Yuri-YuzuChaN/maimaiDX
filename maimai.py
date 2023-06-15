@@ -375,8 +375,8 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     server_exist = await get_music_alias('alias', {'id': id_})
     if alias_name in server_exist[id_]:
         await alias_local_apply.finish(f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
-    local_exist = mai.total_alias_list.by_alias(alias_name)
-    if local_exist:
+    local_exist = mai.total_alias_list.by_id(id_)
+    if local_exist and alias_name.lower() in local_exist[0].Alias:
         await alias_local_apply.finish(f'本地别名库已存在该别名', reply_message=True)
     issave = await update_local_alias(id_, alias_name)
     if not issave:
@@ -384,6 +384,7 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     else:
         msg = f'已成功为ID <{id_}> 添加别名 <{alias_name}> 到本地别名库'
     await alias_local_apply.send(msg, reply_message=True)
+
 
 @alias_apply.handle()
 async def _(event: MessageEvent, arg: Message = CommandArg()):

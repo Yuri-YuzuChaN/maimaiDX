@@ -185,11 +185,12 @@ class Alias(BaseModel):
 
 class AliasList(List[Alias]):
 
-    def by_id(self, music_id: int) -> Optional[Alias]:
+    def by_id(self, music_id: int) -> Optional[List[Alias]]:
+        alias_music = []
         for music in self:
             if music.ID == int(music_id):
-                return music
-        return None
+                alias_music.append(music)
+        return alias_music
     
     def by_alias(self, music_alias: str) -> Optional[List[Alias]]:
         alias_list = []
@@ -291,7 +292,7 @@ async def update_local_alias(id: str, alias_name: str):
         async with aiofiles.open(alias_file, 'r', encoding='utf-8') as f:
             local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = json.loads(await f.read())
             
-        music_alias = mai.total_alias_list.by_id(id)
+        music_alias = mai.total_alias_list.by_id(id)[0]
         index = mai.total_alias_list.index(music_alias)
         new_list = music_alias.Alias
         new_list.append(alias_name)
@@ -358,7 +359,7 @@ class MaiMusic:
             f'{"没" if len(self.music.ds) == 4 else ""}有白谱',
             f'的 BPM 是 {self.music.basic_info.bpm}'
         ]
-        music = mai.total_alias_list.by_id(self.music.id)
+        music = mai.total_alias_list.by_id(self.music.id)[0]
         self.answer = music.Alias
         self.answer.append(self.music.id)
         self.guess_options = random.sample(self.guess_options, 6)
