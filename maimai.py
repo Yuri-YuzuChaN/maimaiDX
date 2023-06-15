@@ -156,9 +156,9 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
     msg = ''
     page = max(min(page, len(music_data) // SONGS_PER_PAGE + 1), 1)
-    for i, m in enumerate(sorted(music_data, key=lambda i: int(i.bpm))):
+    for i, m in enumerate(sorted(music_data, key=lambda i: int(i.basic_info.bpm))):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
-            msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.bpm}\n'
+            msg += f'No.{i + 1} {m.id}. {m.title} bpm {m.basic_info.bpm}\n'
     msg += f'第{page}页，共{len(music_data) // SONGS_PER_PAGE + 1}页'
     await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg.strip()))), at_sender=True)
 
