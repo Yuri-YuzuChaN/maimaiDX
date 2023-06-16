@@ -336,20 +336,42 @@ async def how_song(bot: NoneBot, ev: CQEvent):
 @sv.on_prefix(['添加本地别名', '添加本地别称'])
 async def apply_local_alias(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().split()
-    id, alias_name = args
+    id, alias_name_list = args
     if not mai.total_list.by_id(id):
         await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
     server_exist = await get_music_alias('alias', {'id': id})
-    if alias_name in server_exist[id]:
-        await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
     local_exist = mai.total_alias_list.by_id(id)
-    if local_exist and alias_name.lower() in local_exist[0].Alias:
-        await bot.finish(ev, f'本地别名库已存在该别名', at_sender=True)
-    issave = await update_local_alias(id, alias_name)
-    if not issave:
-        msg = '添加本地别名失败'
-    else:
-        msg = f'已成功为ID <{id}> 添加别名 <{alias_name}> 到本地别名库'
+    alias_name = list(set(alias_name_list.split("/")))
+    server_duplicate = []
+    local_duplicate = []
+    add_fail = []
+    add_success = []
+    for alias in alias_name:
+        if alias in server_exist[id]:
+            server_duplicate.append(alias)
+        elif local_exist and alias.lower() in local_exist[0].Alias:
+            local_duplicate.append(alias)
+        else:
+            issave = await update_local_alias(id, alias)
+        if not issave:
+            add_fail.append(alias)
+        else:
+            add_success.append(alias)
+    msg = ""
+    if server_duplicate:
+        msg += f'服务器上存在以下别名，不能重复添加：\n' + "\n".join(server_duplicate) + "\n如果BOT未生效，请联系BOT管理员使用指令 <更新别名库>"
+    if local_duplicate:
+        if msg:
+            msg += "\n"
+        msg += f'本地别名库已存在以下别名：\n' + + "\n".join(local_duplicate)
+    if add_fail:
+        if msg:
+            msg += "\n"
+        msg += f'以下别名添加到本地失败：\n' + + "\n".join(add_fail)
+    if add_success:
+        if msg:
+            msg += "\n"
+        msg += f'以下别名已添加到ID <{id}> 的本地别名库：\n' + + "\n".join(add_success)
     await bot.send(ev, msg, at_sender=True)
 
 @sv.on_prefix(['添加别名', '增加别名', '增添别名', '添加别称'])
