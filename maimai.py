@@ -7,10 +7,10 @@ from textwrap import dedent
 from typing import Tuple, Optional
 
 from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger, on_message
-from nonebot.adapters.onebot.v11 import Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot, PrivateMessageEvent
+from nonebot.adapters.onebot.v11 import GROUP_ADMIN, Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot, PrivateMessageEvent
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, Endswith
-from nonebot.permission import SUPERUSER, GROUP_ADMIN
+from nonebot.permission import SUPERUSER
 
 from . import BOTNAME, log, token
 from .libraries.image import to_bytes_io
