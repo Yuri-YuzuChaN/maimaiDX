@@ -408,8 +408,8 @@ async def rise_score_data(payload: dict, match: Tuple, nickname: Optional[str] =
     sd_ra_lowest = 999
     player_dx_list = []
     player_sd_list = []
-    music_dx_list = []
-    music_sd_list = []
+    music_dx_list: List[List[Union[Music, str, float, int]]] = []
+    music_sd_list: List[List[Union[Music, str, float, int]]] = []
 
     player_data = await get_player_data('best', payload)
 
@@ -433,7 +433,7 @@ async def rise_score_data(payload: dict, match: Tuple, nickname: Optional[str] =
                     index_score = 12
                 else:
                     index_score = [index for index, acc in enumerate(achievementList[:-1]) if acc <= achievement < achievementList[index + 1]][0]
-                if music.is_new:
+                if music.basic_info.is_new:
                     music_ra = computeRa(ds, achievement)
                     if music_ra < dx_ra_lowest: continue
                     if [int(music.id), i] in player_dx_id_list:
@@ -463,12 +463,12 @@ async def rise_score_data(payload: dict, match: Tuple, nickname: Optional[str] =
     msg = ''
     if len(music_sd_list) != 0:
         msg += f'为{appellation}推荐以下标准乐曲：\n'
-        for music, diff, ds, achievement, rank, ra in sorted(music_sd_list, key=lambda i: int(i[0]['id'])):
-            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
+        for music, diff, ds, achievement, rank, ra in sorted(music_sd_list, key=lambda i: int(i[0].id)):
+            msg += f'{music.id}. {music.title} {diff} {ds} {achievement} {rank} {ra}\n'
     if len(music_dx_list) != 0:
         msg += f'\n为{appellation}推荐以下new乐曲：\n'
-        for music, diff, ds, achievement, rank, ra in sorted(music_dx_list, key=lambda i: int(i[0]['id'])):
-            msg += f'{music["id"]}. {music["title"]} {diff} {ds} {achievement} {rank} {ra}\n'
+        for music, diff, ds, achievement, rank, ra in sorted(music_dx_list, key=lambda i: int(i[0].id)):
+            msg += f'{music.id}. {music.title} {diff} {ds} {achievement} {rank} {ra}\n'
 
     return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
