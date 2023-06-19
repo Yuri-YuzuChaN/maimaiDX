@@ -482,7 +482,7 @@ async def _(event: PrivateMessageEvent):
 async def _(event: PrivateMessageEvent):
     try:
         await mai.get_music_alias()
-        log.error('手动更新别名库成功')
+        log.info('手动更新别名库成功')
         await alias_update.send('手动更新别名库成功')
     except:
         log.error('手动更新别名库失败')
