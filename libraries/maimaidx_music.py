@@ -103,7 +103,7 @@ class Music(BaseModel):
     cids: Optional[List[int]] = []
     charts: Optional[List[Chart]] = []
     basic_info: Optional[BasicInfo] = None
-    stats: Optional[List[Stats]] = []
+    stats: Optional[List[Optional[Stats]]] = []
     diff: Optional[List[int]] = []
 
 
@@ -244,7 +244,7 @@ async def get_music_list() -> MusicList:
     total_list: MusicList = MusicList(data)
     for num, music in enumerate(total_list):
         if music['id'] in stats['charts']:
-            _stats = stats['charts'][music['id']]
+            _stats = [_data if _data else None for _data in stats['charts'][music['id']]] if {} in stats['charts'][music['id']] else stats['charts'][music['id']]
         else:
             _stats = None
         total_list[num] = Music(stats=_stats, **total_list[num])

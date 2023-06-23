@@ -379,7 +379,7 @@ async def query_chart_data(match: Tuple) -> str:
                     TOUCH: {chart.notes.touch}
                     BREAK: {chart.notes.brk}
                     谱师: {chart.charter}''')
-            if music.stats:
+            if music.stats and music.stats[level_index]:
                 result += f'\n拟合难度: {music.stats[level_index].fit_diff:.2f}'
 
             msg = f'{music.id}. {music.title}' + '\n' + MessageSegment.image(f'file:///{await download_music_pictrue(music.id)}') + '\n' + result

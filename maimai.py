@@ -482,7 +482,7 @@ async def _(event: PrivateMessageEvent):
 async def _(event: PrivateMessageEvent):
     try:
         await mai.get_music_alias()
-        log.error('手动更新别名库成功')
+        log.info('手动更新别名库成功')
         await alias_update.send('手动更新别名库成功')
     except:
         log.error('手动更新别名库失败')
@@ -667,8 +667,10 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
     music = mai.total_list.by_id(id)
     if not music.stats:
         await ginfo.finish('该乐曲还没有统计信息', reply_message=True)
-    if level_index >= len(music.stats) or not music.stats[level_index]:
+    if len(music.ds) == 4 and level_index == 4:
         await ginfo.finish('该乐曲没有这个等级', reply_message=True)
+    if not music.stats[level_index]:
+        await ginfo.finish('该等级没有统计信息', reply_message=True)
     stats = music.stats[level_index]
     await ginfo.finish(await music_global_data(music, level_index) + dedent(f'''\
         游玩次数：{round(stats.cnt)}
@@ -676,7 +678,7 @@ async def _(event: MessageEvent, arg: Message = CommandArg()):
         平均达成率：{stats.avg:.2f}%
         平均 DX 分数：{stats.avg_dx:.1f}
         谱面成绩标准差：{stats.std_dev:.2f}
-        '''), at_sender=True)
+        '''), reply_message=True)
 
 
 @rise_score.handle()  # 慎用，垃圾代码非常吃机器性能
