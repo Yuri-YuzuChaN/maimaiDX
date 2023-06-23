@@ -620,8 +620,10 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
     music = mai.total_list.by_id(id)
     if not music.stats:
         await bot.finish(ev, '该乐曲还没有统计信息', at_sender=True)
-    if level_index >= len(music.stats) or not music.stats[level_index]:
+    if len(music.ds) == 4 and level_index == 4:
         await bot.finish(ev, '该乐曲没有这个等级', at_sender=True)
+    if not music.stats[level_index]:
+        await bot.finish(ev, '该等级没有统计信息', at_sender=True)
     stats = music.stats[level_index]
     await bot.send(ev, await music_global_data(music, level_index) + f'''
 游玩次数：{round(stats.cnt)}
