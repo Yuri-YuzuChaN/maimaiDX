@@ -445,7 +445,7 @@ async def _(session: CommandSession):
 async def _(session: CommandSession):
     try:
         await mai.get_music_alias()
-        log.error('手动更新别名库成功')
+        log.info('手动更新别名库成功')
         await session.send('手动更新别名库成功')
     except:
         log.error('手动更新别名库失败')
