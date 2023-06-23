@@ -346,7 +346,8 @@ class MaiMusic:
             if music.stats:
                 count = 0
                 for stats in music.stats:
-                    count += stats.cnt if stats.cnt else 0
+                    if stats:
+                        count += stats.cnt if stats.cnt else 0
                 if count > 10000:
                     self.hot_music_ids.append(music.id)  # 游玩次数超过1w次加入猜歌库
         self.guess_data = list(filter(lambda x: x.id in self.hot_music_ids, self.total_list))
