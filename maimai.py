@@ -24,7 +24,7 @@ from .libraries.maimaidx_project import (
     music_play_data, query_chart_data, rise_score_data,
     player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data, music_global_data, music_play_data_dev
 )
-from .libraries.tool import render_forward_msg
+from .libraries.tool import render_forward_msg, hash
 
 driver = get_driver()
 scheduler = require('nonebot_plugin_apscheduler').scheduler
