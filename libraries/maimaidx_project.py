@@ -485,9 +485,14 @@ async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]
 
     if isinstance(data, str):
         return data
+    
+    if match[0] == '真':
+        verlist = list(filter(lambda x: x['title'] != 'ジングルベル', data['verlist']))
+    else:
+        verlist = data['verlist']
 
     if match[1] in ['将', '者']:
-        for song in data['verlist']:
+        for song in verlist:
             if song['level_index'] == 0 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
                 song_remain_basic.append([song['id'], song['level_index']])
             if song['level_index'] == 1 and song['achievements'] < (100.0 if match[1] == '将' else 80.0):
@@ -500,7 +505,7 @@ async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     elif match[1] in ['極', '极']:
-        for song in data['verlist']:
+        for song in verlist:
             if song['level_index'] == 0 and not song['fc']:
                 song_remain_basic.append([song['id'], song['level_index']])
             if song['level_index'] == 1 and not song['fc']:
@@ -513,7 +518,7 @@ async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     elif match[1] == '舞舞':
-        for song in data['verlist']:
+        for song in verlist:
             if song['level_index'] == 0 and song['fs'] not in ['fsd', 'fsdp']:
                 song_remain_basic.append([song['id'], song['level_index']])
             if song['level_index'] == 1 and song['fs'] not in ['fsd', 'fsdp']:
@@ -526,7 +531,7 @@ async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     elif match[1] == '神':
-        for song in data['verlist']:
+        for song in verlist:
             if song['level_index'] == 0 and song['fc'] not in ['ap', 'app']:
                 song_remain_basic.append([song['id'], song['level_index']])
             if song['level_index'] == 1 and song['fc'] not in ['ap', 'app']:
@@ -539,6 +544,8 @@ async def player_plate_data(payload: dict, match: Tuple, nickname: Optional[str]
                 song_remain_re_master.append([song['id'], song['level_index']])
             song_played.append([song['id'], song['level_index']])
     for music in mai.total_list:
+        if match[0] == '真' and music.title == 'ジングルベル':
+            continue
         if music.basic_info.version in payload['version']:
             if [int(music.id), 0] not in song_played:
                 song_remain_basic.append([int(music.id), 0])
@@ -569,7 +576,7 @@ Expert剩余{len(song_remain_expert)}首
 Master剩余{len(song_remain_master)}首
 '''
     song_remain: list[list] = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
-    song_record = [[s['id'], s['level_index']] for s in data['verlist']]
+    song_record = [[s['id'], s['level_index']] for s in verlist]
     if match[0] in ['舞', '霸']:
         msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
     if len(song_remain_difficult) > 0:
@@ -580,13 +587,13 @@ Master剩余{len(song_remain_master)}首
                 if [int(s[0]), s[-1]] in song_record:
                     record_index = song_record.index([int(s[0]), s[-1]])
                     if match[1] in ['将', '者']:
-                        self_record = str(data['verlist'][record_index]['achievements']) + '%'
+                        self_record = str(verlist[record_index]['achievements']) + '%'
                     elif match[1] in ['極', '极', '神']:
-                        if data['verlist'][record_index]['fc']:
-                            self_record = comboRank[combo_rank.index(data['verlist'][record_index]['fc'])].upper()
+                        if verlist[record_index]['fc']:
+                            self_record = comboRank[combo_rank.index(verlist[record_index]['fc'])].upper()
                     elif match[1] == '舞舞':
-                        if data['verlist'][record_index]['fs']:
-                            self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
+                        if verlist[record_index]['fs']:
+                            self_record = syncRank[sync_rank.index(verlist[record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {self_record}'.strip() + '\n'
             if len(song_remain_difficult) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
@@ -605,13 +612,13 @@ Master剩余{len(song_remain_master)}首
                 if [int(s[0]), s[-1]] in song_record:
                     record_index = song_record.index([int(s[0]), s[-1]])
                     if match[1] in ['将', '者']:
-                        self_record = str(data['verlist'][record_index]['achievements']) + '%'
+                        self_record = str(verlist[record_index]['achievements']) + '%'
                     elif match[1] in ['極', '极', '神']:
-                        if data['verlist'][record_index]['fc']:
-                            self_record = comboRank[combo_rank.index(data['verlist'][record_index]['fc'])].upper()
+                        if verlist[record_index]['fc']:
+                            self_record = comboRank[combo_rank.index(verlist[record_index]['fc'])].upper()
                     elif match[1] == '舞舞':
-                        if data['verlist'][record_index]['fs']:
-                            self_record = syncRank[sync_rank.index(data['verlist'][record_index]['fs'])].upper()
+                        if verlist[record_index]['fs']:
+                            self_record = syncRank[sync_rank.index(verlist[record_index]['fs'])].upper()
                 msg += f'No.{i + 1} {m.id}. {m.title} {diffs[s[1]]} {m.ds[s[1]]} {self_record}'.strip() + '\n'
             if len(song_remain) > 10:
                 msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))

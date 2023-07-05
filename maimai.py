@@ -719,6 +719,8 @@ async def _(bot: Bot, event: MessageEvent, match: Tuple = RegexGroup()):
 
     if match[0] in ['霸', '舞']:
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
+    elif match[0] == '真':
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[0:2]))
     else:
         payload['version'] = [plate_to_version[match[0]]]
 
