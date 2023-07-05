@@ -677,6 +677,8 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     
     if match.group(1) in ['霸', '舞']:
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
+    elif match.group(1) == '真':
+        payload['version'] = list(set(version for version in list(plate_to_version.values())[0:2]))
     else:
         payload['version'] = [plate_to_version[match.group(1)]]
 
