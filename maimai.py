@@ -911,6 +911,9 @@ async def subscribe_arcade(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip().lower()
     if not priv.check_priv(ev, priv.ADMIN):
         await bot.finish(ev, '仅允许管理员订阅')
+    for a in arcades:
+        if gid in a['group']:
+            await bot.finish(ev, f'该群已订阅机厅：{a["name"]}', at_sender=True)
     if not args:
         msg = '格式错误：订阅机厅 <名称>'
     else:
@@ -992,35 +995,30 @@ async def arcade_person(bot: NoneBot, ev: CQEvent):
 
         await bot.send(ev, msg, at_sender=True)
     except: pass
-        
-@sv.on_prefix('jtj')
+
+@sv_arcade.on_fullmatch(['机厅几人', 'jtj'])
 async def arcade_query_multiple(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
-json_file_path = os.path.join(os.getcwd(), 'hoshino', 'modules', 'maimai', 'static', 'arcades.json')
-    # 从json文件中读取机厅信息，实际使用中要对应实际json文件所在位置
-    with open(json_file_path, 'r', encoding='utf-8') as f:
-        arcades_data = json.load(f)
-    group_arcades = {}
-    for arcade in arcades_data:
-        for group_id in arcade['group']:
+    group_arcades: Dict[str, list] = {}
+
+    for a in arcades:
+        for group_id in a['group']:
             if group_id not in group_arcades:
                 group_arcades[group_id] = []
-            group_arcades[group_id].append(arcade)
+            group_arcades[group_id].append(a)
 
-    # 根据群组ID获取对应的机厅列表
     if gid in group_arcades:
-        arcades = group_arcades[gid]
+        arcade = group_arcades[gid]
     else:
-        await bot.send(ev, '该群未配置任何机厅', at_sender=True)
-        return
+        await bot.finish(ev, '该群未配置任何机厅', at_sender=True)
 
     result = []
-    for arcade in arcades:
-        msg = f'{arcade["name"]}有{arcade["person"]}人\n'
-        if arcade['num'] > 1:
-            msg += f'机均{arcade["person"] / arcade["num"]:.2f}人\n'
-        if arcade['by']:
-            msg += f'由{arcade["by"]}更新于{arcade["time"]}'
+    for a in arcade:
+        msg = f'{a["name"]}有{a["person"]}人\n'
+        if a['num'] > 1:
+            msg += f'机均{a["person"] / a["num"]:.2f}人\n'
+        if a['by']:
+            msg += f'由{a["by"]}更新于{a["time"]}'
         result.append(msg)
 
     if result:
