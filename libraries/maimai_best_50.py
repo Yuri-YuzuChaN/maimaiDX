@@ -103,7 +103,7 @@ class DrawBest:
 
     def __init__(self, UserInfo: UserInfo, qqId: Optional[Union[int, str]] = None) -> None:
 
-        self.userName = UserInfo.username
+        self.userName = UserInfo.nickname
         self.plate = UserInfo.plate
         self.addRating = UserInfo.additional_rating
         self.Rating = UserInfo.rating
