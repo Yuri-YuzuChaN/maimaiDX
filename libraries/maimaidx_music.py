@@ -51,6 +51,7 @@ class BasicInfo(BaseModel):
     bpm: Optional[int]
     release_date: Optional[str]
     version: Optional[str] = Field(alias='from')
+    # is_new: Optional[str]
     is_new: Optional[bool]
 
 
@@ -207,7 +208,7 @@ async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
     try:
         if os.path.exists(file := os.path.join(static, 'mai', 'cover', f'{id}.png')):
             return file
-        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{id}.png', timeout=aiohttp.ClientTimeout(total=60)) as req:
+        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{id}.png', timeout=aiohttp.ClientTimeout(total=300)) as req:
             if req.status == 200:
                 return BytesIO(await req.read())
             else:
@@ -235,7 +236,7 @@ async def get_music_list() -> MusicList:
     # MusicData
     try:
         try:
-            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
+            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=300)) as obj_data:
                 if obj_data.status != 200:
                     log.error('从diving-fish获取maimaiDX曲目数据失败，请检查网络环境。已切换至本地暂存文件')
                     music_data = await openfile(music_file)
@@ -260,7 +261,7 @@ async def get_music_list() -> MusicList:
     # ChartStats
     try:
         try:
-            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
+            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=300)) as obj_stats:
                 if obj_stats.status != 200:
                     log.error('从diving-fish获取maimaiDX单曲数据获取错误。已切换至本地暂存文件')
                     chart_stats = await openfile(chart_file)
