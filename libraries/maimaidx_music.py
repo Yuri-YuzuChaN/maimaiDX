@@ -269,7 +269,7 @@ async def get_music_list() -> MusicList:
                     await writefile(chart_file, chart_stats)
         except asyncio.exceptions.TimeoutError:
             log.error('从diving-fish获取maimaiDX数据获取超时，正在使用yuzuapi中转获取单曲数据')
-            chart_stats = get_music_alias('chart')
+            chart_stats = await get_music_alias('chart')
             if isinstance(chart_stats, str):
                 log.error('从yuzuapi获取maimaiDX数据获取失败。已切换至本地暂存文件')
                 chart_stats = await openfile(chart_file)
