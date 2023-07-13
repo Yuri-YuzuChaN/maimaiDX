@@ -51,7 +51,7 @@ class BasicInfo(BaseModel):
     bpm: Optional[int]
     release_date: Optional[str]
     version: Optional[str] = Field(alias='from')
-    is_new: Optional[str]
+    is_new: Optional[bool]
 
 
 def cross(checker: Union[List[str], List[float]], elem: Optional[Union[str, float, List[str], List[float], Tuple[float, float]]], diff: List[int]) -> Tuple[bool, List[int]]:
