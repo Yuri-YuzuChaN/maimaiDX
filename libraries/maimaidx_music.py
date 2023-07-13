@@ -1,10 +1,11 @@
+import asyncio
 import json
 import os
 import random
 from collections import namedtuple
 from copy import deepcopy
 from io import BytesIO
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiofiles
 import aiohttp
@@ -17,6 +18,8 @@ from .maimaidx_api_data import *
 
 cover_dir = os.path.join(static, 'mai', 'cover')
 alias_file = os.path.join(static, 'all_alias.json')
+music_file = os.path.join(static, 'music_data.json')
+chart_file = os.path.join(static, 'chart_stats.json')
 
 class Stats(BaseModel):
 
@@ -213,45 +216,76 @@ async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
         return os.path.join(static, 'mai', 'cover', '11000.png')
 
 
+async def openfile(file: str) -> Union[dict, list]:
+    async with aiofiles.open(file, 'r', encoding='utf-8') as f:
+        data = json.loads(await f.read())
+    return data
+
+
+async def writefile(file: str, data: Any) -> bool:
+    async with aiofiles.open(file, 'w', encoding='utf-8') as f:
+        await f.write(json.dumps(data, ensure_ascii=False, indent=4))
+    return True
+
+
 async def get_music_list() -> MusicList:
     """
     获取所有数据
     """
+    # MusicData
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
-            if obj_data.status != 200:
-                log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
-                async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
-                    data = json.loads(await f.read())
+        try:
+            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
+                if obj_data.status != 200:
+                    log.error('从diving-fish获取maimaiDX曲目数据失败，请检查网络环境。已切换至本地暂存文件')
+                    music_data = await openfile(music_file)
+                else:
+                    music_data = await obj_data.json()
+                    await writefile(music_file, music_data)
+        except asyncio.exceptions.TimeoutError:
+            log.error('从diving-fish获取maimaiDX曲目数据超时，正在使用yuzuapi中转获取曲目数据')
+            music_data = await get_music_alias('music')
+            if isinstance(music_data, str):
+                log.error('从yuzuapi获取maimaiDX曲目数据失败。已切换至本地暂存文件')
+                music_data = await openfile(music_file)
             else:
-                data = await obj_data.json()
-                async with aiofiles.open(os.path.join(static, 'music_data.json'), 'w', encoding='utf-8') as f:
-                    await f.write(json.dumps(data, ensure_ascii=False, indent=4))
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
-        async with aiofiles.open(os.path.join(static, 'music_data.json'), 'r', encoding='utf-8') as f:
-            data = json.loads(await f.read())
+                await writefile(music_file, music_data)
+        except Exception:
+            log.error(f'Error: {traceback.format_exc()}')
+            log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
+            music_data = await openfile(music_file)
+    except FileNotFoundError:
+        log.error(f'未找到文件，请自行使用浏览器访问 "https://www.diving-fish.com/api/maimaidxprober/music_data" 将内容保存为 "music_data.json" 存放在 "static" 目录下并重启bot')
+    
+    # ChartStats
     try:
-        async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
-            if obj_stats.status != 200:
-                log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
-                async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
-                    stats = json.loads(await f.read())
+        try:
+            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
+                if obj_stats.status != 200:
+                    log.error('从diving-fish获取maimaiDX单曲数据获取错误。已切换至本地暂存文件')
+                    chart_stats = await openfile(chart_file)
+                else:
+                    chart_stats = await obj_stats.json()
+                    await writefile(chart_file, chart_stats)
+        except asyncio.exceptions.TimeoutError:
+            log.error('从diving-fish获取maimaiDX数据获取超时，正在使用yuzuapi中转获取单曲数据')
+            chart_stats = get_music_alias('chart')
+            if isinstance(chart_stats, str):
+                log.error('从yuzuapi获取maimaiDX数据获取失败。已切换至本地暂存文件')
+                chart_stats = await openfile(chart_file)
             else:
-                stats = await obj_stats.json()
-                async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'w', encoding='utf-8') as f:
-                    await f.write(json.dumps(stats, ensure_ascii=False, indent=4))
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
-        async with aiofiles.open(os.path.join(static, 'chart_stats.json'), 'r', encoding='utf-8') as f:
-            stats = json.loads(await f.read())
+                await writefile(chart_file, chart_stats)
+        except Exception:
+            log.error(f'Error: {traceback.format_exc()}')
+            log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
+            chart_stats = await openfile(chart_file)
+    except FileNotFoundError:
+        log.error(f'未找到文件，请自行使用浏览器访问 "https://www.diving-fish.com/api/maimaidxprober/chart_stats" 将内容保存为 "chart_stats.json" 存放在 "static" 目录下并重启bot')
 
-    total_list: MusicList = MusicList(data)
+    total_list: MusicList = MusicList(music_data)
     for num, music in enumerate(total_list):
-        if music['id'] in stats['charts']:
-            _stats = [_data if _data else None for _data in stats['charts'][music['id']]] if {} in stats['charts'][music['id']] else stats['charts'][music['id']]
+        if music['id'] in chart_stats['charts']:
+            _stats = [_data if _data else None for _data in chart_stats['charts'][music['id']]] if {} in chart_stats['charts'][music['id']] else chart_stats['charts'][music['id']]
         else:
             _stats = None
         total_list[num] = Music(stats=_stats, **total_list[num])
@@ -263,8 +297,7 @@ async def get_music_alias_list() -> AliasList:
     获取所有别名
     """
     if os.path.exists(alias_file):
-        async with aiofiles.open(alias_file, 'r', encoding='utf-8') as f:
-            local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = json.loads(await f.read())
+        local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(alias_file)
     else:
         local_alias_data = {}
     
@@ -272,7 +305,7 @@ async def get_music_alias_list() -> AliasList:
     if isinstance(alias_data, str):
         log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
         if not local_alias_data:
-            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中')
+            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
     else:
         for id, music in alias_data.items():
             if id in local_alias_data:
@@ -284,8 +317,7 @@ async def get_music_alias_list() -> AliasList:
                     'Name': music['Name'],
                     'Alias': music['Alias']
                 }
-        async with aiofiles.open(alias_file, 'w', encoding='utf-8') as f:
-            await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
+        await writefile(alias_file, local_alias_data)
     data = local_alias_data
     
     total_alias_list = AliasList(data)
@@ -296,8 +328,7 @@ async def get_music_alias_list() -> AliasList:
 
 async def update_local_alias(id: str, alias_name: str):
     try:
-        async with aiofiles.open(alias_file, 'r', encoding='utf-8') as f:
-            local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = json.loads(await f.read())
+        local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(alias_file)
             
         music_alias = mai.total_alias_list.by_id(id)[0]
         index = mai.total_alias_list.index(music_alias)
@@ -309,8 +340,7 @@ async def update_local_alias(id: str, alias_name: str):
         }
         mai.total_alias_list[index] = Alias(ID=id, **new_alias)
         local_alias_data[id]['Alias'] = new_list
-        async with aiofiles.open(alias_file, 'w', encoding='utf-8') as f:
-            await f.write(json.dumps(local_alias_data, ensure_ascii=False, indent=4))
+        await writefile(alias_file, local_alias_data)
         return True
     except Exception as e:
         log.error('添加本地别名失败')
