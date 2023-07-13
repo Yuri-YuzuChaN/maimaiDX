@@ -17,7 +17,7 @@ ALIAS = {
     'apply': 'ApplyAlias',
     'agree': 'AgreeUser',
     'end': 'GetAliasEnd',
-    'music': 'GetMaimaiDXMusicData',
+    'music': 'GetMaimaiDXMusic',
     'chart': 'GetMaimaiDXChartStats'
 }
 
