@@ -1,6 +1,8 @@
 import json
 import os
+
 from loguru import logger as log
+
 BOTNAME = 'mokabot'
 
 static = os.path.join(os.path.dirname(__file__), 'static')
@@ -8,8 +10,9 @@ token = json.load(open(os.path.join(static, 'config.json'), 'r', encoding='utf8'
 
 __all__ = ['maimai']
 
-from . import *
 from nonebot.plugin import PluginMetadata
+
+from . import *
 
 __plugin_meta__ = PluginMetadata(
     name='maimaiDX',

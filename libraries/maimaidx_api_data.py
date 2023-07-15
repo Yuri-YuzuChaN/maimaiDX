@@ -16,7 +16,9 @@ ALIAS = {
     'status': 'GetAliasStatus',
     'apply': 'ApplyAlias',
     'agree': 'AgreeUser',
-    'end': 'GetAliasEnd'
+    'end': 'GetAliasEnd',
+    'music': 'GetMaimaiDXMusic',
+    'chart': 'GetMaimaiDXChartStats'
 }
 
 async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
@@ -34,7 +36,7 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
     else:
         return '项目错误'
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(f'{maimaiapi}/query/{p}', json=payload)
             if resp.status_code == 400:
                 data = player_error
@@ -51,7 +53,7 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
 
 async def get_dev_player_data(payload: dict) -> Union[dict, str]:
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(f'{maimaiapi}/dev/player/records', headers={'developer-token': token}, params=payload)
             if resp.status_code == 400:
                 data = player_error
@@ -71,7 +73,7 @@ async def get_rating_ranking_data() -> Union[dict, str]:
     获取排名，获取失败时返回字符串
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(f'{maimaiapi}/rating_ranking')
             if resp.status_code != 200:
                 data = '未知错误，请联系BOT管理员'
@@ -90,9 +92,11 @@ async def get_music_alias(api: str, params: dict = None) -> Union[List[Dict[str,
     - `alias`: 该曲目的所有别名
     - `status`: 正在进行的别名申请
     - `end`: 已结束的别名申请
+    - `music`: 中转查分器乐曲数据
+    - `chart`: 中专查分器单曲数据
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params)
             if resp.status_code == 400:
                 data = '参数输入错误'
@@ -111,7 +115,7 @@ async def post_music_alias(api: str, params: dict = None) -> Union[List[Dict[str
     - `agree`: 同意别名
     """
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params)
             if resp.status_code == 400:
                 data = '参数输入错误'

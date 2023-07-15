@@ -4,27 +4,32 @@ from pathlib import Path
 from random import sample
 from string import ascii_uppercase, digits
 from textwrap import dedent
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-from nonebot import on_command, on_regex, on_endswith, get_driver, get_bot, require, logger, on_message
-from nonebot.adapters.onebot.v11 import GROUP_ADMIN, Message, MessageEvent, GroupMessageEvent, MessageSegment, Bot, PrivateMessageEvent
+from nonebot import (get_bot, get_driver, logger, on_command, on_endswith,
+                     on_message, on_regex, require)
+from nonebot.adapters.onebot.v11 import (GROUP_ADMIN, Bot, GroupMessageEvent,
+                                         Message, MessageEvent, MessageSegment,
+                                         PrivateMessageEvent)
 from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, RegexGroup, Endswith
+from nonebot.params import CommandArg, Endswith, RegexGroup
 from nonebot.permission import SUPERUSER
 
 from . import BOTNAME, log, token
 from .libraries.image import to_bytes_io
-from .libraries.maimai_best_50 import diffs, generate, levelList, scoreRank, comboRank, syncRank
+from .libraries.maimai_best_50 import (comboRank, diffs, generate, levelList,
+                                       scoreRank, syncRank)
 from .libraries.maimaidx_api_data import get_music_alias, post_music_alias
-from .libraries.maimaidx_music import mai, guess, alias, update_local_alias
-from .libraries.maimaidx_project import (
-    SONGS_PER_PAGE,
-    draw_music_info_to_message_segment,
-    plate_to_version,
-    music_play_data, query_chart_data, rise_score_data,
-    player_plate_data, level_process_data, level_achievement_list_data, rating_ranking_data, music_global_data, music_play_data_dev
-)
-from .libraries.tool import render_forward_msg, hash
+from .libraries.maimaidx_music import alias, guess, mai, update_local_alias
+from .libraries.maimaidx_project import (SONGS_PER_PAGE,
+                                         draw_music_info_to_message_segment,
+                                         level_achievement_list_data,
+                                         level_process_data, music_global_data,
+                                         music_play_data, music_play_data_dev,
+                                         plate_to_version, player_plate_data,
+                                         query_chart_data, rating_ranking_data,
+                                         rise_score_data)
+from .libraries.tool import hash, render_forward_msg
 
 driver = get_driver()
 scheduler = require('nonebot_plugin_apscheduler').scheduler
