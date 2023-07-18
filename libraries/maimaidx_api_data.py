@@ -21,6 +21,7 @@ ALIAS = {
     'chart': 'GetMaimaiDXChartStats'
 }
 
+
 async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
     """
     获取用户数据，获取失败时返回字符串
@@ -51,6 +52,7 @@ async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
         data = f'获取玩家数据时发生错误，请联系BOT管理员: {type(e)}'
     return data
 
+
 async def get_dev_player_data(payload: dict) -> Union[dict, str]:
     try:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -67,6 +69,7 @@ async def get_dev_player_data(payload: dict) -> Union[dict, str]:
         log.error(f'Error: {traceback.format_exc()}')
         data = f'获取玩家数据时发生错误，请联系BOT管理员: {type(e)}'
     return data
+
 
 async def get_rating_ranking_data() -> Union[dict, str]:
     """
@@ -85,6 +88,7 @@ async def get_rating_ranking_data() -> Union[dict, str]:
         data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
     return data
 
+
 async def get_music_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
     """
     - `all`: 所有曲目的别名
@@ -93,7 +97,7 @@ async def get_music_alias(api: str, params: dict = None) -> Union[List[Dict[str,
     - `status`: 正在进行的别名申请
     - `end`: 已结束的别名申请
     - `music`: 中转查分器乐曲数据
-    - `chart`: 中专查分器单曲数据
+    - `chart`: 中转查分器单曲数据
     """
     try:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -108,6 +112,7 @@ async def get_music_alias(api: str, params: dict = None) -> Union[List[Dict[str,
         log.exception(e)
         data = dict()
     return data
+
 
 async def post_music_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
     """
