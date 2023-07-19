@@ -362,7 +362,7 @@ async def query_chart_data(match: Tuple) -> str:
             chart = music.charts[level_index]
             ds = music.ds[level_index]
             level = music.level[level_index]
-            if len(chart['notes']) == 4:
+            if len(chart.notes) == 4:
                 result = dedent(f'''\
                     {level_name[level_index]} {level}({ds})
                     TAP: {chart.notes.tap}
