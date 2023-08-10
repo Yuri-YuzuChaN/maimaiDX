@@ -338,17 +338,18 @@ async def rating_table_draw(payload: dict, args: str) -> Union[str, MessageSegme
         bg = os.path.join(ratingdir, f'{args}.png')
         ralist = [args]
     
-    forid = {}
+    fromid = {}
     for _data in data['verlist']:
         if _data['level'] in ralist:
-            forid[str(_data['id'])] = {
+            if (id := str(_data['id'])) not in fromid:
+                fromid[id] = {}
+            fromid[id][str(_data['level_index'])] = {
                 'achievements': _data['achievements'],
-                'level': _data['level'],
-                'index': _data['level_index']
+                'level': _data['level']
             }
 
-    musiclist = mai.total_list.lvList()
-    lvlist: Dict[str, List[Music]] = {}
+    musiclist = mai.total_list.lvList(True)
+    lvlist: Dict[str, List[RaMusic]] = {}
     for lv in list(reversed(ralist)):
         for _ra in musiclist[lv]:
             lvlist[_ra] = musiclist[lv][_ra]
@@ -364,8 +365,8 @@ async def rating_table_draw(payload: dict, args: str) -> Union[str, MessageSegme
                 y += 85
             else:
                 x += 85
-            if music.id in forid:
-                ra, rate = computeRa(music.ds[forid[music.id]['index']], forid[music.id]['achievements'], israte=True)
+            if music.id in fromid and music.lv in fromid[music.id]:
+                ra, rate = computeRa(music.ds, fromid[music.id][music.lv]['achievements'], israte=True)
                 im.alpha_composite(b2, (x + 2, y - 18))
                 rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((78, 36))
                 im.alpha_composite(rank, (x, y))

@@ -111,7 +111,7 @@ class RaMusic(BaseModel):
     
     id: str
     ds: float
-    lv: int
+    lv: str
     type: str
 
 
@@ -154,7 +154,7 @@ class MusicList(List[Music]):
                 for diff, ds in enumerate(music.ds):
                     if str(ds) in levellist:
                         if rating:
-                            levellist[str(ds)].append(RaMusic(id=music.id, ds=ds, lv=diff, type=music.type))
+                            levellist[str(ds)].append(RaMusic(id=music.id, ds=ds, lv=str(diff), type=music.type))
                         else:
                             levellist[str(ds)].append(music)
             level[lv] = levellist
