@@ -4,25 +4,15 @@ import os
 from typing import List, Optional, Tuple, Union
 
 import aiohttp
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
 from hoshino.typing import MessageSegment
 
-from .. import BOTNAME, static
-from .image import image_to_base64
+from .. import *
+from .image import DrawText, image_to_base64
 from .maimaidx_api_data import get_player_data
 from .maimaidx_music import download_music_pictrue, mai
-
-scoreRank = ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 's+', 'ss', 'ss+', 'sss', 'sss+']
-comboRank = ['fc', 'fc+', 'ap', 'ap+']
-combo_rank = ['fc', 'fcp', 'ap', 'app']
-syncRank = ['fs', 'fs+', 'fdx', 'fdx+']
-sync_rank = ['fs', 'fsp', 'fsd', 'fsdp']
-diffs = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
-levelList = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9', '9+', '10', '10+', '11', '11+', '12', '12+', '13', '13+', '14', '14+', '15']
-achievementList = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
-BaseRaSpp = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 
 
 class ChartInfo(BaseModel):
@@ -58,47 +48,6 @@ class UserInfo(BaseModel):
     username: Optional[str]
 
 
-class DrawText:
-
-    def __init__(self, image: ImageDraw.ImageDraw, font: str) -> None:
-        self._img = image
-        self._font = font
-
-    def get_box(self, text: str, size: int):
-        return ImageFont.truetype(self._font, size).getbbox(text)
-
-    def draw(self,
-            pos_x: int,
-            pos_y: int,
-            size: int,
-            text: str,
-            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
-            anchor: str = 'lt',
-            stroke_width: int = 0,
-            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0),
-            multiline: bool = False):
-
-        font = ImageFont.truetype(self._font, size)
-        if multiline:
-            self._img.multiline_text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
-        else:
-            self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
-    
-    def draw_partial_opacity(self,
-            pos_x: int,
-            pos_y: int,
-            size: int,
-            text: str,
-            po: int = 2,
-            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
-            anchor: str = 'lt',
-            stroke_width: int = 0,
-            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0)):
-
-        font = ImageFont.truetype(self._font, size)
-        self._img.text((pos_x + po, pos_y + po), str(text), (0, 0, 0, 128), font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
-        self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
-
 class DrawBest:
 
     def __init__(self, UserInfo: UserInfo, qqId: Optional[Union[int, str]] = None) -> None:
@@ -110,38 +59,6 @@ class DrawBest:
         self.sdBest = UserInfo.charts.sd
         self.dxBest = UserInfo.charts.dx
         self.qqId = qqId
-        self.cover_dir = os.path.join(static, 'mai', 'cover')
-        self.maimai_dir = os.path.join(static, 'mai', 'pic')
-
-    def _getCharWidth(self, o) -> int:
-        widths = [
-            (126, 1), (159, 0), (687, 1), (710, 0), (711, 1), (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
-            (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1), (8426, 0), (9000, 1), (9002, 2), (11021, 1),
-            (12350, 2), (12351, 1), (12438, 2), (12442, 0), (19893, 2), (19967, 1), (55203, 2), (63743, 1),
-            (64106, 2), (65039, 1), (65059, 0), (65131, 2), (65279, 1), (65376, 2), (65500, 1), (65510, 2),
-            (120831, 1), (262141, 2), (1114109, 1),
-        ]
-        if o == 0xe or o == 0xf:
-            return 0
-        for num, wid in widths:
-            if o <= num:
-                return wid
-        return 1
-
-    def _coloumWidth(self, s: str) -> int:
-        res = 0
-        for ch in s:
-            res += self._getCharWidth(ord(ch))
-        return res
-
-    def _changeColumnWidth(self, s: str, len: int) -> str:
-        res = 0
-        sList = []
-        for ch in s:
-            res += self._getCharWidth(ord(ch))
-            if res <= len:
-                sList.append(ch)
-        return ''.join(sList)
 
     def _findRaPic(self) -> str:
         if self.Rating < 1000:
@@ -191,18 +108,18 @@ class DrawBest:
                 x += 416
 
             cover = Image.open(await download_music_pictrue(info.song_id)).resize((135, 135))
-            version = Image.open(os.path.join(self.maimai_dir, f'UI_RSL_MBase_Parts_{info.type}.png')).resize((55, 19))
-            rate = Image.open(os.path.join(self.maimai_dir, f'UI_TTR_Rank_{self.rank[info.rate]}.png')).resize((95, 44))
+            version = Image.open(os.path.join(maimaidir, f'UI_RSL_MBase_Parts_{info.type}.png')).resize((55, 19))
+            rate = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{score_Rank[info.rate]}.png')).resize((95, 44))
 
             self._im.alpha_composite(self._diff[info.level_index], (x, y))
             self._im.alpha_composite(cover, (x + 5, y + 5))
             self._im.alpha_composite(version, (x + 80, y + 141))
             self._im.alpha_composite(rate, (x + 150, y + 98))
             if info.fc:
-                fc = Image.open(os.path.join(self.maimai_dir, f'UI_MSS_MBase_Icon_{self.fcl[info.fc]}.png')).resize((45, 45))
+                fc = Image.open(os.path.join(maimaidir, f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png')).resize((45, 45))
                 self._im.alpha_composite(fc, (x + 260, y + 98))
             if info.fs:
-                fs = Image.open(os.path.join(self.maimai_dir, f'UI_MSS_MBase_Icon_{self.fsl[info.fs]}.png')).resize((45, 45))
+                fs = Image.open(os.path.join(maimaidir, f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png')).resize((45, 45))
                 self._im.alpha_composite(fs, (x + 315, y + 98))
             
             dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
@@ -213,8 +130,8 @@ class DrawBest:
 
             self._tb.draw(x + 40, y + 148, 20, info.song_id, anchor='mm')
             title = info.title
-            if self._coloumWidth(title) > 18:
-                title = self._changeColumnWidth(title, 17) + '...'
+            if coloumWidth(title) > 18:
+                title = changeColumnWidth(title, 17) + '...'
             self._siyuan.draw(x + 155, y + 20, 20, title, TEXT_COLOR[info.level_index], anchor='lm')
             p, s = f'{info.achievements:.4f}'.split('.')
             r = self._tb.get_box(p, 32)
@@ -225,36 +142,30 @@ class DrawBest:
 
     async def draw(self):
         
-        meiryo = os.path.join(static, 'meiryo.ttc')
-        siyuan = os.path.join(static, 'SourceHanSansSC-Bold.otf')
-        Torus_SemiBold = os.path.join(static, 'Torus SemiBold.otf')
-        basic = Image.open(os.path.join(self.maimai_dir, 'b40_score_basic.png'))
-        advanced = Image.open(os.path.join(self.maimai_dir, 'b40_score_advanced.png'))
-        expert = Image.open(os.path.join(self.maimai_dir, 'b40_score_expert.png'))
-        master = Image.open(os.path.join(self.maimai_dir, 'b40_score_master.png'))
-        remaster = Image.open(os.path.join(self.maimai_dir, 'b40_score_remaster.png'))
-        logo = Image.open(os.path.join(self.maimai_dir, 'logo.png')).resize((378, 172))
-        dx_rating = Image.open(os.path.join(self.maimai_dir, self._findRaPic())).resize((300, 59))
-        Name = Image.open(os.path.join(self.maimai_dir, 'Name.png'))
-        MatchLevel = Image.open(os.path.join(self.maimai_dir, self._findMatchLevel())).resize((134, 55))
-        ClassLevel = Image.open(os.path.join(self.maimai_dir, 'UI_FBR_Class_00.png')).resize((144, 87))
-        rating = Image.open(os.path.join(self.maimai_dir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
+        basic = Image.open(os.path.join(maimaidir, 'b40_score_basic.png'))
+        advanced = Image.open(os.path.join(maimaidir, 'b40_score_advanced.png'))
+        expert = Image.open(os.path.join(maimaidir, 'b40_score_expert.png'))
+        master = Image.open(os.path.join(maimaidir, 'b40_score_master.png'))
+        remaster = Image.open(os.path.join(maimaidir, 'b40_score_remaster.png'))
+        logo = Image.open(os.path.join(maimaidir, 'logo.png')).resize((378, 172))
+        dx_rating = Image.open(os.path.join(maimaidir, self._findRaPic())).resize((300, 59))
+        Name = Image.open(os.path.join(maimaidir, 'Name.png'))
+        MatchLevel = Image.open(os.path.join(maimaidir, self._findMatchLevel())).resize((134, 55))
+        ClassLevel = Image.open(os.path.join(maimaidir, 'UI_FBR_Class_00.png')).resize((144, 87))
+        rating = Image.open(os.path.join(maimaidir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
         self._diff = [basic, advanced, expert, master, remaster]
-        self.dxstar = [Image.open(os.path.join(self.maimai_dir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
-        self.rank = {'d': 'D', 'c': 'C', 'b': 'B', 'bb': 'BB', 'bbb': 'BBB', 'a': 'A', 'aa': 'AA', 'aaa': 'AAA', 's': 'S', 'sp': 'Sp', 'ss': 'SS', 'ssp': 'SSp', 'sss': 'SSS', 'sssp': 'SSSp'}
-        self.fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
-        self.fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
+        self.dxstar = [Image.open(os.path.join(maimaidir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
 
         # 作图
-        self._im = Image.open(os.path.join(self.maimai_dir, 'b40_bg.png')).convert('RGBA')
+        self._im = Image.open(os.path.join(maimaidir, 'b40_bg.png')).convert('RGBA')
 
         self._im.alpha_composite(logo, (5, 130))
         if self.plate:
-            plate = Image.open(os.path.join(self.maimai_dir, f'{self.plate}.png')).resize((1420, 230))
+            plate = Image.open(os.path.join(maimaidir, f'{self.plate}.png')).resize((1420, 230))
         else:
-            plate = Image.open(os.path.join(self.maimai_dir, 'UI_Plate_300101.png')).resize((1420, 230))
+            plate = Image.open(os.path.join(maimaidir, 'UI_Plate_300101.png')).resize((1420, 230))
         self._im.alpha_composite(plate, (390, 100))
-        icon = Image.open(os.path.join(self.maimai_dir, 'UI_Icon_309503.png')).resize((214, 214))
+        icon = Image.open(os.path.join(maimaidir, 'UI_Icon_309503.png')).resize((214, 214))
         self._im.alpha_composite(icon, (398, 108))
         if self.qqId:
             try:
@@ -267,25 +178,26 @@ class DrawBest:
         self._im.alpha_composite(dx_rating, (620, 122))
         Rating = f'{self.Rating:05d}'
         for n, i in enumerate(Rating):
-            self._im.alpha_composite(Image.open(os.path.join(self.maimai_dir, f'UI_NUM_Drating_{i}.png')).resize((20, 26)), (763 + 23 * n, 140))
+            self._im.alpha_composite(Image.open(os.path.join(maimaidir, f'UI_NUM_Drating_{i}.png')).resize((28, 34)), (760 + 23 * n, 137))
         self._im.alpha_composite(Name, (620, 200))
         self._im.alpha_composite(MatchLevel, (935, 205))
         self._im.alpha_composite(ClassLevel, (926, 105))
         self._im.alpha_composite(rating, (620, 275))
 
         text_im = ImageDraw.Draw(self._im)
-        self._meiryo = DrawText(text_im, meiryo)
-        self._siyuan = DrawText(text_im, siyuan)
-        self._tb = DrawText(text_im, Torus_SemiBold)
+        self._meiryo = DrawText(text_im, MEIRYO)
+        self._siyuan = DrawText(text_im, SIYUAN)
+        self._tb = DrawText(text_im, TBFONT)
 
         self._meiryo.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
-        self._meiryo.draw(847, 300, 22, 'UNiVERSE PLUS Rating System', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
+        sdrating, dxrating = sum([_.ra for _ in self.sdBest]), sum([_.ra for _ in self.dxBest])
+        self._tb.draw(847, 295, 28, f'SD: {sdrating} + DX: {dxrating} = {self.Rating}', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
         self._meiryo.draw(900, 2365, 35, f'Designed by Yuri-YuzuChaN & BlueDeer233 | Generated by {BOTNAME} BOT', (103, 20, 141, 255), 'mm', 3, (255, 255, 255, 255))
 
         await self.whiledraw(self.sdBest, True)
         await self.whiledraw(self.dxBest, False)
 
-        return self._im
+        return self._im.resize((1760, 1920))
 
 def dxScore(dx: int) -> Tuple[int, int]:
     """
@@ -304,6 +216,40 @@ def dxScore(dx: int) -> Tuple[int, int]:
     else:
         result = (2, 5)
     return result
+
+
+def getCharWidth(o) -> int:
+    widths = [
+        (126, 1), (159, 0), (687, 1), (710, 0), (711, 1), (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
+        (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1), (8426, 0), (9000, 1), (9002, 2), (11021, 1),
+        (12350, 2), (12351, 1), (12438, 2), (12442, 0), (19893, 2), (19967, 1), (55203, 2), (63743, 1),
+        (64106, 2), (65039, 1), (65059, 0), (65131, 2), (65279, 1), (65376, 2), (65500, 1), (65510, 2),
+        (120831, 1), (262141, 2), (1114109, 1),
+    ]
+    if o == 0xe or o == 0xf:
+        return 0
+    for num, wid in widths:
+        if o <= num:
+            return wid
+    return 1
+
+
+def coloumWidth(s: str) -> int:
+    res = 0
+    for ch in s:
+        res += getCharWidth(ord(ch))
+    return res
+
+
+def changeColumnWidth(s: str, len: int) -> str:
+    res = 0
+    sList = []
+    for ch in s:
+        res += getCharWidth(ord(ch))
+        if res <= len:
+            sList.append(ch)
+    return ''.join(sList)
+
 
 def computeRa(ds: float, achievement: float, israte: bool = False) -> Union[int, Tuple[int, str]]:
     if achievement < 50:

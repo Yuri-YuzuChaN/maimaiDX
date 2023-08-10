@@ -1,12 +1,10 @@
 import os
 import time
-import traceback
 from re import Match
 from typing import Optional, Union
 
-import aiofiles
 import pyecharts.options as opts
-from PIL import Image, ImageDraw
+from PIL import Image
 from pyecharts.charts import Pie
 from pyecharts.render import make_snapshot
 from quart.utils import run_sync
@@ -16,273 +14,19 @@ from hoshino.typing import MessageSegment
 
 from .. import *
 from .image import *
-from .maimai_best_50 import *
+from .maimai_best_50 import computeRa, generateAchievementList
 from .maimaidx_api_data import *
-from .maimaidx_music import Music, download_music_pictrue, mai
+from .maimaidx_music import Music, mai
 
-SONGS_PER_PAGE = 25
-level_labels = ['绿', '黄', '红', '紫', '白']
 realAchievementList = {}
 for acc in [i / 10 for i in range(10, 151)]:
     realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc)
-plate_to_version = {
-    '初': 'maimai',
-    '真': 'maimai PLUS',
-    '超': 'maimai GreeN',
-    '檄': 'maimai GreeN PLUS',
-    '橙': 'maimai ORANGE',
-    '暁': 'maimai ORANGE PLUS',
-    '晓': 'maimai ORANGE PLUS',
-    '桃': 'maimai PiNK',
-    '櫻': 'maimai PiNK PLUS',
-    '樱': 'maimai PiNK PLUS',
-    '紫': 'maimai MURASAKi',
-    '菫': 'maimai MURASAKi PLUS',
-    '堇': 'maimai MURASAKi PLUS',
-    '白': 'maimai MiLK',
-    '雪': 'MiLK PLUS',
-    '輝': 'maimai FiNALE',
-    '辉': 'maimai FiNALE',
-    '熊': 'maimai でらっくす',
-    '華': 'maimai でらっくす PLUS',
-    '华': 'maimai でらっくす PLUS',
-    '爽': 'maimai でらっくす Splash',
-    '煌': 'maimai でらっくす Splash PLUS',
-    '宙': 'maimai でらっくす UNiVERSE',
-    '星': 'maimai でらっくす UNiVERSE PLUS',
-    'fes': 'maimai でらっくす FESTiVAL',
-    'fesp': 'maimai でらっくす FESTiVAL PLUS'
-}
 
-maimaidir = os.path.join(static, 'mai', 'pic')
-
-SIYUAN = os.path.join(static, 'SourceHanSansSC-Bold.otf')
-TBFONT = os.path.join(static, 'Torus SemiBold.otf')
-category = {
-    '流行&动漫': 'anime',
-    '舞萌': 'maimai',
-    'niconico & VOCALOID': 'niconico',
-    '东方Project': 'touhou',
-    '其他游戏': 'game',
-    '音击&中二节奏': 'ongeki'
-}
-
-async def download_arcade_info(save: bool = True):
-    try:
-        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
-            if req.status == 200:
-                arcades_data = await req.json()
-                current_names = [c_a['name'] for c_a in arcades]
-                for arcade in arcades_data:
-                    if arcade['arcadeName'] not in current_names:
-                        arcade_dict = {
-                            'name': arcade['arcadeName'],
-                            'location': arcade['address'],
-                            'province': arcade['province'],
-                            'mall': arcade['mall'],
-                            'num': arcade['machineCount'],
-                            'id': arcade['id'],
-                            'alias': [], 'group': [],
-                            'person': 0, 'by': '', 'time': ''
-                        }
-                        arcades.append(arcade_dict)
-                    else:
-                        arcade_dict = arcades[current_names.index(arcade['arcadeName'])]
-                        arcade_dict['location'] = arcade['address']
-                        arcade_dict['province'] = arcade['province']
-                        arcade_dict['mall'] = arcade['mall']
-                        arcade_dict['num'] = arcade['machineCount']
-                        arcade_dict['id'] = arcade['id']
-                if save:
-                    async with aiofiles.open(arcades_json, 'w', encoding='utf-8') as f:
-                        await f.write(json.dumps(arcades, ensure_ascii=False, indent=4))
-            else:
-                log.error('获取机厅信息失败')
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('获取机厅信息失败')
-
-
-async def draw_music_info(music: Music) -> MessageSegment:
-    im = Image.open(os.path.join(maimaidir, 'music_bg.png')).convert('RGBA')
-    genre = Image.open(os.path.join(maimaidir, f'music-{category[music.basic_info.genre]}.png'))
-    cover = Image.open(await download_music_pictrue(music.id)).resize((360, 360))
-    ver = Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((94, 35))
-    line = Image.new('RGBA', (400, 2), (255, 255, 255, 255))
-
-    im.alpha_composite(genre, (150, 170))
-    im.alpha_composite(cover, (170, 260))
-    im.alpha_composite(ver, (435, 585))
-    im.alpha_composite(line, (150, 710))
-
-    dr = ImageDraw.Draw(im)
-    tb = DrawText(dr, TBFONT)
-    sy = DrawText(dr, SIYUAN)
-
-    tb.draw(200, 195, 24, music.id, anchor='mm')
-    sy.draw(410, 195, 22, music.basic_info.genre, anchor='mm')
-    sy.draw_partial_opacity(350, 660, 30, music.title, 1, anchor='mm')
-    sy.draw_partial_opacity(350, 690, 12, music.basic_info.artist, 1, anchor='mm')
-    sy.draw_partial_opacity(150, 725, 15, f'Version: {music.basic_info.version}', 1, anchor='lm')
-    sy.draw_partial_opacity(550, 725, 15, f'BPM: {music.basic_info.bpm}', 1, anchor='rm')
-    for n, i in enumerate(list(map(str, music.ds))):
-        if n == 4:
-            color = (195, 70, 231, 255)
-        else:
-            color = (255, 255, 255, 255)
-        tb.draw(160 + 95 * n, 814, 25, i, color, 'mm')
-    sy.draw(350, 980, 14, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (255, 255, 255, 255), 'mm', 1, (159, 81, 220, 255))
-    msg = MessageSegment.image(image_to_base64(im))
-
-    return msg
-
-async def music_play_data(payload: dict, songs: str) -> Union[str, MessageSegment, None]:
-    payload['version'] = list(set(version for version in plate_to_version.values()))
-    data = await get_player_data('plate', payload)
-    if isinstance(data, str):
-        return data
-
-    player_data: list[dict[str, Union[float, str, int]]] = []
-    for i in data['verlist']:
-        if i['id'] == int(songs):
-            player_data.append(i)
-    if not player_data:
-        return '您未游玩该曲目'
-    
-    player_data.sort(key=lambda a: a['level_index'])
-    music = mai.total_list.by_id(songs)
-
-    im = Image.open(os.path.join(maimaidir, 'info_bg.png')).convert('RGBA')
-    genre = Image.open(os.path.join(maimaidir, f'info-{category[music.basic_info.genre]}.png'))
-    cover = Image.open(await download_music_pictrue(music.id)).resize((210, 210))
-    version = Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((108, 40))
-
-    dr = ImageDraw.Draw(im)
-    tb = DrawText(dr, TBFONT)
-    sy = DrawText(dr, SIYUAN)
-
-    im.alpha_composite(genre, (45, 145))
-    im.alpha_composite(cover, (69, 184))
-    im.alpha_composite(version, (725, 360))
-
-    tb.draw(430, 167, 20, music.id, anchor='mm')
-    sy.draw(610, 167, 20, music.basic_info.genre, anchor='mm')
-    sy.draw(295, 225, 30, music.title, anchor='lm')
-    sy.draw(295, 260, 15, f'Artist: {music.basic_info.artist}', anchor='lm')
-    sy.draw(295, 310, 15, f'BPM: {music.basic_info.bpm}', anchor='lm')
-    sy.draw(295, 330, 15, f'Version: {music.basic_info.version}', anchor='lm')
-
-    y = 120
-    TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
-    for _data in player_data:
-        ds: float = music.ds[_data['level_index']]
-        lv: int = _data['level_index']
-        ra, rate = computeRa(ds, _data['achievements'], israte=True)
-
-        rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((120, 57))
-        im.alpha_composite(rank, (430, 515 + y * lv))
-        if _data['fc']:
-            fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
-            fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
-            im.alpha_composite(fc, (575, 511 + y * lv))
-        if _data['fs']:
-            fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
-            fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
-            im.alpha_composite(fs, (650, 511 + y * lv))
-
-        p, s = f'{_data["achievements"]:.4f}'.split('.')
-        r = tb.get_box(p, 36)
-        tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
-        tb.draw(200, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
-        tb.draw(200 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
-        tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
-
-    sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
-    msg = MessageSegment.image(image_to_base64(im))
-
-    return msg
-
-async def music_play_data_dev(payload: dict, songs: str) -> Union[str, MessageSegment, None]:
-
-    data = await get_dev_player_data(payload)
-
-    if isinstance(data, str):
-        return data
-    datalist = data['records'] if token else data['verlist']
-    player_data: list[dict[str, Union[float, str, int]]] = []
-    for i in datalist:
-        if i['song_id'] == int(songs):
-            player_data.append(i)
-    if not player_data:
-        return '您未游玩该曲目'
-    
-    DXSTAR_DEST = [0, 540, 530, 520, 510, 500]
-
-    player_data.sort(key=lambda a: a['level_index'])
-    music = mai.total_list.by_id(songs)
-
-    bg = os.path.join(maimaidir, 'info_bg_2.png')
-    im = Image.open(bg).convert('RGBA')
-    genre = Image.open(os.path.join(maimaidir, f'info-{category[music.basic_info.genre]}.png'))
-    cover = Image.open(await download_music_pictrue(music.id)).resize((210, 210))
-    version = Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((108, 40))
-    dxstar = [Image.open(os.path.join(maimaidir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
-
-    dr = ImageDraw.Draw(im)
-    tb = DrawText(dr, TBFONT)
-    sy = DrawText(dr, SIYUAN)
-
-    im.alpha_composite(genre, (45, 145))
-    im.alpha_composite(cover, (69, 184))
-    im.alpha_composite(version, (725, 360))
-
-    tb.draw(430, 167, 20, music.id, anchor='mm')
-    sy.draw(610, 167, 20, music.basic_info.genre, anchor='mm')
-    sy.draw(295, 225, 30, music.title, anchor='lm')
-    sy.draw(295, 260, 15, f'Artist: {music.basic_info.artist}', anchor='lm')
-    sy.draw(295, 310, 15, f'BPM: {music.basic_info.bpm}', anchor='lm')
-    sy.draw(295, 330, 15, f'Version: {music.basic_info.version}', anchor='lm')
-
-    y = 120
-    TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
-    for _data in player_data:
-        ds: float = _data['ds']
-        lv: int = _data['level_index']
-        dxscore = _data['dxScore']
-        ra, rate = computeRa(ds, _data['achievements'], israte=True)
-
-        rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((120, 57))
-        im.alpha_composite(rank, (358, 518 + y * lv))
-
-        _dxscore = sum(music.charts[lv].notes) * 3
-        diff_sum_dx = dxscore / _dxscore * 100
-        dxtype, dxnum = dxScore(diff_sum_dx)
-        for _ in range(dxnum):
-            im.alpha_composite(dxstar[dxtype], (DXSTAR_DEST[dxnum] + 20 * _, 550 + y * lv))
-
-        if _data['fc']:
-            fcl = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
-            fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
-            im.alpha_composite(fc, (605, 511 + y * lv))
-        if _data['fs']:
-            fsl = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fsdp': 'FSDp'}
-            fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
-            im.alpha_composite(fs, (670, 511 + y * lv))
-
-        p, s = f'{_data["achievements"]:.4f}'.split('.')
-        r = tb.get_box(p, 36)
-        tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
-        tb.draw(175, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
-        tb.draw(175 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
-        tb.draw(550, (535 if dxnum != 0 else 548) + y * lv, 20, f'{dxscore}/{_dxscore}', TEXT_COLOR[lv], 'mm')
-        tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
-
-    sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
-    msg = MessageSegment.image(image_to_base64(im))
-
-    return msg
 
 async def music_global_data(music: Music, level_index: int) -> Union[str, MessageSegment, None]:
+    """
+    指令 `Ginfo`，查看当前谱面游玩详情
+    """
     stats = music.stats[level_index]
     fc_data_pair = [list(z) for z in zip([c.upper() if c else 'Not FC' for c in [''] + comboRank], stats.fc_dist)]
     acc_data_pair = [list(z) for z in zip([s.upper() for s in scoreRank], stats.dist)]
@@ -389,52 +133,6 @@ async def music_global_data(music: Music, level_index: int) -> Union[str, Messag
 
     return msg
 
-async def query_chart_data(match: Match) -> str:
-    if match.group(1) != '':
-        try:
-            level_index = level_labels.index(match.group(1))
-            level_name = ['Basic', 'Advanced', 'Expert', 'Master', 'Re: MASTER']
-            name = match.group(2)
-            music = mai.total_list.by_id(name)
-            chart = music.charts[level_index]
-            ds = music.ds[level_index]
-            level = music.level[level_index]
-            if len(chart.notes) == 4:
-                result = f'''{level_name[level_index]} {level}({ds})
-TAP: {chart.notes.tap}
-HOLD: {chart.notes.hold}
-SLIDE: {chart.notes.slide}
-BREAK: {chart.notes.brk}
-谱师: {chart.charter}'''
-            else:
-                result = f'''{level_name[level_index]} {level}({ds})
-TAP: {chart.notes.tap}
-HOLD: {chart.notes.hold}
-SLIDE: {chart.notes.slide}
-TOUCH: {chart.notes.touch}
-BREAK: {chart.notes.brk}
-谱师: {chart.charter}'''
-            if music.stats and music.stats[level_index]:
-                result += f'\n拟合难度: {music.stats[level_index].fit_diff:.2f}'
-            msg = f'''{music.id}. {music.title}
-{MessageSegment.image(f"file:///{await download_music_pictrue(music.id)}")}
-{result}'''
-        except:
-            msg = '未找到该谱面'
-    else:
-        try:
-            name = match.group(2)
-            music = mai.total_list.by_id(name)
-            if music:
-                msg = await draw_music_info(music)
-            else:
-                msg = '未找到该乐曲'
-
-        except Exception as e:
-            log.error(traceback.format_exc())
-            msg = '未找到该乐曲'
-    
-    return msg
 
 async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] = None) -> Union[MessageSegment, str]:
     """
@@ -495,8 +193,6 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
 
     if len(music_dx_list) == 0 and len(music_sd_list) == 0:
         return '没有找到这样的乐曲'
-    elif len(music_dx_list) + len(music_sd_list) > 60:
-        return f'结果过多({len(music_dx_list) + len(music_sd_list)} 条)，请缩小查询范围。'
 
     appellation = nickname if nickname else '您'
     msg = ''
@@ -511,7 +207,11 @@ async def rise_score_data(payload: dict, match: Match, nickname: Optional[str] =
 
     return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
+
 async def player_plate_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+    """
+    查看将牌
+    """
     song_played = []
     song_remain_basic = []
     song_remain_advanced = []
@@ -668,7 +368,11 @@ Master剩余{len(song_remain_master)}首
 
     return msg
 
+
 async def level_process_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+    """
+    查看谱面等级进度
+    """
     song_played = []
     song_remain = []
 
@@ -735,7 +439,11 @@ async def level_process_data(payload: dict, match: Match, nickname: Optional[str
 
     return msg
 
+
 async def level_achievement_list_data(payload: dict, match: Match, nickname: Optional[str]) -> Union[MessageSegment, str]:
+    """
+    查看分数列表
+    """
     song_list = []
 
     data = await get_player_data('plate', payload)
@@ -763,8 +471,11 @@ async def level_achievement_list_data(payload: dict, match: Match, nickname: Opt
 
     return MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
-async def rating_ranking_data(name: Optional[str], page: Optional[int]) -> Union[MessageSegment, str]:
 
+async def rating_ranking_data(name: Optional[str], page: Optional[int]) -> Union[MessageSegment, str]:
+    """
+    查看查分器排行榜
+    """
     rank_data = await get_rating_ranking_data()
 
     if isinstance(rank_data, str):
@@ -790,174 +501,3 @@ async def rating_ranking_data(name: Optional[str], page: Optional[int]) -> Union
         data = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
 
     return data
-
-def modify(operate: str, arg: str, input_dict: dict) -> str:
-    msg = ''
-    if operate == 'add':
-        if input_dict['name'] in [a['name'] for a in arcades]:
-            return '该机厅已存在'
-        else:
-            arcades.append(input_dict)
-            msg = f'添加了机厅：{input_dict["name"]}'
-    elif operate == 'delete':
-        if input_dict['name'] in [a['name'] for a in arcades]:
-            arcades.remove(arcades[[a['name'] for a in arcades].index(input_dict['name'])])
-            msg = f'删除了机厅：{input_dict["name"]}'
-        else:
-            return '无此机厅'
-    elif operate == 'modify':
-        MAX_CARDS = 30
-        if arg == 'num':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcades[[a['name'] for a in arcades].index(input_dict['name'])]['num'] = int(input_dict['num'])
-                msg = f'现在的机台数量：{input_dict["num"]}'
-            else:
-                return '无此机厅'
-        elif arg == 'alias_add':
-            for i_a in input_dict['alias']:
-                for a in arcades:
-                    if i_a in a['alias']:
-                        return f'已存在别称：{i_a}'
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['alias'] = list(set(arcade['alias'] + input_dict['alias']))
-                msg = f'当前别称：{" ".join(arcade["alias"])}'
-            else:
-                return '无此机厅'
-        elif arg == 'alias_delete':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if input_dict['alias'] in arcade['alias']:
-                    arcade['alias'].remove(input_dict['alias'])
-                    if len(arcade['alias']) > 0:
-                        msg = f'当前别称：{" ".join(arcade["alias"])}'
-                    else:
-                        msg = '当前该机厅没有别称'
-                else:
-                    return f'{arcade["name"]}无此别称'
-            else:
-                return '无此机厅'
-        elif arg == 'subscribe':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['group'].append(input_dict['gid'])
-                msg = f'订阅了机厅：{input_dict["name"]}'
-            else:
-                return '无此机厅'
-        elif arg == 'unsubscribe':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['group'].remove(input_dict['gid'])
-                msg = f'取消订阅了机厅：{input_dict["name"]}'
-            else:
-                return '无此机厅'
-        elif arg == 'person_set':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if abs(int(input_dict['person']) - arcade['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == arcade["person"]:
-                    return f'无变化，现在有{arcade["person"]}卡'
-                arcade['person'] = int(input_dict['person'])
-                arcade['time'] = input_dict['time']
-                arcade['by'] = input_dict['by']
-                msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-        elif arg == 'person_add':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == 0:
-                    return f'无变化，现在有{arcade["person"]}卡'
-                arcade['person'] += int(input_dict['person'])
-                arcade['time'] = input_dict['time']
-                arcade['by'] = input_dict['by']
-                msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-        elif arg == 'person_minus':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == 0:
-                    arcade['time'] = input_dict['time']
-                    arcade['by'] = input_dict['by']
-                    return f'无变化，现在有{arcade["person"]}卡'
-                if arcade['person'] < int(input_dict['person']):
-                    return f'现在{arcade["person"]}卡，不够减！'
-                else:
-                    arcade['person'] -= int(input_dict['person'])
-                    arcade['time'] = input_dict['time']
-                    arcade['by'] = input_dict['by']
-                    msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-    else:
-        return '内部错误，请联系维护组'
-    try:
-        with open(arcades_json, 'w', encoding='utf-8') as f:
-            json.dump(arcades, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        traceback.print_exc()
-        return f'操作失败，错误代码：{e}'
-    return '修改成功！' + msg
-
-def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool]:
-    result = None
-    empty_name = False
-    if match.group(1):
-        if '人数' in match.group(1) or '卡' in match.group(1):
-            search_key: str = match.group(1)[:-2] if '人数' in match.group(1) else match.group(1)[:-1]
-            if search_key:
-                for a in arcades:
-                    if search_key.lower() == a['name']:
-                        result = a
-                        break
-                    if search_key.lower() in a['alias']:
-                        result = a
-                        break
-                if not result:
-                    return '没有这样的机厅哦'
-            else:
-                empty_name = True
-        else:
-            for a in arcades:
-                if match.group(1).lower() == a['name']:
-                    result = a
-                    break
-                if match.group(1).lower() in a['alias']:
-                    result = a
-                    break
-            if not result:
-                return False
-    else:
-        return False
-    if not result or empty_name:
-        for a in arcades:
-            if gid in a['group']:
-                result = a
-                break
-    if result:
-        msg = ''
-        num = match.group(3) if match.group(3).isdigit() else 1
-        if match.group(2) in ['设置', '设定', '＝', '=']:
-            msg = modify('modify', 'person_set', {'name': result['name'], 'person': num,
-                                                  'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                  'by': nickname})
-        elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
-            msg = modify('modify', 'person_add', {'name': result['name'], 'person': num,
-                                                  'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                  'by': nickname})
-        elif match.group(2) in ['减少', '降低', '减', '－', '-']:
-            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': num,
-                                                    'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                    'by': nickname})
-        if msg and '一次最多改变' in msg:
-            msg = '请勿乱玩bot，恼！'
-    else:
-        msg = '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅'
-
-    return msg

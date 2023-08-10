@@ -1,21 +1,61 @@
 import base64
-import os
 from io import BytesIO
+from typing import Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .. import static
+from .. import SIYUAN
 
-fontpath = os.path.join(static, 'SourceHanSansSC-Bold.otf')
+
+class DrawText:
+
+    def __init__(self, image: ImageDraw.ImageDraw, font: str) -> None:
+        self._img = image
+        self._font = font
+
+    def get_box(self, text: str, size: int):
+        return ImageFont.truetype(self._font, size).getbbox(text)
+
+    def draw(self,
+            pos_x: int,
+            pos_y: int,
+            size: int,
+            text: str,
+            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
+            anchor: str = 'lt',
+            stroke_width: int = 0,
+            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0),
+            multiline: bool = False):
+
+        font = ImageFont.truetype(self._font, size)
+        if multiline:
+            self._img.multiline_text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+        else:
+            self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    
+    def draw_partial_opacity(self,
+            pos_x: int,
+            pos_y: int,
+            size: int,
+            text: str,
+            po: int = 2,
+            color: Tuple[int, int, int, int] = (255, 255, 255, 255),
+            anchor: str = 'lt',
+            stroke_width: int = 0,
+            stroke_fill: Tuple[int, int, int, int] = (0, 0, 0, 0)):
+
+        font = ImageFont.truetype(self._font, size)
+        self._img.text((pos_x + po, pos_y + po), str(text), (0, 0, 0, 128), font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+        self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
 
 
 def draw_text(img_pil: Image.Image, text: str, offset_x: float):
     draw = ImageDraw.Draw(img_pil)
-    font = ImageFont.truetype(fontpath, 48)
+    font = ImageFont.truetype(SIYUAN, 48)
     width, height = draw.textsize(text, font)
     x = 5
     if width > 390:
-        font = ImageFont.truetype(fontpath, int(390 * 48 / width))
+        font = ImageFont.truetype(SIYUAN, int(390 * 48 / width))
         width, height = draw.textsize(text, font)
     else:
         x = int((400 - width) / 2)
@@ -24,7 +64,7 @@ def draw_text(img_pil: Image.Image, text: str, offset_x: float):
 
 
 def text_to_image(text: str) -> Image.Image:
-    font = ImageFont.truetype(fontpath, 24)
+    font = ImageFont.truetype(SIYUAN, 24)
     padding = 10
     margin = 4
     text_list = text.split('\n')
