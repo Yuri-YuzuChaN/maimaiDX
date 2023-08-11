@@ -306,8 +306,8 @@ def update_rating_table() -> str:
                         x += 85
                     cover = os.path.join(coverdir, f'{music.id}.png')
                     if os.path.isfile(cover):
-                        if music.lv != 3:
-                            cover_bg = diff[music.lv]
+                        if int(music.lv) != 3:
+                            cover_bg = diff[int(music.lv)]
                             cover_bg.alpha_composite(Image.open(cover).convert('RGBA').resize((65, 65)), (5, 5))
                         else:
                             cover_bg = Image.open(cover).convert('RGBA').resize((75, 75))
