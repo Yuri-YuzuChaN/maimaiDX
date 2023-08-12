@@ -45,7 +45,7 @@ async def _(event: CQEvent):
     mai.guess()
 
 
-@sucmd('updateDate', aliases=('更新maimai数据'))
+@sucmd('updateData', aliases=('更新maimai数据'))
 async def _(session: CommandSession):
     await mai.get_music()
     await mai.get_music_alias()
