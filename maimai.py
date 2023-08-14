@@ -3,11 +3,10 @@ import re
 from random import sample
 from string import ascii_uppercase, digits
 
-from nonebot import NoneBot, on_websocket_connect
-
 from hoshino import Service, priv
 from hoshino.service import sucmd
 from hoshino.typing import CommandSession, CQEvent, MessageSegment
+from nonebot import NoneBot, on_websocket_connect
 
 from . import *
 from .libraries.image import *
@@ -784,42 +783,6 @@ async def rating_ranking(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, data, at_sender=True)
 
 
-async def guess_music_loop(bot: NoneBot, ev: CQEvent):
-    gid = str(ev.group_id)
-    cycle = guess.Group[gid]['cycle']
-    if cycle != 0:
-        await asyncio.sleep(8)
-    else:
-        await asyncio.sleep(4)
-    _guess = guess.Group[gid]['object']
-    if ev.group_id not in guess.config['enable'] or _guess.is_end:
-        return
-    if cycle < 6:
-        await bot.send(ev, f'{cycle + 1}/7 这首歌{_guess.guess_options[cycle]}')
-        guess.Group[gid]['cycle'] += 1
-        await guess_music_loop(bot, ev)
-    else:
-        await bot.send(ev,f'''7/7 这首歌封面的一部分是：
-{MessageSegment.image(_guess.b64image)}
-答案将在30秒后揭晓''')
-        await give_answer(bot, ev)
-
-async def give_answer(bot: NoneBot, ev: CQEvent):
-    gid = str(ev.group_id)
-    for _ in range(30):
-        await asyncio.sleep(1)
-        if gid in guess.Group:
-            if ev.group_id not in guess.config['enable'] or guess.Group[gid]['object'].is_end:
-                return
-        else:
-            return
-    msg = f'''答案是：
-{await new_draw_music_info(guess.Group[gid]['object'].music)}'''
-    guess.Group[gid]['object'].is_end = True
-    guess.end(gid)
-    await bot.finish(ev, msg)
-
-
 @sv.on_fullmatch('猜歌')
 async def guess_music(bot: NoneBot, ev: CQEvent):
     gid = str(ev.group_id)
@@ -827,11 +790,28 @@ async def guess_music(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, '该群已关闭猜歌功能，开启请输入 开启mai猜歌')
     if gid in guess.Group:
         await bot.finish(ev, '该群已有正在进行的猜歌')
-    guess.add(gid)
-    await mai.start()
-    guess.start(gid, mai, 0)
-    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id，标题或别名 进行猜歌（DX乐谱和标准乐谱视为两首歌）。')
-    await guess_music_loop(bot, ev)
+    await guess.start(gid)
+    await bot.send(ev, '我将从热门乐曲中选择一首歌，每隔8秒描述它的特征，请输入歌曲的 id 标题 或 别名（需bot支持，无需大小写） 进行猜歌（DX乐谱和标准乐谱视为两首歌）。猜歌时查歌等其他命令依然可用。')
+    await asyncio.sleep(4)
+    for cycle in range(7):
+        if ev.group_id not in guess.config['enable'] or gid not in guess.Group or guess.Group[gid].end:
+            break
+        if cycle < 6:
+            await bot.send(ev, f'{cycle + 1}/7 这首歌{guess.Group[gid].options[cycle]}')
+            await asyncio.sleep(8)
+        else:
+            await bot.send(ev, f'''7/7 这首歌封面的一部分是：\n{MessageSegment.image(guess.Group[gid].img)}答案将在30秒后揭晓''')
+            for _ in range(30):
+                await asyncio.sleep(1)
+                if gid in guess.Group:
+                    if ev.group_id not in guess.config['enable'] or guess.Group[gid].end:
+                        break
+                else:
+                    break
+            guess.Group[gid].end = True
+            answer = f'''答案是：\n{await new_draw_music_info(guess.Group[gid].music)}'''
+            guess.end(gid)
+            await bot.send(ev, answer)
 
 
 @sv.on_message()
@@ -840,13 +820,11 @@ async def guess_music_solve(bot: NoneBot, ev: CQEvent):
     if gid not in guess.Group:
         return
     ans: str = ev.message.extract_plain_text().strip().lower()
-    _guess = guess.Group[gid]['object']
-    if ans.lower() in _guess.answer:
-        _guess.is_end = True
+    if ans.lower() in guess.Group[gid].answer:
+        guess.Group[gid].end = True
+        answer = f'''猜对了，答案是：\n{await new_draw_music_info(guess.Group[gid].music)}'''
         guess.end(gid)
-        msg = f'''猜对了，答案是：
-{await new_draw_music_info(_guess.music)}'''
-        await bot.finish(ev, msg, at_sender=True)
+        await bot.send(ev, answer, at_sender=True)
 
 
 @sv.on_fullmatch('重置猜歌')
