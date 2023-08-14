@@ -421,38 +421,21 @@ class MaiMusic:
                     self.hot_music_ids.append(music.id)  # 游玩次数超过1w次加入猜歌库
         self.guess_data = list(filter(lambda x: x.id in self.hot_music_ids, self.total_list))
 
-    async def start(self):
-        """
-        开始猜歌
-        """
-        self.music: Music = random.choice(self.guess_data)
-        self.guess_options = [
-            f'的 Expert 难度是 {self.music.level[2]}',
-            f'的 Master 难度是 {self.music.level[3]}',
-            f'的分类是 {self.music.basic_info.genre}',
-            f'的版本是 {self.music.basic_info.version}',
-            f'的艺术家是 {self.music.basic_info.artist}',
-            f'{"不" if self.music.type == "SD" else ""}是 DX 谱面',
-            f'{"没" if len(self.music.ds) == 4 else ""}有白谱',
-            f'的 BPM 是 {self.music.basic_info.bpm}'
-        ]
-        music = mai.total_alias_list.by_id(self.music.id)[0]
-        self.answer = music.Alias
-        self.answer.append(self.music.id)
-        self.guess_options = random.sample(self.guess_options, 6)
-        img = Image.open(await download_music_pictrue(self.music.id))
-        w, h = img.size
-        w2, h2 = int(w / 3), int(h / 3)
-        l, u = random.randrange(0, int(2 * w / 3)), random.randrange(0, int(2 * h / 3))
-        img = img.crop((l, u, l+w2, u+h2))
-        self.b64image = image_to_base64(img)
-        self.is_end = False
-
 mai = MaiMusic()
+
+
+class GuessData(BaseModel):
+    
+    music: Music
+    options: List[str]
+    answer: List[str]
+    img: str
+    end: bool = False
+
 
 class Guess:
 
-    Group: Dict[str, Dict[str, Union[MaiMusic, int]]] = {}
+    Group: Dict[str, GuessData] = {}
 
     def __init__(self) -> None:
         """
@@ -463,20 +446,41 @@ class Guess:
                 json.dump({'enable': [], 'disable': []}, f)
         self.config: Dict[str, List[int]] = json.load(open(guess_file, 'r', encoding='utf-8'))
     
-    def add(self, gid: str):
+    async def start(self, gid: str):
         """
-        新增猜歌群，防止重复指令
+        开始猜歌
         """
-        self.Group[gid] = {}
-    
-    def start(self, gid: str, music: MaiMusic, cycle: int = 0):
+        self.Group[gid] = await self.guessData()
+
+    async def guessData(self) -> GuessData:
         """
-        正式开始猜歌
+        获取猜歌数据
         """
-        self.Group[gid] = {
-            'object': music,
-            'cycle': cycle
-        }
+        music: Music = random.choice(mai.guess_data)
+        guess_options = random.sample([
+            f'的 Expert 难度是 {music.level[2]}',
+            f'的 Master 难度是 {music.level[3]}',
+            f'的分类是 {music.basic_info.genre}',
+            f'的版本是 {music.basic_info.version}',
+            f'的艺术家是 {music.basic_info.artist}',
+            f'{"不" if music.type == "SD" else ""}是 DX 谱面',
+            f'{"没" if len(music.ds) == 4 else ""}有白谱',
+            f'的 BPM 是 {music.basic_info.bpm}'
+        ], 6)
+        answer = mai.total_alias_list.by_id(music.id)[0].Alias
+        answer.append(music.id)
+        img = Image.open(await download_music_pictrue(music.id))
+        w, h = img.size
+        w2, h2 = int(w / 3), int(h / 3)
+        l, u = random.randrange(0, int(2 * w / 3)), random.randrange(0, int(2 * h / 3))
+        img = img.crop((l, u, l+w2, u+h2))
+        self.is_end = False
+        return GuessData(**{
+            'music': music,
+            'options': guess_options,
+            'answer': answer,
+            'img': image_to_base64(img),
+            'end': False})
 
     def end(self, gid: str):
         """
