@@ -75,8 +75,8 @@ plate_to_version = {
     '煌': 'maimai でらっくす Splash PLUS',
     '宙': 'maimai でらっくす UNiVERSE',
     '星': 'maimai でらっくす UNiVERSE PLUS',
-    'fes': 'maimai でらっくす FESTiVAL',
-    'fesp': 'maimai でらっくす FESTiVAL PLUS'
+    '祭': 'maimai でらっくす FESTiVAL',
+    '祝': 'maimai でらっくす FESTiVAL PLUS'
 }
 category = {
     '流行&动漫': 'anime',

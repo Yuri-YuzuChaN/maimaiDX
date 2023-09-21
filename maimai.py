@@ -682,7 +682,7 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, data, at_sender=True)
 
 
-@sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸宙星])([極极将舞神者]舞?)进度\s?(.+)?')
+@sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸宙星祭祝])([極极将舞神者]舞?)进度\s?(.+)?')
 async def plate_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
@@ -706,6 +706,10 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
         payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
     elif match.group(1) == '真':
         payload['version'] = list(set(version for version in list(plate_to_version.values())[0:2]))
+    elif match.group(1) == '星':
+        payload['version'] = [plate_to_version['宙']]
+    elif match.group(1) == '祝':
+        payload['version'] = [plate_to_version['祭']]
     else:
         payload['version'] = [plate_to_version[match.group(1)]]
 
