@@ -1,123 +1,168 @@
-import traceback
-from typing import Dict, List, Union
+import json
+from typing import Any, List, Optional
 
-import aiohttp
+from aiohttp import ClientSession, ClientTimeout
 
-from .. import log, token
+from .. import config_json
+from .maimaidx_error import *
 
-player_error = '''未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
-如未绑定，请前往查分器官网进行绑定
-https://www.diving-fish.com/maimaidx/prober/'''
-maimaiapi = 'https://www.diving-fish.com/api/maimaidxprober'
-ALIAS = {
-    'all': 'MaimaiDXAlias',
-    'songs': 'GetSongs',
-    'alias': 'GetSongsAlias',
-    'status': 'GetAliasStatus',
-    'apply': 'ApplyAlias',
-    'agree': 'AgreeUser',
-    'end': 'GetAliasEnd',
-    'music': 'GetMaimaiDXMusic',
-    'chart': 'GetMaimaiDXChartStats'
-}
 
-async def get_player_data(project: str, payload: dict) -> Union[dict, str]:
-    """
-    获取用户数据，获取失败时返回字符串
-    - `project` : 项目
-        - `best` : 玩家数据
-        - `plate` : 牌子
-    - `payload` : 传递给查分器的数据
-    """
-    if project == 'best':
-        p = 'player'
-    elif project == 'plate':
-        p = 'plate'
-    else:
-        return '项目错误'
-    try:
-        async with aiohttp.request('POST', f'{maimaiapi}/query/{p}', json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-            if resp.status == 400:
-                data = player_error
-            elif resp.status == 403:
-                data = '该用户禁止了其他人获取数据。'
-            elif resp.status == 200:
-                data = await resp.json()
+class MaimaiAPI:
+    
+    MaiAPI = 'https://www.diving-fish.com/api/maimaidxprober'
+    MaiAliasAPI = 'https://api.yuzuai.xyz/maimaidx'
+    
+    def __init__(self) -> None:
+        self.token = self.load_token()
+        self.headers = {'developer-token': self.token}
+    
+    
+    def load_token(self) -> str:
+        return json.load(open(config_json, 'r', encoding='utf-8'))['token']
+    
+    
+    async def _request(self, method: str, url: str, **kwargs) -> Any:
+        session = ClientSession(timeout=ClientTimeout(total=30))
+        res = await session.request(method, url, **kwargs)
+
+        data = None
+        
+        if self.MaiAPI in url:
+            if res.status == 200:
+                data = await res.json()
+            elif res.status == 400:
+                raise UserNotFoundError
+            elif res.status == 403:
+                raise UserDisabledQueryError
             else:
-                data = '未知错误，请联系BOT管理员'
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取玩家数据时发生错误，请联系BOT管理员: {type(e)}'
-    return data
-
-async def get_dev_player_data(payload: dict) -> Union[dict, str]:
-    try:
-        async with aiohttp.request('GET', f'{maimaiapi}/dev/player/records', headers={'developer-token': token}, params=payload) as resp:
-            if resp.status == 400:
-                data = player_error
-            elif resp.status == 403:
-                data = '该用户禁止了其他人获取数据。'
-            elif resp.status == 200:
-                data = await resp.json()
+                raise UnknownError
+        elif self.MaiAliasAPI in url:
+            if res.status == 200:
+                data = await res.json()
+                if 'error' in data:
+                    raise ValueError(f'发生错误：{data["error"]}')
+            elif res.status == 400:
+                raise EnterError
+            elif res.status == 500:
+                raise ServerError
             else:
-                data = '未知错误，请联系BOT管理员'
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取玩家数据时发生错误，请联系BOT管理员: {type(e)}'
-    return data
+                raise UnknownError
+        await session.close()
+        return data
+    
+    
+    async def music_data(self):
+        """获取曲目数据"""
+        return await self._request('GET', self.MaiAPI + '/music_data')
+    
+    
+    async def chart_stats(self):
+        """获取单曲数据"""
+        return await self._request('GET', self.MaiAPI + '/chart_stats')
+    
+    
+    async def query_user(self, project: str, *, qqid: Optional[int] = None, username: Optional[str] = None, version: Optional[List[str]] = None):
+        """
+        请求用户数据
+        
+        - `project`: 查询的功能
+            - `player`: 查询用户b50
+            - `plate`: 按版本查询用户游玩成绩
+        - `qqid`: 用户QQ
+        - `username`: 查分器用户名
+        """
+        json = {}
+        if qqid:
+            json['qq'] = qqid
+        if username:
+            json['username'] = username
+        if version:
+            json['version'] = version
+        if project == 'player':
+            json['b50'] = True
+        return await self._request('POST', self.MaiAPI + f'/query/{project}', json=json)
+    
+    
+    async def query_user_dev(self, *, qqid: Optional[int] = None, username: Optional[str] = None):
+        """
+        使用开发者接口获取用户数据，请确保拥有和输入了开发者 `token`
+        
+        - `qqid`: 用户QQ
+        - `username`: 查分器用户名
+        """
+        params = {}
+        if qqid:
+            params['qq'] = qqid
+        if username:
+            params['username'] = username
+        return await self._request('GET', self.MaiAPI + f'/dev/player/records', headers=self.headers, params=params)
+    
+    
+    async def rating_ranking(self):
+        """获取查分器排行榜"""
+        return await self._request('GET', self.MaiAPI + f'/rating_ranking')
+        
+    
+    async def get_alias(self):
+        """获取所有别名"""
+        return await self._request('GET', self.MaiAliasAPI + '/maimaidxalias')
+    
+    
+    async def get_songs(self, id: int):
+        """使用曲目 `id` 查询别名"""
+        return await self._request('GET', self.MaiAliasAPI + '/getsongsalias', params={'id': id})
+    
+    
+    async def get_alias_status(self):
+        """获取当前正在进行的别名投票"""
+        return await self._request('GET', self.MaiAliasAPI + '/getaliasstatus')
+    
+    
+    async def get_alias_end(self):
+        """获取五分钟内结束的别名投票"""
+        return await self._request('GET', self.MaiAliasAPI + '/getaliasend')
+    
+    
+    async def transfer_music(self):
+        """中转查分器曲目数据"""
+        return await self._request('GET', self.MaiAliasAPI + '/getmaimaidxmusic')
+    
+    
+    async def transfer_chart(self):
+        """中转查分器单曲数据"""
+        return await self._request('GET', self.MaiAliasAPI + '/getmaimaidxchartstats')
+    
+    
+    async def post_alias(self, id: int, aliasname: str, tag: str, user_id: int):
+        """
+        提交别名申请
+        
+        - `id`: 曲目 `id`
+        - `aliasname`: 别名
+        - `tag`: 标签
+        - `user_id`: 提交的用户
+        """
+        params = {
+            'id': id,
+            'aliasname': aliasname,
+            'tag': tag,
+            'uid': user_id
+        }
+        return await self._request('POST', self.MaiAliasAPI + '/applyalias', params=params)
+    
+    
+    async def post_agree_user(self, tag: str, user_id: int):
+        """
+        提交同意投票
+        
+        - `tag`: 标签
+        - `user_id`: 同意投票的用户
+        """
+        params = {
+            'tag': tag,
+            'uid': user_id
+        }
+        return await self._request('POST', self.MaiAliasAPI + '/agreeuser', params=params)
+    
 
-async def get_rating_ranking_data() -> Union[dict, str]:
-    """
-    获取排名，获取失败时返回字符串
-    """
-    try:
-        async with aiohttp.request('GET', f'{maimaiapi}/rating_ranking', timeout=aiohttp.ClientTimeout(total=30)) as resp:
-            if resp.status != 200:
-                data = '未知错误，请联系BOT管理员'
-            else:
-                data = await resp.json()
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取排名时发生错误，请联系BOT管理员: {type(e)}'
-    return data
-
-async def get_music_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
-    """
-    - `all`: 所有曲目的别名
-    - `songs`: 该别名的曲目
-    - `alias`: 该曲目的所有别名
-    - `status`: 正在进行的别名申请
-    - `end`: 已结束的别名申请
-    - `music`: 中转查分器乐曲数据
-    - `chart`: 中转查分器单曲数据
-    """
-    try:
-        async with aiohttp.request('GET', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-            if resp.status == 400:
-                data = '参数输入错误'
-            elif resp.status == 500:
-                data = '别名服务器错误，请联系插件开发者'
-            else:
-                data = await resp.json()
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'获取别名时发生错误，请联系BOT管理员: {type(e)}'
-    return data
-
-async def post_music_alias(api: str, params: dict = None) -> Union[List[Dict[str, Union[str, int, List[str]]]], Dict[str, Union[str, int, List[str]]]]:
-    """
-    - `apply`: 申请别名
-    - `agree`: 同意别名
-    """
-    try:
-        async with aiohttp.request('POST', f'https://api.yuzuai.xyz/maimaidx/{ALIAS[api]}', params=params, timeout=aiohttp.ClientTimeout(total=30)) as resp:
-            if resp.status == 400:
-                data = '参数输入错误'
-            elif resp.status == 500:
-                data = '别名服务器错误，请联系插件开发者'
-            else:
-                data = await resp.json()
-    except Exception as e:
-        log.error(f'Error: {traceback.format_exc()}')
-        data = f'提交别名时发生错误，请联系BOT管理员: {type(e)}'
-    return data
+maiApi = MaimaiAPI()

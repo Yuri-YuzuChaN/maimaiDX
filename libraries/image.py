@@ -11,7 +11,7 @@ class DrawText:
 
     def __init__(self, image: ImageDraw.ImageDraw, font: str) -> None:
         self._img = image
-        self._font = font
+        self._font = str(font)
 
     def get_box(self, text: str, size: int):
         return ImageFont.truetype(self._font, size).getbbox(text)
@@ -51,11 +51,11 @@ class DrawText:
 
 def draw_text(img_pil: Image.Image, text: str, offset_x: float):
     draw = ImageDraw.Draw(img_pil)
-    font = ImageFont.truetype(SIYUAN, 48)
+    font = ImageFont.truetype(str(SIYUAN), 48)
     width, height = draw.textsize(text, font)
     x = 5
     if width > 390:
-        font = ImageFont.truetype(SIYUAN, int(390 * 48 / width))
+        font = ImageFont.truetype(str(SIYUAN), int(390 * 48 / width))
         width, height = draw.textsize(text, font)
     else:
         x = int((400 - width) / 2)
@@ -64,7 +64,7 @@ def draw_text(img_pil: Image.Image, text: str, offset_x: float):
 
 
 def text_to_image(text: str) -> Image.Image:
-    font = ImageFont.truetype(SIYUAN, 24)
+    font = ImageFont.truetype(str(SIYUAN), 24)
     padding = 10
     margin = 4
     text_list = text.split('\n')

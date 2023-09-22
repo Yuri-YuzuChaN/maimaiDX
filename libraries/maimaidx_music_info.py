@@ -1,7 +1,7 @@
-import os
-import traceback
-from typing import Union
+from io import BytesIO
+from typing import Dict, Union
 
+import aiofiles
 from PIL import Image, ImageDraw
 
 from hoshino.typing import MessageSegment
@@ -10,21 +10,18 @@ from .. import *
 from .image import DrawText
 from .maimai_best_50 import *
 from .maimaidx_api_data import *
+from .maimaidx_error import *
 from .maimaidx_music import Music, RaMusic, download_music_pictrue, mai
-
-realAchievementList = {}
-for acc in [i / 10 for i in range(10, 151)]:
-    realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc)
 
 
 async def draw_music_info(music: Music) -> MessageSegment:
     """
     旧的谱面详情
     """
-    im = Image.open(os.path.join(maimaidir, 'music_bg.png')).convert('RGBA')
-    genre = Image.open(os.path.join(maimaidir, f'music-{category[music.basic_info.genre]}.png'))
+    im = Image.open(maimaidir / 'music_bg.png').convert('RGBA')
+    genre = Image.open(maimaidir / f'music-{category[music.basic_info.genre]}.png')
     cover = Image.open(await download_music_pictrue(music.id)).resize((360, 360))
-    ver = Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((94, 35))
+    ver = Image.open(maimaidir / f'{music.type}.png').resize((94, 35))
     line = Image.new('RGBA', (400, 2), (255, 255, 255, 255))
 
     im.alpha_composite(genre, (150, 170))
@@ -57,152 +54,161 @@ async def draw_music_info(music: Music) -> MessageSegment:
     return msg
 
 
-async def music_play_data(payload: dict, songs: str) -> Union[str, MessageSegment, None]:
+async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment, None]:
     """
     谱面游玩
     """
-    payload['version'] = list(set(version for version in plate_to_version.values()))
-    data = await get_player_data('plate', payload)
-    if isinstance(data, str):
-        return data
+    try:
+        version = list(set(_v for _v in plate_to_version.values()))
+        data = await maiApi.query_user('plate', qqid=qqid, version=version)
 
-    player_data: list[dict[str, Union[float, str, int]]] = []
-    for i in data['verlist']:
-        if i['id'] == int(songs):
-            player_data.append(i)
-    if not player_data:
-        return '您未游玩该曲目'
-    
-    player_data.sort(key=lambda a: a['level_index'])
-    music = mai.total_list.by_id(songs)
+        player_data: list[dict[str, Union[float, str, int]]] = []
+        for i in data['verlist']:
+            if i['id'] == int(songs):
+                player_data.append(i)
+        if not player_data:
+            return '您未游玩该曲目'
+        
+        player_data.sort(key=lambda a: a['level_index'])
+        music = mai.total_list.by_id(songs)
 
-    im = Image.open(os.path.join(maimaidir, 'info_bg.png')).convert('RGBA')
-    
-    dr = ImageDraw.Draw(im)
-    tb = DrawText(dr, TBFONT)
-    sy = DrawText(dr, SIYUAN)
+        im = Image.open(maimaidir / 'info_bg.png').convert('RGBA')
+        
+        dr = ImageDraw.Draw(im)
+        tb = DrawText(dr, TBFONT)
+        sy = DrawText(dr, SIYUAN)
 
-    im.alpha_composite(Image.open(await download_music_pictrue(music.id)).resize((235, 235)), (65, 165))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.basic_info.version}.png')).resize((150, 72)), (690, 335))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((80, 30)), (600, 368))
+        im.alpha_composite(Image.open(await download_music_pictrue(music.id)).resize((235, 235)), (65, 165))
+        im.alpha_composite(Image.open(maimaidir / f'{music.basic_info.version}.png').resize((150, 72)), (690, 335))
+        im.alpha_composite(Image.open(maimaidir / f'{music.type}.png').resize((80, 30)), (600, 368))
 
-    color = (140, 44, 213, 255)
-    title = music.title
-    if coloumWidth(title) > 35:
-        title = changeColumnWidth(title, 34) + '...'
-    sy.draw(320, 185, 24, title, color, 'lm')
-    sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
-    tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
-    tb.draw(320, 380, 18, f'ID {music.id}', color, 'lm')
-    sy.draw(500, 380, 16, music.basic_info.genre, color, 'mm')
+        color = (140, 44, 213, 255)
+        title = music.title
+        if coloumWidth(title) > 35:
+            title = changeColumnWidth(title, 34) + '...'
+        sy.draw(320, 185, 24, title, color, 'lm')
+        sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
+        tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
+        tb.draw(320, 380, 18, f'ID {music.id}', color, 'lm')
+        sy.draw(500, 380, 16, music.basic_info.genre, color, 'mm')
 
-    y = 120
-    TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
-    for _data in player_data:
-        ds: float = music.ds[_data['level_index']]
-        lv: int = _data['level_index']
-        ra, rate = computeRa(ds, _data['achievements'], israte=True)
+        y = 120
+        TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
+        for _data in player_data:
+            ds: float = music.ds[_data['level_index']]
+            lv: int = _data['level_index']
+            ra, rate = computeRa(ds, _data['achievements'], israte=True)
 
-        rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((120, 57))
-        im.alpha_composite(rank, (430, 515 + y * lv))
-        if _data['fc']:
-            fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
-            im.alpha_composite(fc, (575, 511 + y * lv))
-        if _data['fs']:
-            fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
-            im.alpha_composite(fs, (650, 511 + y * lv))
+            rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((120, 57))
+            im.alpha_composite(rank, (430, 515 + y * lv))
+            if _data['fc']:
+                fc = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png').resize((76, 76))
+                im.alpha_composite(fc, (575, 511 + y * lv))
+            if _data['fs']:
+                fs = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png').resize((76, 76))
+                im.alpha_composite(fs, (650, 511 + y * lv))
 
-        p, s = f'{_data["achievements"]:.4f}'.split('.')
-        r = tb.get_box(p, 36)
-        tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
-        tb.draw(200, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
-        tb.draw(200 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
-        tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
+            p, s = f'{_data["achievements"]:.4f}'.split('.')
+            r = tb.get_box(p, 36)
+            tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
+            tb.draw(200, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
+            tb.draw(200 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
+            tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
 
-    sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
-    msg = MessageSegment.image(image_to_base64(im))
-
+        sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
+        msg = MessageSegment.image(image_to_base64(im))
+    except UserNotFoundError as e:
+        msg = str(e)
+    except UserDisabledQueryError as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
     return msg
 
 
-async def music_play_data_dev(payload: dict, songs: str) -> Union[str, MessageSegment, None]:
+async def music_play_data_dev(qqid: int, songs: str) -> Union[str, MessageSegment, None]:
     """
     带Token的谱面游玩
     """
-    data = await get_dev_player_data(payload)
+    try:
+        data = await maiApi.query_user_dev(qqid=qqid)
 
-    if isinstance(data, str):
-        return data
-    datalist = data['records'] if token else data['verlist']
-    player_data: list[dict[str, Union[float, str, int]]] = []
-    for i in datalist:
-        if i['song_id'] == int(songs):
-            player_data.append(i)
-    if not player_data:
-        return '您未游玩该曲目'
-    
-    DXSTAR_DEST = [0, 540, 530, 520, 510, 500]
+        player_data: list[dict[str, Union[float, str, int]]] = []
+        for i in data['records']:
+            if i['song_id'] == int(songs):
+                player_data.append(i)
+        if not player_data:
+            return '您未游玩该曲目'
+        
+        DXSTAR_DEST = [0, 540, 530, 520, 510, 500]
 
-    player_data.sort(key=lambda a: a['level_index'])
-    music = mai.total_list.by_id(songs)
+        player_data.sort(key=lambda a: a['level_index'])
+        music = mai.total_list.by_id(songs)
 
-    bg = os.path.join(maimaidir, 'info_bg_2.png')
-    im = Image.open(bg).convert('RGBA')
-    dxstar = [Image.open(os.path.join(maimaidir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
+        im = Image.open(maimaidir / 'info_bg_2.png').convert('RGBA')
+        dxstar = [Image.open(maimaidir / f'UI_RSL_DXScore_Star_0{_ + 1}.png').resize((20, 20)) for _ in range(3)]
 
-    dr = ImageDraw.Draw(im)
-    tb = DrawText(dr, TBFONT)
-    sy = DrawText(dr, SIYUAN)
+        dr = ImageDraw.Draw(im)
+        tb = DrawText(dr, TBFONT)
+        sy = DrawText(dr, SIYUAN)
 
-    im.alpha_composite(Image.open(await download_music_pictrue(music.id)).resize((235, 235)), (65, 165))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.basic_info.version}.png')).resize((150, 72)), (690, 335))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.type}.png')).resize((80, 30)), (600, 368))
+        im.alpha_composite(Image.open(await download_music_pictrue(music.id)).resize((235, 235)), (65, 165))
+        im.alpha_composite(Image.open(maimaidir / f'{music.basic_info.version}.png').resize((150, 72)), (690, 335))
+        im.alpha_composite(Image.open(maimaidir / f'{music.type}.png').resize((80, 30)), (600, 368))
 
-    color = (140, 44, 213, 255)
-    title = music.title
-    if coloumWidth(title) > 35:
-        title = changeColumnWidth(title, 34) + '...'
-    sy.draw(320, 185, 24, title, color, 'lm')
-    sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
-    tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
-    tb.draw(320, 380, 18, f'ID {music.id}', color, 'lm')
-    sy.draw(500, 380, 16, music.basic_info.genre, color, 'mm')
+        color = (140, 44, 213, 255)
+        title = music.title
+        if coloumWidth(title) > 35:
+            title = changeColumnWidth(title, 34) + '...'
+        sy.draw(320, 185, 24, title, color, 'lm')
+        sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
+        tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
+        tb.draw(320, 380, 18, f'ID {music.id}', color, 'lm')
+        sy.draw(500, 380, 16, music.basic_info.genre, color, 'mm')
 
-    y = 120
-    TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
-    for _data in player_data:
-        ds: float = _data['ds']
-        lv: int = _data['level_index']
-        dxscore = _data['dxScore']
-        ra, rate = computeRa(ds, _data['achievements'], israte=True)
+        y = 120
+        TEXT_COLOR = [(14, 117, 54, 255), (199, 69, 12, 255), (175, 0, 50, 255), (103, 20, 141, 255), (103, 20, 141, 255)]
+        for _data in player_data:
+            ds: float = _data['ds']
+            lv: int = _data['level_index']
+            dxscore = _data['dxScore']
+            ra, rate = computeRa(ds, _data['achievements'], israte=True)
 
-        rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((120, 57))
-        im.alpha_composite(rank, (358, 518 + y * lv))
+            rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((120, 57))
+            im.alpha_composite(rank, (358, 518 + y * lv))
 
-        _dxscore = sum(music.charts[lv].notes) * 3
-        diff_sum_dx = dxscore / _dxscore * 100
-        dxtype, dxnum = dxScore(diff_sum_dx)
-        for _ in range(dxnum):
-            im.alpha_composite(dxstar[dxtype], (DXSTAR_DEST[dxnum] + 20 * _, 550 + y * lv))
+            _dxscore = sum(music.charts[lv].notes) * 3
+            diff_sum_dx = dxscore / _dxscore * 100
+            dxtype, dxnum = dxScore(diff_sum_dx)
+            for _ in range(dxnum):
+                im.alpha_composite(dxstar[dxtype], (DXSTAR_DEST[dxnum] + 20 * _, 550 + y * lv))
 
-        if _data['fc']:
-            fc = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png')).resize((76, 76))
-            im.alpha_composite(fc, (605, 511 + y * lv))
-        if _data['fs']:
-            fs = Image.open(os.path.join(maimaidir, f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png')).resize((76, 76))
-            im.alpha_composite(fs, (670, 511 + y * lv))
+            if _data['fc']:
+                fc = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[_data["fc"]]}.png').resize((76, 76))
+                im.alpha_composite(fc, (605, 511 + y * lv))
+            if _data['fs']:
+                fs = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl[_data["fs"]]}.png').resize((76, 76))
+                im.alpha_composite(fs, (670, 511 + y * lv))
 
-        p, s = f'{_data["achievements"]:.4f}'.split('.')
-        r = tb.get_box(p, 36)
-        tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
-        tb.draw(175, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
-        tb.draw(175 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
-        tb.draw(550, (535 if dxnum != 0 else 548) + y * lv, 20, f'{dxscore}/{_dxscore}', TEXT_COLOR[lv], 'mm')
-        tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
+            p, s = f'{_data["achievements"]:.4f}'.split('.')
+            r = tb.get_box(p, 36)
+            tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
+            tb.draw(175, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
+            tb.draw(175 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
+            tb.draw(550, (535 if dxnum != 0 else 548) + y * lv, 20, f'{dxscore}/{_dxscore}', TEXT_COLOR[lv], 'mm')
+            tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
 
-    sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
-    msg = MessageSegment.image(image_to_base64(im))
+        sy.draw(450, 1180, 20, f'Designed by Yuri-YuzuChaN | Generated by {BOTNAME} BOT', (159, 81, 220, 255), 'mm', 2, (255, 255, 255, 255))
+        msg = MessageSegment.image(image_to_base64(im))
 
+    except UserNotFoundError as e:
+        msg = str(e)
+    except UserDisabledQueryError as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
     return msg
 
 
@@ -210,7 +216,7 @@ async def new_draw_music_info(music: Music) -> str:
     """
     新的查看谱面
     """
-    im = Image.open(os.path.join(maimaidir, 'song_bg.png')).convert('RGBA')
+    im = Image.open(maimaidir / 'song_bg.png').convert('RGBA')
     dr = ImageDraw.Draw(im)
     tb = DrawText(dr, TBFONT)
     sy = DrawText(dr, SIYUAN)
@@ -218,8 +224,8 @@ async def new_draw_music_info(music: Music) -> str:
     default_color = (140, 44, 213, 255)
     
     im.alpha_composite(Image.open(await download_music_pictrue(music.id)), (205, 305))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.basic_info.version}.png')).resize((250, 120)), (1340, 590))
-    im.alpha_composite(Image.open(os.path.join(maimaidir, f'{music.type}.png')), ((1150, 643)))
+    im.alpha_composite(Image.open(maimaidir / f'{music.basic_info.version}.png').resize((250, 120)), (1340, 590))
+    im.alpha_composite(Image.open(maimaidir / f'{music.type}.png'), ((1150, 643)))
     
     title = music.title
     if coloumWidth(title) > 42:
@@ -251,7 +257,7 @@ async def new_draw_music_info(music: Music) -> str:
     return msg
 
 
-def update_rating_table() -> str:
+async def update_rating_table() -> str:
     """
     更新定数表
     """
@@ -261,26 +267,26 @@ def update_rating_table() -> str:
         lv3 = ['12+', '13+', '14', '14+', '15']
         
         bg_color = [(111, 212, 61, 255), (248, 183, 9, 255), (255, 129, 141, 255), (159, 81, 220, 255), (219, 170, 255, 255)]
-        dx = Image.open(os.path.join(maimaidir, 'DX.png')).convert('RGBA').resize((44, 16))
+        dx = Image.open(maimaidir / 'DX.png').convert('RGBA').resize((44, 16))
         diff = [Image.new('RGBA', (75, 75), color) for color in bg_color]
         
         for ra in levelList[5:]:
             musiclist = mai.total_list.lvList(True)
 
             if ra in lv1:
-                im = Image.open(os.path.join(ratingdir, 'Rating3.png')).convert('RGBA')
+                im = Image.open(ratingdir / 'Rating3.png').convert('RGBA')
             elif ra in lv2:
-                im = Image.open(os.path.join(ratingdir, 'Rating2.png')).convert('RGBA')
+                im = Image.open(ratingdir / 'Rating2.png').convert('RGBA')
             elif ra in lv3:
-                im = Image.open(os.path.join(ratingdir, 'Rating.png')).convert('RGBA')
+                im = Image.open(ratingdir / 'Rating.png').convert('RGBA')
             dr = ImageDraw.Draw(im)
             sy = DrawText(dr, SIYUAN)
 
             if ra in levelList[-3:]:
-                bg = os.path.join(ratingdir, '14.png')
+                bg = ratingdir / '14.png'
                 ralist = levelList[-3:]
             else:
-                bg = os.path.join(ratingdir, f'{ra}.png')
+                bg = ratingdir / f'{ra}.png'
                 ralist = [ra]
 
             lvlist: Dict[str, List[RaMusic]] = {}
@@ -304,8 +310,8 @@ def update_rating_table() -> str:
                         y += 85
                     else:
                         x += 85
-                    cover = os.path.join(coverdir, f'{music.id}.png')
-                    if os.path.isfile(cover):
+                    cover = coverdir / f'{music.id}.png'
+                    if cover.exists():
                         if int(music.lv) != 3:
                             cover_bg = diff[int(music.lv)]
                             cover_bg.alpha_composite(Image.open(cover).convert('RGBA').resize((65, 65)), (5, 5))
@@ -317,7 +323,11 @@ def update_rating_table() -> str:
                 if not lvlist[lv]:
                     y += 85
             
-            im.save(bg)
+            by = BytesIO()
+            im.save(by, 'PNG')
+            async with aiofiles.open(bg, 'wb') as f:
+                await f.write(by.getbuffer())
+            
             log.info(f'lv.{ra} 定数表更新完成')
         return '定数表更新完成'
     except Exception as e:
@@ -325,52 +335,58 @@ def update_rating_table() -> str:
         return f'定数表更新失败，Error: {e}'
 
 
-async def rating_table_draw(payload: dict, args: str) -> Union[str, MessageSegment, None]:
-    payload['version'] = list(set(version for version in plate_to_version.values()))
-    data = await get_player_data('plate', payload)
-    if isinstance(data, str):
-        return data
-    
-    if args in levelList[-3:]:
-        bg = os.path.join(ratingdir, '14.png')
-        ralist = levelList[-3:]
-    else:
-        bg = os.path.join(ratingdir, f'{args}.png')
-        ralist = [args]
-    
-    fromid = {}
-    for _data in data['verlist']:
-        if _data['level'] in ralist:
-            if (id := str(_data['id'])) not in fromid:
-                fromid[id] = {}
-            fromid[id][str(_data['level_index'])] = {
-                'achievements': _data['achievements'],
-                'level': _data['level']
-            }
+async def rating_table_draw(qqid: int, rating: str) -> str:
+    try:
+        version = list(set(_v for _v in plate_to_version.values()))
+        data = await maiApi.query_user('plate', qqid=qqid, version=version)
+        
+        if rating in levelList[-3:]:
+            bg = ratingdir / '14.png'
+            ralist = levelList[-3:]
+        else:
+            bg = ratingdir / f'{rating}.png'
+            ralist = [rating]
+        
+        fromid = {}
+        for _data in data['verlist']:
+            if _data['level'] in ralist:
+                if (id := str(_data['id'])) not in fromid:
+                    fromid[id] = {}
+                fromid[id][str(_data['level_index'])] = {
+                    'achievements': _data['achievements'],
+                    'level': _data['level']
+                }
 
-    musiclist = mai.total_list.lvList(True)
-    lvlist: Dict[str, List[RaMusic]] = {}
-    for lv in list(reversed(ralist)):
-        for _ra in musiclist[lv]:
-            lvlist[_ra] = musiclist[lv][_ra]
-    
-    im = Image.open(bg).convert('RGBA')
-    b2 = Image.new('RGBA', (75, 75), (0, 0, 0, 64))
-    y = 138
-    for ra in lvlist:
-        y += 10
-        for num, music in enumerate(lvlist[ra]):
-            if num % 15 == 0:
-                x = 198
-                y += 85
-            else:
-                x += 85
-            if music.id in fromid and music.lv in fromid[music.id]:
-                ra, rate = computeRa(music.ds, fromid[music.id][music.lv]['achievements'], israte=True)
-                im.alpha_composite(b2, (x + 2, y - 18))
-                rank = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{rate}.png')).resize((78, 36))
-                im.alpha_composite(rank, (x, y))
-    
-    msg = MessageSegment.image(image_to_base64(im))
-    
+        musiclist = mai.total_list.lvList(True)
+        lvlist: Dict[str, List[RaMusic]] = {}
+        for lv in list(reversed(ralist)):
+            for _ra in musiclist[lv]:
+                lvlist[_ra] = musiclist[lv][_ra]
+        
+        im = Image.open(bg).convert('RGBA')
+        b2 = Image.new('RGBA', (75, 75), (0, 0, 0, 64))
+        y = 138
+        for ra in lvlist:
+            y += 10
+            for num, music in enumerate(lvlist[ra]):
+                if num % 15 == 0:
+                    x = 198
+                    y += 85
+                else:
+                    x += 85
+                if music.id in fromid and music.lv in fromid[music.id]:
+                    ra, rate = computeRa(music.ds, fromid[music.id][music.lv]['achievements'], israte=True)
+                    im.alpha_composite(b2, (x + 2, y - 18))
+                    rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((78, 36))
+                    im.alpha_composite(rank, (x, y))
+        
+        msg = MessageSegment.image(image_to_base64(im))
+        
+    except UserNotFoundError as e:
+        msg = str(e)
+    except UserDisabledQueryError as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
     return msg

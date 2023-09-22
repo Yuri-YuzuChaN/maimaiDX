@@ -1,7 +1,7 @@
 import asyncio
 import json
-import os
 import random
+import traceback
 from collections import namedtuple
 from copy import deepcopy
 from io import BytesIO
@@ -241,7 +241,7 @@ class AliasList(List[Alias]):
 
 async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
     try:
-        if os.path.exists(file := os.path.join(coverdir, f'{id}.png')):
+        if (file := coverdir / f'{id}.png').exists():
             return file
         id = int(id)
         if id > 10000 and id <= 11000:
@@ -250,9 +250,9 @@ async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
             if req.status == 200:
                 return BytesIO(await req.read())
             else:
-                return os.path.join(coverdir, '11000.png')
+                return coverdir / '11000.png'
     except:
-        return os.path.join(coverdir, '11000.png')
+        return coverdir / '11000.png'
 
 
 async def openfile(file: str) -> Union[dict, list]:
@@ -274,21 +274,15 @@ async def get_music_list() -> MusicList:
     # MusicData
     try:
         try:
-            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/music_data', timeout=aiohttp.ClientTimeout(total=30)) as obj_data:
-                if obj_data.status != 200:
-                    log.error('从diving-fish获取maimaiDX曲目数据失败，请检查网络环境。已切换至本地暂存文件')
-                    music_data = await openfile(music_file)
-                else:
-                    music_data = await obj_data.json()
-                    await writefile(music_file, music_data)
+            music_data = await maiApi.music_data()
+            await writefile(music_file, music_data)
         except asyncio.exceptions.TimeoutError:
             log.error('从diving-fish获取maimaiDX曲目数据超时，正在使用yuzuapi中转获取曲目数据')
-            music_data = await get_music_alias('music')
-            if isinstance(music_data, str):
-                log.error('从yuzuapi获取maimaiDX曲目数据失败。已切换至本地暂存文件')
-                music_data = await openfile(music_file)
-            else:
-                await writefile(music_file, music_data)
+            music_data = await maiApi.transfer_music()
+            await writefile(music_file, music_data)
+        except UnknownError:
+            log.error('从diving-fish获取maimaiDX曲目数据失败，请检查网络环境。已切换至本地暂存文件')
+            music_data = await openfile(music_file)
         except Exception:
             log.error(f'Error: {traceback.format_exc()}')
             log.error('maimaiDX曲目数据获取失败，请检查网络环境。已切换至本地暂存文件')
@@ -299,21 +293,15 @@ async def get_music_list() -> MusicList:
     # ChartStats
     try:
         try:
-            async with aiohttp.request('GET', 'https://www.diving-fish.com/api/maimaidxprober/chart_stats', timeout=aiohttp.ClientTimeout(total=30)) as obj_stats:
-                if obj_stats.status != 200:
-                    log.error('从diving-fish获取maimaiDX单曲数据获取错误。已切换至本地暂存文件')
-                    chart_stats = await openfile(chart_file)
-                else:
-                    chart_stats = await obj_stats.json()
-                    await writefile(chart_file, chart_stats)
+            chart_stats = await maiApi.chart_stats()
+            await writefile(chart_file, chart_stats)
         except asyncio.exceptions.TimeoutError:
             log.error('从diving-fish获取maimaiDX数据获取超时，正在使用yuzuapi中转获取单曲数据')
-            chart_stats = await get_music_alias('chart')
-            if isinstance(chart_stats, str):
-                log.error('从yuzuapi获取maimaiDX数据获取失败。已切换至本地暂存文件')
-                chart_stats = await openfile(chart_file)
-            else:
-                await writefile(chart_file, chart_stats)
+            chart_stats = await maiApi.transfer_chart()
+            await writefile(chart_file, chart_stats)
+        except UnknownError:
+            log.error('从diving-fish获取maimaiDX单曲数据获取错误。已切换至本地暂存文件')
+            chart_stats = await openfile(chart_file)
         except Exception:
             log.error(f'Error: {traceback.format_exc()}')
             log.error('maimaiDX数据获取错误，请检查网络环境。已切换至本地暂存文件')
@@ -335,54 +323,46 @@ async def get_music_alias_list() -> AliasList:
     """
     获取所有别名
     """
-    if os.path.exists(alias_file):
-        local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(alias_file)
+    if local_alias_file.exists():
+        local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(local_alias_file)
     else:
         local_alias_data = {}
-    
-    alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await get_music_alias('all')
-    if isinstance(alias_data, str):
+    try:
+        alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await maiApi.get_alias()
+        await writefile(alias_file, alias_data)
+    except ServerError as e:
+        log.error(e)
+    except UnknownError:
         log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
-        if not local_alias_data:
+        alias_data = await openfile(alias_file)
+        if not alias_data:
             log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
-    else:
-        for id, music in alias_data.items():
-            if id in local_alias_data:
-                for alias_name in music['Alias']:
-                    if alias_name.lower() not in local_alias_data[id]['Alias']:
-                        local_alias_data[id]['Alias'].append(alias_name.lower())
-            else:
-                local_alias_data[id] = {
-                    'Name': music['Name'],
-                    'Alias': music['Alias']
-                }
-        await writefile(alias_file, local_alias_data)
-    data = local_alias_data
+            raise ValueError
+
+    for id, music in local_alias_data.items():
+        for name in music:
+            alias_data[id]['Alias'].append(name)
     
-    total_alias_list = AliasList(data)
+    total_alias_list = AliasList(alias_data)
     for _ in range(len(total_alias_list)):
-        total_alias_list[_] = Alias(ID=total_alias_list[_], Name=data[total_alias_list[_]]['Name'], Alias=data[total_alias_list[_]]['Alias'])
+        total_alias_list[_] = Alias(ID=total_alias_list[_], Name=alias_data[total_alias_list[_]]['Name'], Alias=alias_data[total_alias_list[_]]['Alias'])
 
     return total_alias_list
 
-async def update_local_alias(id: str, alias_name: str):
+async def update_local_alias(id: str, alias_name: str) -> bool:
     try:
-        local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(alias_file)
-        
-        music_alias = mai.total_alias_list.by_id(id)[0]
-        index = mai.total_alias_list.index(music_alias)
-        new_list = music_alias.Alias
-        new_list.append(alias_name)
-        new_alias = {
-            'Name': music_alias.Name,
-            'Alias': new_list
-        }
-        mai.total_alias_list[index] = Alias(ID=id, **new_alias)
-        local_alias_data[id]['Alias'] = new_list
-        await writefile(alias_file, local_alias_data)
+        if local_alias_file.exists():
+            local_alias_data: Dict[str, List[str]] = await openfile(local_alias_file)
+        else:
+            local_alias_data: Dict[str, List[str]] = {}
+        if id not in local_alias_data:
+            local_alias_data[id] = []
+        local_alias_data[id].append(alias_name.lower())
+        mai.total_alias_list.by_id(id)[0].Alias.append(alias_name.lower())
+        await writefile(local_alias_file, local_alias_data)
         return True
     except Exception as e:
-        log.error('添加本地别名失败')
+        log.error(f'添加本地别名失败: {e}')
         return False
 
 class MaiMusic:
@@ -441,7 +421,7 @@ class Guess:
         """
         猜歌类
         """
-        if not os.path.exists(guess_file):
+        if guess_file.exists():
             with open(guess_file, 'w', encoding='utf-8') as f:
                 json.dump({'enable': [], 'disable': []}, f)
         self.config: Dict[str, List[int]] = json.load(open(guess_file, 'r', encoding='utf-8'))
@@ -488,67 +468,59 @@ class Guess:
         """
         del self.Group[gid]
 
-    def guess_change(self, gid: int, set: bool):
-        """
-        猜歌开关
-        """
-        if set:
-            if gid not in self.config['enable']:
-                self.config['enable'].append(gid)
-            if gid in self.config['disable']:
-                self.config['disable'].remove(gid)
-        else:
-            if gid not in self.config['disable']:
-                self.config['disable'].append(gid)
-            if gid in self.config['enable']:
-                self.config['enable'].remove(gid)
-        try:
-            with open(guess_file, 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, ensure_ascii=True, indent=4)
-        except:
-            log.error(traceback.format_exc())
+    async def on(self, gid: int):
+        """开启猜歌"""
+        if gid not in self.config['enable']:
+            self.config['enable'].append(gid)
+        if gid in self.config['disable']:
+            self.config['disable'].remove(gid)
+        await writefile(guess_file, self.config)
+        return '群猜歌功能已开启'
+    
+    async def off(self, gid: int):
+        """关闭猜歌"""
+        if gid not in self.config['disable']:
+            self.config['disable'].append(gid)
+        if gid in self.config['enable']:
+            self.config['enable'].remove(gid)
+        if str(gid) in self.Group:
+            self.end(str(gid))
+        await writefile(guess_file, self.config)
+        return '群猜歌功能已关闭'
+
 
 guess = Guess()
+
 
 class GroupAlias:
 
     def __init__(self) -> None:
-        if not os.path.exists(group_alias_file):
+        if group_alias_file.exists():
             with open(group_alias_file, 'w', encoding='utf-8') as f:
                 json.dump({'enable': [], 'disable': [], 'global': True}, f)
         self.config: Dict[str, List[int]] = json.load(open(group_alias_file, 'r', encoding='utf-8'))
-        if 'global' not in self.config:
-            self.config['global'] = True
-            self.alias_save()
 
-    def alias_change(self, gid: int, set: bool):
-        """
-        别名推送开关
-        """
-        if set:
-            if gid not in self.config['enable']:
-                self.config['enable'].append(gid)
-            if gid in self.config['disable']:
-                self.config['disable'].remove(gid)
-        else:
-            if gid not in self.config['disable']:
-                self.config['disable'].append(gid)
-            if gid in self.config['enable']:
-                self.config['enable'].remove(gid)
-        self.alias_save()
+    async def on(self, gid: int) -> str:
+        """开启推送"""
+        if gid not in self.config['enable']:
+            self.config['enable'].append(gid)
+        if gid in self.config['disable']:
+            self.config['disable'].remove(gid)
+        await writefile(group_alias_file, self.config)
+        return '群别名推送功能已开启'
 
-    def alias_global_change(self, set: bool):
-        if set:
-            self.config['global'] = True
-        else:
-            self.config['global'] = False
-        self.alias_save()
+    async def off(self, gid: int) -> str:
+        """关闭推送"""
+        if gid not in self.config['disable']:
+            self.config['disable'].append(gid)
+        if gid in self.config['enable']:
+            self.config['enable'].remove(gid)
+        await writefile(group_alias_file, self.config)
+        return '群别名推送功能已关闭'
 
-    def alias_save(self):
-        try:
-            with open(group_alias_file, 'w', encoding='utf-8') as f:
-                json.dump(self.config, f, ensure_ascii=True, indent=4)
-        except:
-            log.error(traceback.format_exc())
+    async def alias_global_change(self, set: bool):
+        self.config['global'] = set
+        await writefile(group_alias_file, self.config)
+
 
 alias = GroupAlias()

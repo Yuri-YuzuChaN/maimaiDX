@@ -1,17 +1,17 @@
 import io
 import math
-import os
+import traceback
 from typing import List, Optional, Tuple, Union
 
 import aiohttp
+from hoshino.typing import MessageSegment
 from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
-from hoshino.typing import MessageSegment
-
 from .. import *
 from .image import DrawText, image_to_base64
-from .maimaidx_api_data import get_player_data
+from .maimaidx_api_data import maiApi
+from .maimaidx_error import *
 from .maimaidx_music import download_music_pictrue, mai
 
 
@@ -108,18 +108,18 @@ class DrawBest:
                 x += 416
 
             cover = Image.open(await download_music_pictrue(info.song_id)).resize((135, 135))
-            version = Image.open(os.path.join(maimaidir, f'UI_RSL_MBase_Parts_{info.type}.png')).resize((55, 19))
-            rate = Image.open(os.path.join(maimaidir, f'UI_TTR_Rank_{score_Rank[info.rate]}.png')).resize((95, 44))
+            version = Image.open(maimaidir / f'UI_RSL_MBase_Parts_{info.type}.png').resize((55, 19))
+            rate = Image.open(maimaidir / f'UI_TTR_Rank_{score_Rank[info.rate]}.png').resize((95, 44))
 
             self._im.alpha_composite(self._diff[info.level_index], (x, y))
             self._im.alpha_composite(cover, (x + 5, y + 5))
             self._im.alpha_composite(version, (x + 80, y + 141))
             self._im.alpha_composite(rate, (x + 150, y + 98))
             if info.fc:
-                fc = Image.open(os.path.join(maimaidir, f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png')).resize((45, 45))
+                fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png').resize((45, 45))
                 self._im.alpha_composite(fc, (x + 260, y + 98))
             if info.fs:
-                fs = Image.open(os.path.join(maimaidir, f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png')).resize((45, 45))
+                fs = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png').resize((45, 45))
                 self._im.alpha_composite(fs, (x + 315, y + 98))
             
             dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
@@ -142,30 +142,30 @@ class DrawBest:
 
     async def draw(self):
         
-        basic = Image.open(os.path.join(maimaidir, 'b40_score_basic.png'))
-        advanced = Image.open(os.path.join(maimaidir, 'b40_score_advanced.png'))
-        expert = Image.open(os.path.join(maimaidir, 'b40_score_expert.png'))
-        master = Image.open(os.path.join(maimaidir, 'b40_score_master.png'))
-        remaster = Image.open(os.path.join(maimaidir, 'b40_score_remaster.png'))
-        logo = Image.open(os.path.join(maimaidir, 'logo.png')).resize((378, 172))
-        dx_rating = Image.open(os.path.join(maimaidir, self._findRaPic())).resize((300, 59))
-        Name = Image.open(os.path.join(maimaidir, 'Name.png'))
-        MatchLevel = Image.open(os.path.join(maimaidir, self._findMatchLevel())).resize((134, 55))
-        ClassLevel = Image.open(os.path.join(maimaidir, 'UI_FBR_Class_00.png')).resize((144, 87))
-        rating = Image.open(os.path.join(maimaidir, 'UI_CMN_Shougou_Rainbow.png')).resize((454, 50))
+        basic = Image.open(maimaidir / 'b40_score_basic.png')
+        advanced = Image.open(maimaidir / 'b40_score_advanced.png')
+        expert = Image.open(maimaidir / 'b40_score_expert.png')
+        master = Image.open(maimaidir / 'b40_score_master.png')
+        remaster = Image.open(maimaidir / 'b40_score_remaster.png')
+        logo = Image.open(maimaidir / 'logo.png').resize((378, 172))
+        dx_rating = Image.open(maimaidir / self._findRaPic()).resize((300, 59))
+        Name = Image.open(maimaidir / 'Name.png')
+        MatchLevel = Image.open(maimaidir / self._findMatchLevel()).resize((134, 55))
+        ClassLevel = Image.open(maimaidir / 'UI_FBR_Class_00.png').resize((144, 87))
+        rating = Image.open(maimaidir / 'UI_CMN_Shougou_Rainbow.png').resize((454, 50))
         self._diff = [basic, advanced, expert, master, remaster]
-        self.dxstar = [Image.open(os.path.join(maimaidir, f'UI_RSL_DXScore_Star_0{_ + 1}.png')).resize((20, 20)) for _ in range(3)]
+        self.dxstar = [Image.open(maimaidir / f'UI_RSL_DXScore_Star_0{_ + 1}.png').resize((20, 20)) for _ in range(3)]
 
         # 作图
-        self._im = Image.open(os.path.join(maimaidir, 'b40_bg.png')).convert('RGBA')
+        self._im = Image.open(maimaidir / 'b40_bg.png').convert('RGBA')
 
         self._im.alpha_composite(logo, (5, 130))
         if self.plate:
-            plate = Image.open(os.path.join(maimaidir, f'{self.plate}.png')).resize((1420, 230))
+            plate = Image.open(maimaidir / f'{self.plate}.png').resize((1420, 230))
         else:
-            plate = Image.open(os.path.join(maimaidir, 'UI_Plate_300101.png')).resize((1420, 230))
+            plate = Image.open(maimaidir / 'UI_Plate_300101.png').resize((1420, 230))
         self._im.alpha_composite(plate, (390, 100))
-        icon = Image.open(os.path.join(maimaidir, 'UI_Icon_309503.png')).resize((214, 214))
+        icon = Image.open(maimaidir / 'UI_Icon_309503.png').resize((214, 214))
         self._im.alpha_composite(icon, (398, 108))
         if self.qqId:
             try:
@@ -178,7 +178,7 @@ class DrawBest:
         self._im.alpha_composite(dx_rating, (620, 122))
         Rating = f'{self.Rating:05d}'
         for n, i in enumerate(Rating):
-            self._im.alpha_composite(Image.open(os.path.join(maimaidir, f'UI_NUM_Drating_{i}.png')).resize((28, 34)), (760 + 23 * n, 137))
+            self._im.alpha_composite(Image.open(maimaidir / f'UI_NUM_Drating_{i}.png').resize((28, 34)), (760 + 23 * n, 137))
         self._im.alpha_composite(Name, (620, 200))
         self._im.alpha_composite(MatchLevel, (935, 205))
         self._im.alpha_composite(ClassLevel, (926, 105))
@@ -189,9 +189,9 @@ class DrawBest:
         self._siyuan = DrawText(text_im, SIYUAN)
         self._tb = DrawText(text_im, TBFONT)
 
-        self._meiryo.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
+        self._siyuan.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
         sdrating, dxrating = sum([_.ra for _ in self.sdBest]), sum([_.ra for _ in self.dxBest])
-        self._tb.draw(847, 295, 28, f'SD: {sdrating} + DX: {dxrating} = {self.Rating}', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
+        self._tb.draw(847, 295, 28, f'B35: {sdrating} + B15: {dxrating} = {self.Rating}', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
         self._meiryo.draw(900, 2365, 35, f'Designed by Yuri-YuzuChaN & BlueDeer233 | Generated by {BOTNAME} BOT', (103, 20, 141, 255), 'mm', 3, (255, 255, 255, 255))
 
         await self.whiledraw(self.sdBest, True)
@@ -317,16 +317,22 @@ def generateAchievementList(ds: float):
     _achievementList.append(100.5)
     return _achievementList
 
-async def generate(payload: dict) -> Union[MessageSegment, str]:
-    obj = await get_player_data('best', payload)
-    if isinstance(obj, str):
-        return obj
-    qqId = None
-    if 'qq' in payload:
-        qqId = payload['qq']
+async def generate(qqid: Optional[int] = None, username: Optional[str] = None) -> str:
+    try:
+        if username:
+            qqid = None
+        obj = await maiApi.query_user('player', qqid=qqid, username=username)
 
-    mai_info = UserInfo(**obj)
-    draw_best = DrawBest(mai_info, qqId)
-    
-    pic = await draw_best.draw()
-    return MessageSegment.image(image_to_base64(pic))
+        mai_info = UserInfo(**obj)
+        draw_best = DrawBest(mai_info, qqid)
+        
+        pic = await draw_best.draw()
+        msg = MessageSegment.image(image_to_base64(pic))
+    except UserNotFoundError as e:
+        msg = str(e)
+    except UserDisabledQueryError as e:
+        msg = str(e)
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = f'未知错误：{type(e)}\n请联系Bot管理员'
+    return msg

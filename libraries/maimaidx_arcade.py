@@ -1,218 +1,232 @@
 import json
 import time
 import traceback
-from re import Match
-from typing import Union
+from typing import Dict, List, Optional, overload
 
-import aiofiles
 import aiohttp
+from pydantic import BaseModel
 
-from .. import arcades, arcades_json, loga
+from .. import arcades_json, loga
+from .maimaidx_music import writefile
 
 
-async def download_arcade_info(save: bool = True):
+class Arcade(BaseModel):
+    
+    name: str
+    location: str
+    province: str
+    mall: str
+    num: int
+    id: str
+    alias: List[str]
+    group: List[int]
+    person: int
+    by: str
+    time: str
+
+
+class ArcadeList(List[Arcade]):
+
+    async def save_arcade(self) -> bool:
+        return await writefile(arcades_json, [_.model_dump() for _ in self])
+    
+    @overload
+    def search_name(self, *, name: Optional[str] = ...) -> List[Arcade]:
+        """查询所有机厅"""
+    @overload
+    def search_name(self, *, alias: Optional[str] = ...) -> List[Arcade]:
+        """只查询别名机厅"""
+    @overload
+    def search_name(self, *, id: Optional[str] = ...) -> List[Arcade]:
+        """指定ID查询机厅"""
+    def search_name(self,
+                    *,
+                    name: Optional[str] = ...,
+                    alias: Optional[str] = ...,
+                    id: Optional[str] = ...) -> List[Arcade]:
+        arcade_list = []
+        for arcade in self:
+            if name:
+                if name in arcade.name:
+                    arcade_list.append(arcade)
+                elif name in arcade.location:
+                    arcade_list.append(arcade)
+                if name in arcade.alias:
+                    arcade_list.append(arcade)
+            if alias and alias in arcade.alias:
+                arcade_list.append(arcade)
+            if id and id == arcade.id:
+                arcade_list.append(arcade)
+        
+        return arcade_list
+
+    def add_subscribe_arcade(self, group_id: int, arcadeName: str) -> bool:
+        """添加订阅机厅"""
+        for arcade in self:
+            if arcadeName == arcade.name:
+                arcade.group.append(group_id)
+                return True
+        return False
+    
+    def add_arcade_alias(self, arcadeName: str, arcadeAlias: str) -> bool:
+        """添加机厅别名"""
+        for arcade in self:
+            if arcadeName == arcade.name:
+                arcade.alias.append(arcadeAlias)
+                return True
+        return False
+    
+    def group_in_arcade(self, group_id: int, arcadeName: str) -> bool:
+        """是否已订阅该机厅"""
+        for arcade in self:
+            if arcadeName == arcade.name:
+                if group_id in arcade.group:
+                    return True
+        return False
+    
+    def group_subscribe_arcade(self, group_id: int) -> List[Arcade]:
+        """已订阅机厅"""
+        arcade_list = []
+        for arcade in self:
+            if group_id in arcade.group:
+                arcade_list.append(arcade)
+        return arcade_list
+
+    def del_subscribe_arcade(self, group_id: int, arcadeName: str) -> bool:
+        """删除订阅机厅"""
+        for arcade in self:
+            if arcadeName == arcade.name:
+                arcade.group.remove(group_id)
+                return True
+        return False
+
+    @classmethod
+    def arcade_to_msg(cls, arcade_list: List[Arcade]) -> List[str]:
+        """机厅人数格式化"""
+        result = []
+        for arcade in arcade_list:
+            msg = f'''{arcade.name}
+    - 当前 {arcade.person} 人\n'''
+            if arcade.num > 1:
+                msg += f'    - 平均 {arcade.person / arcade.num:.2f} 人\n'
+            if arcade.by:
+                msg += f'    - 由 {arcade.by} 更新于 {arcade.time}'
+            result.append(msg.strip())
+        return result
+
+
+class ArcadeData:
+    
+    total: Optional[ArcadeList]
+    
+    def __init__(self) -> None: 
+        if arcades_json.exists():
+            with open(arcades_json, 'w', encoding='utf8') as f:
+                json.dump([], f)
+        self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
+    
+    async def getArcade(self):
+        self.total = await download_arcade_info()
+
+
+arcade = ArcadeData()
+
+
+async def download_arcade_info(save: bool = True) -> ArcadeList:
     try:
         async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
             if req.status == 200:
-                arcades_data = await req.json()
-                current_names = [c_a['name'] for c_a in arcades]
-                for arcade in arcades_data:
-                    if arcade['arcadeName'] not in current_names:
-                        arcade_dict = {
-                            'name': arcade['arcadeName'],
-                            'location': arcade['address'],
-                            'province': arcade['province'],
-                            'mall': arcade['mall'],
-                            'num': arcade['machineCount'],
-                            'id': arcade['id'],
-                            'alias': [], 'group': [],
-                            'person': 0, 'by': '', 'time': ''
-                        }
-                        arcades.append(arcade_dict)
-                    else:
-                        arcade_dict = arcades[current_names.index(arcade['arcadeName'])]
-                        arcade_dict['location'] = arcade['address']
-                        arcade_dict['province'] = arcade['province']
-                        arcade_dict['mall'] = arcade['mall']
-                        arcade_dict['num'] = arcade['machineCount']
-                        arcade_dict['id'] = arcade['id']
-                if save:
-                    async with aiofiles.open(arcades_json, 'w', encoding='utf-8') as f:
-                        await f.write(json.dumps(arcades, ensure_ascii=False, indent=4))
+                data = await req.json()
             else:
                 loga.error('获取机厅信息失败')
+        current_names = [c_a['name'] for c_a in arcade.arcades]
+        arcadelist = ArcadeList(data)
+        for num in range(len(data)):
+            if data[num]['arcadeName'] not in current_names:
+                arcade_dict = {
+                    'name': data[num]['arcadeName'],
+                    'location': data[num]['address'],
+                    'province': data[num]['province'],
+                    'mall': data[num]['mall'],
+                    'num': data[num]['machineCount'],
+                    'id': data[num]['id'],
+                    'alias': [], 'group': [],
+                    'person': 0, 'by': '', 'time': ''
+                }
+                arcade.arcades.append(arcade_dict)
+            else:
+                arcade_dict = arcade.arcades[current_names.index(data[num]['arcadeName'])]
+                arcade_dict['location'] = data[num]['address']
+                arcade_dict['province'] = data[num]['province']
+                arcade_dict['mall'] = data[num]['mall']
+                arcade_dict['num'] = data[num]['machineCount']
+                arcade_dict['id'] = data[num]['id']
+            arcadelist[num] = Arcade(**arcade_dict)
+        if save:
+            await writefile(arcades_json, arcade.arcades)
     except Exception:
         loga.error(f'Error: {traceback.format_exc()}')
         loga.error('获取机厅信息失败')
+    return arcadelist
 
 
-def modify(operate: str, arg: str, input_dict: dict) -> str:
+@overload
+async def modify(*, group_id: Optional[int] = ..., arcadeName: Optional[str] = ..., sub: bool = False) -> str:
+    """订阅机厅，`sub` 等于True时为订阅，False为取消订阅"""
+@overload
+async def modify(*, arcadeList: Optional[List[Arcade]] = ..., userName: Optional[str] = ..., value: Optional[str] = ..., person: Optional[int] = ...) -> str:
+    """变更机厅人数"""
+@overload
+async def modify(*, arcadeName: Optional[str] = ..., aliasName: Optional[str] = ...) -> str:
+    """变更机厅别名"""
+async def modify(*, group_id: Optional[int] = 0,
+                arcadeList: Optional[List[Arcade]] = [],
+                arcadeName: Optional[str] = None,
+                aliasName: Optional[str] = None,
+                userName: Optional[str] = None,
+                value: Optional[str] = None,
+                person: Optional[int] = 0,
+                sub: bool = False) -> str:
+    
+    change = False
     msg = ''
-    if operate == 'add':
-        if input_dict['name'] in [a['name'] for a in arcades]:
-            return '该机厅已存在'
+    if group_id and arcadeName:
+        if sub:
+            arcade.total.add_subscribe_arcade(group_id, arcadeName)
+            msg = f'群：{group_id} 已添加订阅机厅：{arcadeName}'
         else:
-            arcades.append(input_dict)
-            msg = f'添加了机厅：{input_dict["name"]}'
-    elif operate == 'delete':
-        if input_dict['name'] in [a['name'] for a in arcades]:
-            arcades.remove(arcades[[a['name'] for a in arcades].index(input_dict['name'])])
-            msg = f'删除了机厅：{input_dict["name"]}'
+            arcade.total.del_subscribe_arcade(group_id, arcadeName)
+            msg = f'群：{group_id} 已取消订阅机厅：{arcadeName}'
+        change = True
+    elif arcadeList and userName and value:
+        if len(arcadeList) == 1:
+            _arcade = arcadeList[0]
+            if value in ['+', '＋', '增加', '添加', '加']:
+                _arcade.person += person
+            elif value in ['-', '－', '减少', '降低', '减' ]:
+                _arcade.person -= person
+            elif value in ['=', '＝', '设置', '设定']:
+                _arcade.person = person
+            _arcade.by = userName
+            _arcade.time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            change = True
+            msg = f'机厅：{_arcade.name}\n当前人数：{_arcade.person}\n变更时间：{_arcade.time}'
+        elif len(arcadeList) > 1:
+            msg = '找到多个机厅，请使用id变更人数\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in arcadeList ])
         else:
-            return '无此机厅'
-    elif operate == 'modify':
-        MAX_CARDS = 30
-        if arg == 'num':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcades[[a['name'] for a in arcades].index(input_dict['name'])]['num'] = int(input_dict['num'])
-                msg = f'现在的机台数量：{input_dict["num"]}'
+            msg = '没有找到指定机厅'
+    elif arcadeName and aliasName:
+        arcade_list = arcade.total.search_name(name=arcadeName)
+        if arcade_list:
+            _arcade = arcade_list[0]
+            if aliasName not in _arcade.alias:
+                _arcade.alias.append(aliasName)
+                msg = f'机厅：{_arcade.name}\n已添加别名：{aliasName}'
+                change = True
             else:
-                return '无此机厅'
-        elif arg == 'alias_add':
-            for i_a in input_dict['alias']:
-                for a in arcades:
-                    if i_a in a['alias']:
-                        return f'已存在别称：{i_a}'
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['alias'] = list(set(arcade['alias'] + input_dict['alias']))
-                msg = f'当前别称：{" ".join(arcade["alias"])}'
-            else:
-                return '无此机厅'
-        elif arg == 'alias_delete':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if input_dict['alias'] in arcade['alias']:
-                    arcade['alias'].remove(input_dict['alias'])
-                    if len(arcade['alias']) > 0:
-                        msg = f'当前别称：{" ".join(arcade["alias"])}'
-                    else:
-                        msg = '当前该机厅没有别称'
-                else:
-                    return f'{arcade["name"]}无此别称'
-            else:
-                return '无此机厅'
-        elif arg == 'subscribe':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['group'].append(input_dict['gid'])
-                msg = f'订阅了机厅：{input_dict["name"]}'
-            else:
-                return '无此机厅'
-        elif arg == 'unsubscribe':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                arcade['group'].remove(input_dict['gid'])
-                msg = f'取消订阅了机厅：{input_dict["name"]}'
-            else:
-                return '无此机厅'
-        elif arg == 'person_set':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if abs(int(input_dict['person']) - arcade['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == arcade["person"]:
-                    return f'无变化，现在有{arcade["person"]}卡'
-                arcade['person'] = int(input_dict['person'])
-                arcade['time'] = input_dict['time']
-                arcade['by'] = input_dict['by']
-                msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-        elif arg == 'person_add':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == 0:
-                    return f'无变化，现在有{arcade["person"]}卡'
-                arcade['person'] += int(input_dict['person'])
-                arcade['time'] = input_dict['time']
-                arcade['by'] = input_dict['by']
-                msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-        elif arg == 'person_minus':
-            if input_dict['name'] in [a['name'] for a in arcades]:
-                arcade = arcades[[a['name'] for a in arcades].index(input_dict['name'])]
-                if int(input_dict['person']) > MAX_CARDS:
-                    return f'一次最多改变{MAX_CARDS}卡！'
-                if int(input_dict['person']) == 0:
-                    arcade['time'] = input_dict['time']
-                    arcade['by'] = input_dict['by']
-                    return f'无变化，现在有{arcade["person"]}卡'
-                if arcade['person'] < int(input_dict['person']):
-                    return f'现在{arcade["person"]}卡，不够减！'
-                else:
-                    arcade['person'] -= int(input_dict['person'])
-                    arcade['time'] = input_dict['time']
-                    arcade['by'] = input_dict['by']
-                    msg = f'现在有{arcade["person"]}卡'
-            else:
-                return '无此机厅'
-    else:
-        return '内部错误，请联系维护组'
-    try:
-        with open(arcades_json, 'w', encoding='utf-8') as f:
-            json.dump(arcades, f, ensure_ascii=False, indent=4)
-    except Exception as e:
-        traceback.print_exc()
-        return f'操作失败，错误代码：{e}'
-    return '修改成功！' + msg
-
-def arcade_person_data(match: Match, gid: int, nickname: str) -> Union[str, bool]:
-    result = None
-    empty_name = False
-    if match.group(1):
-        if '人数' in match.group(1) or '卡' in match.group(1):
-            search_key: str = match.group(1)[:-2] if '人数' in match.group(1) else match.group(1)[:-1]
-            if search_key:
-                for a in arcades:
-                    if search_key.lower() == a['name']:
-                        result = a
-                        break
-                    if search_key.lower() in a['alias']:
-                        result = a
-                        break
-                if not result:
-                    return '没有这样的机厅哦'
-            else:
-                empty_name = True
+                msg = f'机厅：{_arcade.name}\n已拥有别名：{aliasName}\n请勿重复添加'
         else:
-            for a in arcades:
-                if match.group(1).lower() == a['name']:
-                    result = a
-                    break
-                if match.group(1).lower() in a['alias']:
-                    result = a
-                    break
-            if not result:
-                return False
-    else:
-        return False
-    if not result or empty_name:
-        for a in arcades:
-            if gid in a['group']:
-                result = a
-                break
-    if result:
-        msg = ''
-        num = match.group(3) if match.group(3).isdigit() else 1
-        if match.group(2) in ['设置', '设定', '＝', '=']:
-            msg = modify('modify', 'person_set', {'name': result['name'], 'person': num,
-                                                  'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                  'by': nickname})
-        elif match.group(2) in ['增加', '添加', '加', '＋', '+']:
-            msg = modify('modify', 'person_add', {'name': result['name'], 'person': num,
-                                                  'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                  'by': nickname})
-        elif match.group(2) in ['减少', '降低', '减', '－', '-']:
-            msg = modify('modify', 'person_minus', {'name': result['name'], 'person': num,
-                                                    'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                                                    'by': nickname})
-        if msg and '一次最多改变' in msg:
-            msg = '请勿乱玩bot，恼！'
-    else:
-        msg = '该群未订阅机厅，请发送 订阅机厅 <名称> 指令订阅机厅'
-
+            msg = f'未找到机厅：{arcadeName}'
+    if change:
+        await arcade.total.save_arcade()
     return msg

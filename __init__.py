@@ -1,6 +1,5 @@
 import json
-import os
-from typing import Dict, List
+from pathlib import Path
 
 from hoshino.config import NICKNAME
 from hoshino.log import new_logger
@@ -12,28 +11,22 @@ BOTNAME = NICKNAME if isinstance(NICKNAME, str) else list(NICKNAME)[0]
 
 
 ### 文件路径
-Root = os.path.dirname(__file__)
-static = os.path.join(Root, 'static')
-arcades_json = os.path.join(static, 'arcades.json')             # 机厅
-config_json = os.path.join(static, 'config.json')               # token
-alias_file = os.path.join(static, 'all_alias.json')             # 别名暂存文件
-music_file = os.path.join(static, 'music_data.json')            # 曲目暂存文件
-chart_file = os.path.join(static, 'chart_stats.json')           # 谱面数据暂存文件
-guess_file = os.path.join(static, 'guess_config.json')          # 猜歌开关群文件
-group_alias_file = os.path.join(static, 'group_alias.json')     # 别名推送开关群文件
-maimaidir = os.path.join(static, 'mai', 'pic')
-coverdir = os.path.join(static, 'mai', 'cover')
-ratingdir = os.path.join(static, 'mai', 'rating')
-MEIRYO =  os.path.join(static, 'meiryo.ttc')
-SIYUAN = os.path.join(static, 'SourceHanSansSC-Bold.otf')
-TBFONT = os.path.join(static, 'Torus SemiBold.otf')
-
-
-### 加载文件
-if not os.path.exists(arcades_json):
-    raise FileNotFoundError
-arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
-token = json.load(open(config_json, 'r', encoding='utf-8'))['token']
+Root = Path(__file__).parent
+static = Root / 'static'
+arcades_json = static / 'arcades.json'              # 机厅
+config_json = static / 'config.json'                # token
+alias_file = static / 'all_alias.json'              # 别名暂存文件
+local_alias_file = static / 'local_alias.json'      # 本地别名文件
+music_file = static / 'music_data.json'             # 曲目暂存文件
+chart_file = static / 'chart_stats.json'            # 谱面数据暂存文件
+guess_file = static / 'guess_config.json'           # 猜歌开关群文件
+group_alias_file = static / 'group_alias.json'      # 别名推送开关群文件
+maimaidir = static / 'mai' / 'pic'
+coverdir = static / 'mai' / 'cover'
+ratingdir = static / 'mai' / 'rating'
+MEIRYO =  static / 'meiryo.ttc'
+SIYUAN = static / 'SourceHanSansSC-Bold.otf'
+TBFONT = static / 'Torus SemiBold.otf'
 
 
 ### 常用变量

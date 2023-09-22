@@ -1,16 +1,17 @@
 import asyncio
 import re
 from random import sample
+from re import Match
 from string import ascii_uppercase, digits
+
+from nonebot import NoneBot, on_startup
 
 from hoshino import Service, priv
 from hoshino.service import sucmd
 from hoshino.typing import CommandSession, CQEvent, MessageSegment
-from nonebot import NoneBot, on_websocket_connect
 
 from . import *
 from .libraries.image import *
-from .libraries.maimaidx_api_data import *
 from .libraries.maimaidx_music import alias, guess, mai, update_local_alias
 from .libraries.maimaidx_music_info import *
 from .libraries.maimaidx_player_score import *
@@ -31,8 +32,8 @@ def song_level(ds1: float, ds2: float) -> list:
     return result
 
 
-@on_websocket_connect
-async def _(event: CQEvent):
+@on_startup
+async def _():
     """
     bot启动时开始获取所有数据
     """
@@ -49,12 +50,11 @@ async def _(session: CommandSession):
     await mai.get_music()
     await mai.get_music_alias()
     await session.send('maimai数据更新完成')
-    log.info('maimai数据更新完成')
 
 
 @sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 async def dx_help(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, MessageSegment.image(f'file:///{os.path.join(Root, "maimaidxhelp.png")}'), at_sender=True)
+    await bot.send(ev, MessageSegment.image(f'file:///{Root / "maimaidxhelp.png"}'), at_sender=True)
 
 
 @sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
@@ -319,7 +319,7 @@ async def apply_local_alias(bot: NoneBot, ev: CQEvent):
     id, alias_name = args
     if not mai.total_list.by_id(id):
         await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
-    server_exist = await get_music_alias('alias', {'id': id})
+    server_exist = await maiApi.get_songs(id)
     if alias_name in server_exist[id]:
         await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在别名服务器，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
     local_exist = mai.total_alias_list.by_id(id)
@@ -335,94 +335,96 @@ async def apply_local_alias(bot: NoneBot, ev: CQEvent):
 
 @sv.on_prefix(['添加别名', '增加别名', '增添别名', '添加别称'])
 async def apply_alias(bot: NoneBot, ev: CQEvent):
-    args: list[str] = ev.message.extract_plain_text().strip().split()
-    if not priv.check_priv(ev, priv.ADMIN):
-        await bot.finish(ev, '仅允许管理员修改歌曲别名')
-    if len(args) != 2:
-        await bot.finish(ev, '参数错误', at_sender=True)
-    id, alias_name = args
-    if not mai.total_list.by_id(id):
-        await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
-    isexist = await get_music_alias('alias', {'id': id})
-    if alias_name in isexist[id]:
-        await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
-    tag = ''.join(sample(ascii_uppercase + digits, 5))
-    status = await post_music_alias('apply', {'id': id, 'aliasname': alias_name, 'tag': tag, 'uid': ev.user_id})
-    if 'error' in status:
-        await bot.finish(ev, status['error'])
-    elif isinstance(status, str):
-        await bot.finish(ev, status)
-    await bot.send(ev, f'''您已提交以下别名申请
+    try:
+        args: list[str] = ev.message.extract_plain_text().strip().split()
+        if not priv.check_priv(ev, priv.ADMIN):
+            await bot.finish(ev, '仅允许管理员修改歌曲别名')
+        if len(args) != 2:
+            await bot.finish(ev, '参数错误', at_sender=True)
+        id, alias_name = args
+        if not mai.total_list.by_id(id):
+            await bot.finish(ev, f'未找到ID为 [{id}] 的曲目')
+        isexist = await maiApi.get_songs(id)
+        if alias_name in isexist[id]:
+            await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
+        tag = ''.join(sample(ascii_uppercase + digits, 5))
+        status = await maiApi.post_alias(id, alias_name, tag, ev.user_id)
+        if isinstance(status, str):
+            await bot.finish(ev, status)
+        msg = f'''您已提交以下别名申请
 ID：{id}
 别名：{alias_name}
 {await draw_music_info(mai.total_list.by_id(id))}
 现在可用使用唯一标签<{tag}>来进行投票，例如：同意别名 {tag}
-浏览{public_addr}查看详情''', at_sender=True)
+浏览{public_addr}查看详情'''
+    except ServerError as e:
+        log.error(e)
+        msg = str(e)
+    except ValueError as e:
+        msg = str(e)
+    await bot.send(ev, msg, at_sender=True)
 
 
 @sv.on_prefix(['同意别名', '同意别称'])
 async def agree_alias(bot: NoneBot, ev: CQEvent):
-    tag: str = ev.message.extract_plain_text().strip().upper()
-    status = await post_music_alias('agree', {'tag': tag, 'uid': ev.user_id})
-    if 'content' in status:
-        await bot.send(ev, status['content'], at_sender=True)
-    elif 'error' in status:
-        await bot.send(ev, status['error'], at_sender=True)
-    else:
-        await bot.send(ev, status, at_sender=True)
+    try:
+        tag: str = ev.message.extract_plain_text().strip().upper()
+        status = await maiApi.post_agree_user(tag, ev.user_id)
+        if 'content' in status:
+            await bot.send(ev, status['content'], at_sender=True)
+        else:
+            await bot.send(ev, status, at_sender=True)
+    except ValueError as e:
+        await bot.send(ev, str(e), at_sender=True)
 
 
 @sv.on_prefix(['当前投票', '当前别名投票', '当前别称投票'])
 async def alias_status(bot: NoneBot, ev: CQEvent):
-    status = await get_music_alias('status')
-    if 'error' in status:
-        await bot.finish(ev, status['error'])
-    if not status:
-        await bot.finish(ev, '未查询到正在进行的别名投票', at_sender=True)
-    msg = []
-    for tag in status:
-        id = str(status[tag]['ID'])
-        alias_name = status[tag]['ApplyAlias']
-        usernum = status[tag]['Users']
-        votes = status[tag]['Votes']
-        msg.append(f'{tag}：\n{await draw_music_info(mai.total_list.by_id(id))}\n别名：{alias_name}\n票数：{usernum}/{votes}')
-    await bot.send(ev, f'浏览{public_addr}查看详情或查看以下合并消息')
-    await bot.send_group_forward_msg(group_id=ev.group_id, messages=render_forward_msg(msg, ev.self_id, BOTNAME))
-
-
-@sv.on_fullmatch('开启别名推送')
-async def alias_on(bot: NoneBot, ev: CQEvent):
-    gid = ev.group_id
-    if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员开启'
-    elif gid in alias.config['enable']:
-        msg = '该群已开启别名推送功能'
-    else:
-        alias.alias_change(gid, True)
-        msg = '已开启该群别名推送功能'
+    try:
+        args: str = ev.message.extract_plain_text().strip()
+        status = await maiApi.get_alias_status()
+        if not status:
+            await bot.finish(ev, '未查询到正在进行的别名投票', at_sender=True)
+        page = max(min(int(args), len(status) // SONGS_PER_PAGE + 1), 1) if args else 1
+        result = []
+        for num, tag in enumerate(status):
+            if (page - 1) * SONGS_PER_PAGE <= num < page * SONGS_PER_PAGE:
+                result.append(f'''{tag}：
+    - ID：{status[tag]['ID']}
+    - 别名：{status[tag]['ApplyAlias']}
+    - 票数：{status[tag]['Users']}/{status[tag]['Votes']}''')
+        result.append(f'第{page}页，共{len(status) // SONGS_PER_PAGE + 1}页')
+        msg = MessageSegment.image(image_to_base64(text_to_image('\n'.join(result))))
+    except ServerError as e:
+        log.error(str(e))
+        msg = str(e)
+    except ValueError as e:
+        msg = str(e)
     await bot.send(ev, msg, at_sender=True)
 
 
-@sv.on_fullmatch('关闭别名推送')
-async def alias_off(bot: NoneBot, ev: CQEvent):
-    gid = ev.group_id
+@sv.on_suffix('别名推送')
+async def alias_on(bot: NoneBot, ev: CQEvent):
     if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员关闭'
-    elif gid in alias.config['disable']:
-        msg = '该群已关闭别名推送功能'
+        msg = '仅允许管理员开启'
+    gid = ev.group_id
+    args: str = ev.message.extract_plain_text().strip()
+    if args == '开启':
+        msg = await alias.on(gid)
+    elif args == '关闭':
+        msg = await alias.off(gid)
     else:
-        alias.alias_change(gid, False)
-        msg = '已关闭该群别名推送功能'
+        msg = '指令错误'
     await bot.send(ev, msg, at_sender=True)
 
 
 @sucmd('aliasswitch', aliases=('全局关闭别名推送', '全局开启别名推送'))
 async def _(session: CommandSession):
     if session.ctx.raw_message == '全局关闭别名推送':
-        alias.alias_global_change(False)
+        await alias.alias_global_change(False)
         await session.send('已全局关闭maimai别名推送')
     elif session.ctx.raw_message == '全局开启别名推送':
-        alias.alias_global_change(True)
+        await alias.alias_global_change(True)
         await session.send('已全局开启maimai别名推送')
     else:
         return
@@ -441,12 +443,9 @@ async def _(session: CommandSession):
 
 @sv.scheduled_job('interval', minutes=5)
 async def alias_apply_status():
-    group = await sv.get_enable_groups()
-    if status := await get_music_alias('status'):
-        if 'error' in status:
-            log.error(f'发生错误：{status["error"]}')
-            raise ValueError
-        if alias.config['global']:
+    try:
+        group = await sv.get_enable_groups()
+        if (status := await maiApi.get_alias_status()) and alias.config['global']:
             msg = ['检测到新的别名申请']
             for tag in status:
                 if status[tag]['IsNew'] and (usernum := status[tag]['Users']) < (votes := status[tag]['Votes']):
@@ -463,28 +462,29 @@ async def alias_apply_status():
                         await asyncio.sleep(5)
                     except: 
                         continue
-    await asyncio.sleep(5)
-    if end := await get_music_alias('end'):
-        if 'error' in end:
-            log.error(f'发生错误：{end["error"]}')
-            raise ValueError
-        if alias.config['global']:
-            msg2 = ['以下是已成功添加别名的曲目']
-            for ta in end:
-                id = str(end[ta]['ID'])
-                alias_name = end[ta]['ApplyAlias']
-                music = mai.total_list.by_id(id)
-                msg2.append(f'ID：{id}\n标题：{music.title}\n别名：{alias_name}')
-            if len(msg2) != 1:
-                for gid in group.keys():
-                    if gid in alias.config['disable']:
-                        continue
-                    try:
-                        await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
-                        await asyncio.sleep(5)
-                    except:
-                        continue
-        await mai.get_music_alias()
+        await asyncio.sleep(5)
+        if end := await maiApi.get_alias_end():
+            if alias.config['global']:
+                msg2 = ['以下是已成功添加别名的曲目']
+                for ta in end:
+                    id = str(end[ta]['ID'])
+                    alias_name = end[ta]['ApplyAlias']
+                    music = mai.total_list.by_id(id)
+                    msg2.append(f'ID：{id}\n标题：{music.title}\n别名：{alias_name}')
+                if len(msg2) != 1:
+                    for gid in group.keys():
+                        if gid in alias.config['disable']:
+                            continue
+                        try:
+                            await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
+                            await asyncio.sleep(5)
+                        except:
+                            continue
+            await mai.get_music_alias()
+    except ServerError as e:
+        log.error(str(e))
+    except ValueError as e:
+        log.error(str(e))
 
 
 @sv.on_prefix('分数线')
@@ -536,17 +536,12 @@ BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT
 @sv.on_prefix(['b50', 'B50'])
 async def best_50(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
-    args: str = ev.message.extract_plain_text().strip()
+    username: str = ev.message.extract_plain_text().strip()
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
-    if args:
-        payload = {'username': args}
-    else:
-        payload = {'qq': qqid}
-    payload['b50'] = True
-    await bot.send(ev, await generate(payload), at_sender=True)
+    await bot.send(ev, await generate(qqid, username), at_sender=True)
 
 
 @sv.on_prefix(['minfo', 'Minfo', 'MINFO'])
@@ -558,11 +553,11 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
             qqid = int(i.data['qq'])
     if not args:
         await bot.finish(ev, '请输入曲目id或曲名', at_sender=True)
-    payload = {'qq': qqid}
+
     if mai.total_list.by_id(args):
-        id = args
+        songs = args
     elif by_t := mai.total_list.by_title(args):
-        id = by_t.id
+        songs = by_t.id
     else:
         alias = mai.total_alias_list.by_alias(args)
         if not alias:
@@ -573,11 +568,11 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
                 msg += f'{songs.ID}：{songs.Name}\n'
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
-            id = str(alias[0].ID)
-    if token:
-        pic = await music_play_data_dev(payload, id)
+            songs = str(alias[0].ID)
+    if maiApi.token:
+        pic = await music_play_data_dev(qqid, songs)
     else:
-        pic = await music_play_data(payload, id)
+        pic = await music_play_data(qqid, songs)
 
     await bot.send(ev, pic, at_sender=True)
 
@@ -627,7 +622,8 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
 
 @sucmd('updatetable', aliases=('更新定数表'))
 async def _(session: CommandSession):
-    await session.send(update_rating_table())
+    msg = await update_rating_table()
+    await session.send(msg)
 
 
 @sv.on_suffix('定数表')
@@ -637,9 +633,9 @@ async def rating_table(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, '只支持查询lv6-15的定数表', at_sender=True)
     elif args in levelList[5:]:
         if args in levelList[-3:]:
-            img = os.path.join(ratingdir, '14.png')
+            img = ratingdir / '14.png'
         else:
-            img = os.path.join(ratingdir, f'{args}.png')
+            img = ratingdir / f'{args}.png'
         await bot.send(ev, MessageSegment.image(f'''file:///{img}'''))
     else:
         await bot.send(ev, '无法识别的定数', at_sender=True)
@@ -648,11 +644,11 @@ async def rating_table(bot: NoneBot, ev: CQEvent):
 @sv.on_suffix('完成表')
 async def rating_table_pf(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
-    args: str = ev.message.extract_plain_text().strip()
-    if args in levelList[:5]:
+    rating: str = ev.message.extract_plain_text().strip()
+    if rating in levelList[:5]:
         await bot.send(ev, '只支持查询lv6-15的完成表', at_sender=True)
-    elif args in levelList[5:]:
-        img = await rating_table_draw({'qq': qqid}, args)
+    elif rating in levelList[5:]:
+        img = await rating_table_draw(qqid, rating)
         await bot.send(ev, img, at_sender=True)
     # else:
     #     await bot.send(ev, '无法识别的定数', at_sender=True)
@@ -663,22 +659,24 @@ async def rise_score(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
+    username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
-    if match.group(1) and match.group(1) not in levelList:
+    rating = match.group(1)
+    score = match.group(2)
+    
+    if rating and rating not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
         nickname = match.group(3)
-        payload = {'username': match.group(3).strip()}
-    else:
-        payload = {'qq': qqid}
+        username = match.group(3).strip()
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
         
-    data = await rise_score_data(payload, match, nickname)
+    data = await rise_score_data(qqid, username, rating, score, nickname)
     await bot.send(ev, data, at_sender=True)
 
 
@@ -687,33 +685,23 @@ async def plate_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
+    username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
-    if f'{match.group(1)}{match.group(2)}' == '真将':
+    ver = match.group(1)
+    plan = match.group(2)
+    if f'{ver}{plan}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
     elif match.group(3):
         nickname = match.group(3)
-        payload = {'username': match.group(3).strip()}
-    else:
-        payload = {'qq': qqid}
+        username = match.group(3).strip()
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-    
-    if match.group(1) in ['霸', '舞']:
-        payload['version'] = list(set(version for version in list(plate_to_version.values())[:-9]))
-    elif match.group(1) == '真':
-        payload['version'] = list(set(version for version in list(plate_to_version.values())[0:2]))
-    elif match.group(1) == '星':
-        payload['version'] = [plate_to_version['宙']]
-    elif match.group(1) == '祝':
-        payload['version'] = [plate_to_version['祭']]
-    else:
-        payload['version'] = [plate_to_version[match.group(1)]]
 
-    data = await player_plate_data(payload, match, nickname)
+    data = await player_plate_data(qqid, username, ver, plan, nickname)
     await bot.send(ev, data, at_sender=True)
 
 
@@ -722,28 +710,28 @@ async def level_process(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
+    username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
-    if match.group(1) not in levelList:
+    rating = match.group(1)
+    rank = match.group(2)
+
+    if rating not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
-    if match.group(2).lower() not in scoreRank + comboRank + syncRank:
+    if rank.lower() not in scoreRank + comboRank + syncRank:
         await bot.finish(ev, '无此评价等级', at_sender=True)
-    if levelList.index(match.group(1)) < 11 or (match.group(2).lower() in scoreRank and scoreRank.index(match.group(2).lower()) < 8):
+    if levelList.index(rating) < 11 or (rank.lower() in scoreRank and scoreRank.index(rank.lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
     elif match.group(3):
         nickname = match.group(3)
-        payload = {'username': match.group(3).strip()}
-    else:
-        payload = {'qq': qqid}
+        username = match.group(3).strip()
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
 
-    payload['version'] = list(set(version for version in plate_to_version.values()))
-
-    data = await level_process_data(payload, match, nickname)
+    data = await level_process_data(qqid, username, rating, rank, nickname)
     await bot.send(ev, data, at_sender=True)
 
 
@@ -752,24 +740,24 @@ async def level_achievement_list(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     nickname = ''
+    username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
-        
-    if match.group(1) not in levelList:
+    
+    rating = match.group(1)
+    page = match.group(2)
+    
+    if rating not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
         nickname = match.group(3)
-        payload = {'username': match.group(3).strip()}
-    else:
-        payload = {'qq': qqid}
+        username = match.group(3).strip()
 
     if qqid != ev.user_id:
         nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
 
-    payload['version'] = list(set(version for version in plate_to_version.values()))
-
-    data = await level_achievement_list_data(payload, match, nickname)
+    data = await level_achievement_list_data(qqid, username, rating, page, nickname)
     await bot.send(ev, data, at_sender=True)
 
 
@@ -844,32 +832,18 @@ async def reset_guess(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, msg)
 
 
-@sv.on_fullmatch('开启mai猜歌')
-async def guess_on(bot: NoneBot, ev: CQEvent):
-    gid = ev.group_id
+@sv.on_suffix('mai猜歌')
+async def guess_on_off(bot: NoneBot, ev: CQEvent):
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员开启'
-    elif gid in guess.config['enable']:
-        msg = '该群已开启猜歌功能'
-    else:
-        guess.guess_change(gid, True)
-        msg = '已开启该群猜歌功能'
-
-    await bot.send(ev, msg, at_sender=True)
-
-
-@sv.on_fullmatch('关闭mai猜歌')
-async def guess_off(bot: NoneBot, ev: CQEvent):
     gid = ev.group_id
-    if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员关闭'
-    elif gid in guess.config['disable']:
-        msg = '该群已关闭猜歌功能'
+    args: str = ev.message.extract_plain_text().strip()
+    if args == '开启':
+        msg = await guess.on(gid)
+    elif args == '关闭':
+        msg = await guess.off(gid)
     else:
-        guess.guess_change(gid, False)
-        if str(gid) in guess.Group:
-            guess.end(str(gid))
-        msg = '已关闭该群猜歌功能'
+        msg = '指令错误'
 
     await bot.send(ev, msg, at_sender=True)
     
