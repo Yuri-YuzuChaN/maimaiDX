@@ -421,7 +421,7 @@ class Guess:
         """
         猜歌类
         """
-        if guess_file.exists():
+        if not guess_file.exists():
             with open(guess_file, 'w', encoding='utf-8') as f:
                 json.dump({'enable': [], 'disable': []}, f)
         self.config: Dict[str, List[int]] = json.load(open(guess_file, 'r', encoding='utf-8'))
@@ -495,7 +495,7 @@ guess = Guess()
 class GroupAlias:
 
     def __init__(self) -> None:
-        if group_alias_file.exists():
+        if not group_alias_file.exists():
             with open(group_alias_file, 'w', encoding='utf-8') as f:
                 json.dump({'enable': [], 'disable': [], 'global': True}, f)
         self.config: Dict[str, List[int]] = json.load(open(group_alias_file, 'r', encoding='utf-8'))
