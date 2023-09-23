@@ -30,7 +30,7 @@ class MaimaiAPI:
         
         if self.MaiAPI in url:
             if res.status_code == 200:
-                data = await res.json()
+                data = res.json()
             elif res.status_code == 400:
                 raise UserNotFoundError
             elif res.status_code == 403:
@@ -39,7 +39,7 @@ class MaimaiAPI:
                 raise UnknownError
         elif self.MaiAliasAPI in url:
             if res.status_code == 200:
-                data = await res.json()
+                data = res.json()
                 if 'error' in data:
                     raise ValueError(f'发生错误：{data["error"]}')
             elif res.status_code == 400:
