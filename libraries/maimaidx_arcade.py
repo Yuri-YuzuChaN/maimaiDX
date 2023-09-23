@@ -120,7 +120,7 @@ class ArcadeData:
     total: Optional[ArcadeList]
     
     def __init__(self) -> None: 
-        if arcades_json.exists():
+        if not arcades_json.exists():
             with open(arcades_json, 'w', encoding='utf8') as f:
                 json.dump([], f)
         self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
