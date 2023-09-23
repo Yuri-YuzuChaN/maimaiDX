@@ -125,8 +125,8 @@ async def music_global_data(music: Music, level_index: int) -> str:
         tooltip_opts=opts.TooltipOpts(
             trigger='item', formatter='{a} <br/>{b}: {c} ({d}%)'
         )
-    ).render(static / 'temp_pie.html')
-    await run_sync(make_snapshot)(snapshot, static / 'temp_pie.html', static / 'temp_pie.png', is_remove_html=False)
+    ).render(str(static / 'temp_pie.html'))
+    await run_sync(make_snapshot)(snapshot, str(static / 'temp_pie.html'), str(static / 'temp_pie.png'), is_remove_html=False)
 
     im = Image.open(static / 'temp_pie.png')
     msg = MessageSegment.image(image_to_base64(im))
