@@ -28,7 +28,8 @@ class Arcade(BaseModel):
 class ArcadeList(List[Arcade]):
 
     async def save_arcade(self) -> bool:
-        return await writefile(arcades_json, [_.model_dump() for _ in self])
+        with open(arcades_json, 'w', encoding='utf-8') as json_file:
+             json.dump([arcade.__dict__ for arcade in self], json_file, ensure_ascii=False, indent=4)
     
     @overload
     def search_name(self, *, name: Optional[str] = ...) -> List[Arcade]:
