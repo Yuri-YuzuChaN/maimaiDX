@@ -102,7 +102,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     a = True if ev.prefix == '添加机厅别名' else False
     if len(args) != 2:
         msg = '格式错误：添加/删除机厅别名 <店名> <别名>'
-    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) != 1:
+    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) > 1:
         msg = '找到多个相同店名的机厅，请使用店铺ID更改机厅别名\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     else:
         msg = await update_alias(args[0], args[1], a)
@@ -114,7 +114,7 @@ async def modify_arcade(bot: NoneBot, ev: CQEvent):
     args: List[str] = ev.message.extract_plain_text().strip().split()
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员修改机厅信息'
-    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) != 1:
+    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) > 1:
         msg = '找到多个相同店名的机厅，请使用店铺ID修改机厅\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     elif args[1] == '数量' and len(args) == 3 and args[2].isdigit():
         msg = await updata_arcade(args[0], args[2])
@@ -132,7 +132,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     name = match.group(2)
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员订阅和取消订阅'
-    if not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) != 1:
+    if not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) > 1:
         msg = f'找到多个相同店名的机厅，请使用店铺ID订阅\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     else:
         msg = await subscribe(gid, name, sub)
