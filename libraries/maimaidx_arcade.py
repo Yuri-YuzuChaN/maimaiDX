@@ -176,7 +176,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
             for num in range(len(arcadelist)):
                 arcadelist[num] = Arcade(**arcade.arcades[num])
         if save:
-            await writefile(arcades_json, arcade.arcades)
+            await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
     except Exception:
         loga.error(f'Error: {traceback.format_exc()}')
         loga.error('获取机厅信息失败')
