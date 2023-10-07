@@ -70,7 +70,7 @@ def text_to_image(text: str) -> Image.Image:
     lines = text.strip().split('\n')
     max_width = 0
     for line in lines:
-        l, t, r, b = font.getbbox(text)
+        l, t, r, b = font.getbbox(line)
         max_width = max(max_width, r)
     wa = max_width + padding * 2
     ha = b * len(lines) + margin * (len(lines) - 1) + padding * 2
