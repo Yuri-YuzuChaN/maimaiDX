@@ -128,7 +128,7 @@ async def modify_arcade(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     gid = ev.group_id
-    sub = True if match.group(1) == '订阅' else False
+    sub = True if match.group(1) == '订阅机厅' else False
     name = match.group(2)
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员订阅和取消订阅'
