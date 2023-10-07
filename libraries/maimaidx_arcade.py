@@ -39,7 +39,7 @@ class ArcadeList(List[Arcade]):
                 arcade_list.append(arcade)
             elif name in arcade.location:
                 arcade_list.append(arcade)
-            if name in arcade.alias:
+            elif name in arcade.alias:
                 arcade_list.append(arcade)
                 
         return arcade_list
