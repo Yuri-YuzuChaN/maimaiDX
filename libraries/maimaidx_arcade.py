@@ -230,6 +230,7 @@ async def update_alias(arcadeName: str, aliasName: str, add_del: bool):
 
 async def subscribe(group_id: str, arcadeName: str, sub: bool):
     """订阅机厅，`sub` 等于 `True` 为订阅，`False` 为取消订阅"""
+    change = False
     if arcadeName.isdigit():
         arcade_list = arcade.total.search_id(arcadeName)
     else:
