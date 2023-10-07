@@ -14,7 +14,7 @@
     ```
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
 3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
-4. pip以下依赖：`pillow`，`aiofiles`，`httpx`，`pyecharts`，`snapshot-phantomjs`，`pydantic`
+4. 安装插件所需模块：`pip install -r requirements.txt`
 5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持
 6. 修改 `__init__.py` 文件的 `BOTNAME` 为自己的BOT昵称
 7. 重启Bot
