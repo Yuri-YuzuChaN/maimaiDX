@@ -10,13 +10,13 @@ from .libraries.image import image_to_base64, text_to_image
 from .libraries.maimaidx_arcade import *
 
 sv_help= """排卡指令如下：
-添加机厅 <店名> <地址> <机台数量> <别称1> <别称2> ... 添加机厅信息
+添加机厅 <店名> <地址> <机台数量> 添加机厅信息
 删除机厅 <店名> 删除机厅信息
-修改机厅 <店名> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ... 修改机厅信息
+修改机厅 <店名> 数量 <数量> ... 修改机厅信息
 添加机厅别名 <店名> <别名>
 订阅机厅 <店名> 订阅机厅，简化后续指令
 查看订阅 查看群组订阅机厅的信息
-取消订阅,取消订阅机厅 <店名> 取消群组机厅订阅
+取消订阅机厅 <店名> 取消群组机厅订阅
 查找机厅,查询机厅,机厅查找,机厅查询 <关键词> 查询对应机厅信息
 <店名/别名>人数设置,设定,=,增加,加,+,减少,减,-<人数> 操作排卡人数
 <店名/别名>有多少人,有几人,有几卡,几人,几卡 查看排卡人数
@@ -49,18 +49,30 @@ async def add_arcade(bot: NoneBot, ev: CQEvent):
         if len(args) > 3 and not args[2].isdigit():
             msg = '格式错误：添加机厅 <店名> <位置> <机台数量> <别称1> <别称2> ...'
         else:
-            arcade_dict = {
-                'name': args[0],
-                'location': args[1],
-                'num': int(args[2]) if len(args) > 2 else 1,
-                'alias': args[3:] if len(args) > 3 else [],
-                'group': [],
-                'person': 0,
-                'by': '',
-                'time': ''
-            }
-            arcade.total.append(Arcade(**arcade_dict))
-            await arcade.total.saveArcade()
+            if not arcade.total.search_fullname(args[0]):
+                aid = sorted(arcade.idList, reverse=True)
+                if (sid := int(aid[0])) >= 10000:
+                    sid += 1
+                else:
+                    sid = 10000
+                arcade_dict = {
+                    'name': args[0],
+                    'location': args[1],
+                    'province': '',
+                    'mall': '',
+                    'num': int(args[2]) if len(args) > 2 else 1,
+                    'id': str(sid),
+                    'alias': args[3:] if len(args) > 3 else [],
+                    'group': [],
+                    'person': 0,
+                    'by': '',
+                    'time': ''
+                }
+                arcade.total.add_arcade(arcade_dict)
+                await arcade.total.save_arcade()
+                msg = f'机厅：{args[0]} 添加成功'
+            else:
+                msg = f'机厅：{args[0]} 已存在，无法添加机厅'
     else:
         msg = '格式错误：添加机厅 <店名> <位置> <机台数量> <别称1> <别称2> ...'
 
@@ -69,24 +81,31 @@ async def add_arcade(bot: NoneBot, ev: CQEvent):
 
 @sv_arcade.on_prefix(['删除机厅', '移除机厅'])
 async def delele_arcade(bot: NoneBot, ev: CQEvent):
-    args = ev.message.extract_plain_text().strip()
+    name = ev.message.extract_plain_text().strip()
     if not priv.check_priv(ev, priv.SUPERUSER):
         msg = '仅允许主人删除机厅\n请使用 来杯咖啡+内容 联系主人'
-    elif not args:
-        msg = '格式错误：删除机厅 <店名>'
+    elif not name:
+        msg = '格式错误：删除机厅 <店名>，店名需全名'
     else:
-        arcade.total.del_subscribe_arcade(arcadeName=args)
-        await arcade.total.saveArcade()
+        if not arcade.total.search_fullname(name):
+            msg = f'未找到机厅：{name}'
+        else:
+            arcade.total.del_arcade(name)
+            await arcade.total.save_arcade()
+            msg = f'机厅：{name} 删除成功'
     await bot.send(ev, msg, at_sender=True)
 
 
-@sv_arcade.on_prefix('添加机厅别名')
+@sv_arcade.on_prefix(['添加机厅别名', '删除机厅别名'])
 async def _(bot: NoneBot, ev: CQEvent):
-    args: List[str] = ev.message.extract_plain_text().strip().split()
+    args: list[str] = ev.message.extract_plain_text().strip().split()
+    a = True if ev.prefix == '添加机厅别名' else False
     if len(args) != 2:
-        msg = '参数错误，请使用 添加机厅别名 <店名> <别名> 指令'
+        msg = '格式错误：添加/删除机厅别名 <店名> <别名>'
+    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) != 1:
+        msg = '找到多个相同店名的机厅，请使用店铺ID更改机厅别名\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     else:
-        msg = await modify(arcadeName=args[0], aliasName=args[1])
+        msg = await update_alias(args[0], args[1], a)
     await bot.send(ev, msg, at_sender=True)
 
 
@@ -95,62 +114,35 @@ async def modify_arcade(bot: NoneBot, ev: CQEvent):
     args: List[str] = ev.message.extract_plain_text().strip().split()
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员修改机厅信息'
-    elif len(args) == 1 and args[0] in ['帮助', 'help', '指令帮助']:
-        msg = '修改机厅指令格式：修改机厅 <店名> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ...'
-    elif args[1] == '数量':
-        if len(args) == 3 and args[2].isdigit():
-            msg = modify('modify', 'num', {'name': args[0], 'num': args[2]})
-        else:
-            msg = '格式错误：修改机厅 <店名> 数量 <数量>'
-    elif args[1] == '别称' or args[1] == '别名':
-        if args[2] in ['添加', '删除'] and len(args) > 3:
-            msg = modify('modify', 'alias_delete' if args[2] == '删除' else 'alias_add',
-                    {'name': args[0], 'alias': args[3] if args[2] == '删除' else args[3:]})
-        else:
-            msg = '格式错误：修改机厅 <店名> 别称 [添加/删除] <别称1> <别称2> ...'
+    elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) != 1:
+        msg = '找到多个相同店名的机厅，请使用店铺ID修改机厅\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
+    elif args[1] == '数量' and len(args) == 3 and args[2].isdigit():
+        msg = await updata_arcade(args[0], args[2])
     else:
-        msg = '格式错误：修改机厅 <店名> [数量/别称] [<数量>/添加/删除] <别称1> <别称2> ...'
+        msg = '格式错误：修改机厅 <店名> [数量] <数量>'
     
     await bot.send(ev, msg, at_sender=True)
 
 
-@sv_arcade.on_prefix('订阅机厅')
-async def subscribe_arcade(bot: NoneBot, ev: CQEvent):
+@sv_arcade.on_rex(r'^(订阅机厅|取消订阅机厅|取消订阅)\s(.+)')
+async def _(bot: NoneBot, ev: CQEvent):
+    match: Match[str] = ev['match']
     gid = ev.group_id
-    name: str = ev.message.extract_plain_text().strip()
+    sub = True if match.group(1) == '订阅' else False
+    name = match.group(2)
     if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员订阅'
-    elif not name:
-        msg = '格式错误：订阅机厅 <店名>，店名请使用全名'
-    elif arcade.total.group_in_arcade(gid, name):
-        msg = f'该群已订阅机厅：{name}'
-    elif not arcade.total.search_name(name=name):
-        msg = f'未找到机厅：{name}'
+        msg = '仅允许管理员订阅和取消订阅'
+    if not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) != 1:
+        msg = f'找到多个相同店名的机厅，请使用店铺ID订阅\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     else:
-        msg = await modify(group_id=gid, arcadeName=name, sub=True)
-        
-    await bot.send(ev, msg, at_sender=True)
-
-
-@sv_arcade.on_prefix(['取消订阅', '取消订阅机厅'])
-async def unsubscribe_arcade(bot: NoneBot, ev: CQEvent):
-    gid = ev.group_id
-    args: str = ev.message.extract_plain_text().strip()
-    if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员订阅'
-    elif not args:
-        msg = '格式错误：订阅机厅 <店名>，店名请使用全名'
-    elif not arcade.total.group_in_arcade(gid, args):
-        msg = f'该群未订阅机厅：{args}'
-    else:
-        msg = await modify(group_id=gid, arcadeName=args, sub=False)
+        msg = await subscribe(gid, name, sub)
     
     await bot.send(ev, msg, at_sender=True)
 
 
 @sv_arcade.on_fullmatch(['查看订阅', '查看订阅机厅'])
 async def check_subscribe(bot: NoneBot, ev: CQEvent):
-    gid = ev.group_id
+    gid = int(ev.group_id)
     arcadeList = arcade.total.group_subscribe_arcade(group_id=gid)
     if arcadeList:
         result = [f'群{gid}订阅机厅信息如下：']
@@ -168,14 +160,15 @@ async def check_subscribe(bot: NoneBot, ev: CQEvent):
 
 @sv_arcade.on_prefix(['查找机厅', '查询机厅', '机厅查找', '机厅查询', '搜素机厅', '机厅搜素'])
 async def search_arcade(bot: NoneBot, ev: CQEvent):
-    args: str = ev.message.extract_plain_text().strip()
-    if not args:
+    name: str = ev.message.extract_plain_text().strip()
+    if not name:
         await bot.finish(ev, '格式错误：查找机厅 <关键词>', at_sender=True)
-    elif arcade_list := arcade.total.search_name(name=args):
+    elif arcade_list := arcade.total.search_name(name):
         result = ['为您找到以下机厅：\n']
         for a in arcade_list:
             result.append(f'''店名：{a.name}
     - 地址：{a.location}
+    - ID：{a.id}
     - 数量：{a.num}''')
         if len(arcade_list) < 5:
             await bot.send(ev, '\n==========\n'.join(result), at_sender=True)
@@ -214,7 +207,7 @@ async def arcade_person(bot: NoneBot, ev: CQEvent):
             if not _arcade:
                 msg = '已订阅的机厅中未找到该机厅'
             else:
-                msg = await modify(arcadeList=_arcade, userName=nickname, value=value, person=person)
+                msg = await update_person(_arcade, nickname, value, person)
 
             await bot.send(ev, msg, at_sender=True)
     except:
@@ -238,7 +231,7 @@ async def arcade_query_person(bot: NoneBot, ev: CQEvent):
     name = ev.message.extract_plain_text().strip().lower()
     result = None
     if name:
-        arcade_list = arcade.total.search_name(name=name)
+        arcade_list = arcade.total.search_name(name)
         if not arcade_list:
             await bot.finish(ev, '没有这样的机厅哦', at_sender=True)
         result = arcade.total.arcade_to_msg(arcade_list)
