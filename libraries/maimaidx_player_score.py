@@ -241,6 +241,8 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
             version = list(set(_v for _v in list(plate_to_version.values())[:-9]))
         elif ver == '真':
             version = list(set(_v for _v in list(plate_to_version.values())[0:2]))
+        elif ver == '华' or ver == '華':
+            version = [plate_to_version['熊']]
         elif ver == '星':
             version = [plate_to_version['宙']]
         elif ver == '祝':
