@@ -278,40 +278,29 @@ async def subscribe(group_id: str, arcadeName: str, sub: bool):
         
 async def update_person(arcadeList: List[Arcade], userName: str, value: str, person: int):
     """变更机厅人数"""
-    change = False
     if len(arcadeList) == 1:
         _arcade = arcadeList[0]
         original_person = _arcade.person
-        err = False
         if value in ['+', '＋', '增加', '添加', '加']:
             if person > 30:
-                err = True
-            else:
-                _arcade.person += person
+                return '请勿乱玩bot，恼！'
+            _arcade.person += person
         elif value in ['-', '－', '减少', '降低', '减']:
             if person > 30 or person > _arcade.person:
-                err = True
-            else:
-                _arcade.person -= person
+                return '请勿乱玩bot，恼！'
+            _arcade.person -= person
         elif value in ['=', '＝', '设置', '设定']:
             if abs(_arcade.person - person) > 30:
-                err = True
-            else:
-                _arcade.person = person
-        if err:
-            msg = '请勿乱玩bot，恼！'
+                return '请勿乱玩bot，恼！'
+            _arcade.person = person
+        if _arcade.person == original_person:
+            return f'人数没有变化\n机厅：{_arcade.name}\n当前人数：{_arcade.person}'
         else:
             _arcade.by = userName
             _arcade.time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            change = True
-            if _arcade.person == original_person:
-                msg = f'人数没有变化\n机厅：{_arcade.name}\n当前人数：{_arcade.person}'
-            else:
-                msg = f'机厅：{_arcade.name}\n当前人数：{_arcade.person}\n变更时间：{_arcade.time}'
+            await arcade.total.save_arcade()
+            return f'机厅：{_arcade.name}\n当前人数：{_arcade.person}\n变更时间：{_arcade.time}'
     elif len(arcadeList) > 1:
-        msg = '找到多个机厅，请使用id变更人数\n' + '\n'.join([f'{_.id}：{_.name}' for _ in arcadeList])
+        return '找到多个机厅，请使用id变更人数\n' + '\n'.join([f'{_.id}：{_.name}' for _ in arcadeList])
     else:
-        msg = '没有找到指定机厅'
-    if change:
-        await arcade.total.save_arcade()
-    return msg
+        return '没有找到指定机厅'
