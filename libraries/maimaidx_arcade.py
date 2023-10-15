@@ -281,6 +281,7 @@ async def update_person(arcadeList: List[Arcade], userName: str, value: str, per
     change = False
     if len(arcadeList) == 1:
         _arcade = arcadeList[0]
+        original_person = _arcade.person
         err = False
         if value in ['+', '＋', '增加', '添加', '加']:
             if person > 30:
@@ -303,7 +304,10 @@ async def update_person(arcadeList: List[Arcade], userName: str, value: str, per
             _arcade.by = userName
             _arcade.time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             change = True
-            msg = f'机厅：{_arcade.name}\n当前人数：{_arcade.person}\n变更时间：{_arcade.time}'
+            if _arcade.person == original_person:
+                msg = f'人数没有变化\n机厅：{_arcade.name}\n当前人数：{_arcade.person}'
+            else:
+                msg = f'机厅：{_arcade.name}\n当前人数：{_arcade.person}\n变更时间：{_arcade.time}'
     elif len(arcadeList) > 1:
         msg = '找到多个机厅，请使用id变更人数\n' + '\n'.join([f'{_.id}：{_.name}' for _ in arcadeList])
     else:
