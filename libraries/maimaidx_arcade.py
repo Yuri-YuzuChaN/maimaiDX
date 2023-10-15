@@ -39,7 +39,7 @@ class ArcadeList(List[Arcade]):
                 arcade_list.append(arcade)
             elif name in arcade.location:
                 arcade_list.append(arcade)
-            if name in arcade.alias:
+            elif name in arcade.alias:
                 arcade_list.append(arcade)
                 
         return arcade_list
@@ -141,19 +141,10 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                 data = None
                 loga.error('获取机厅信息失败')
         if data != None:
-            current_id = [c_a['id'] for c_a in arcade.arcades]
-            arcadelist = ArcadeList(data)
-            for num in range(len(arcadelist)):
-                _arc = data[num]
-                if _arc['id'] in current_id:
-                    _dataid = current_id.index(_arc['id'])
-                    arcade_dict = arcade.arcades[_dataid]
-                    arcade_dict['location'] = data[_dataid]['address']
-                    arcade_dict['province'] = data[_dataid]['province']
-                    arcade_dict['mall'] = data[_dataid]['mall']
-                    arcade_dict['num'] = data[_dataid]['machineCount']
-                    arcade_dict['id'] = data[_dataid]['id']
-                else:
+            arcadelist = ArcadeList()
+            if not arcade.arcades:
+                for num in range(len(data)):
+                    _arc = data[num]
                     arcade_dict = {
                         'name': _arc['arcadeName'],
                         'location': _arc['address'],
@@ -167,7 +158,34 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                         'by': '',
                         'time': ''
                     }
-                arcadelist[num] = Arcade(**arcade_dict)
+                    arcadelist.append(Arcade(**arcade_dict))
+            else:
+                for num in range(len(data)):
+                    _arc = data[num]
+                    arcade_dict = arcade.arcades[num]
+                    if _arc['id'] == arcade_dict['id']:
+                        arcade_dict['name'] = _arc['arcadeName']
+                        arcade_dict['location'] = _arc['address']
+                        arcade_dict['province'] = _arc['province']
+                        arcade_dict['mall'] = _arc['mall']
+                        arcade_dict['num'] = _arc['machineCount']
+                        arcade_dict['id'] = _arc['id']
+                    else:
+                        arcade_dict = {
+                            'name': _arc['arcadeName'],
+                            'location': _arc['address'],
+                            'province': _arc['province'],
+                            'mall': _arc['mall'],
+                            'num': _arc['machineCount'],
+                            'id': _arc['id'],
+                            'alias': [],
+                            'group': [],
+                            'person': 0,
+                            'by': '',
+                            'time': ''
+                        }
+                        arcade.arcades.insert(num, arcade_dict)
+                    arcadelist.append(Arcade(**arcade_dict))
             for n in arcade.arcades:
                 if int(n['id']) >= 10000:
                     arcadelist.append(Arcade(**n))
@@ -176,7 +194,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
             for num in range(len(arcadelist)):
                 arcadelist[num] = Arcade(**arcade.arcades[num])
         if save:
-            await writefile(arcades_json, arcade.arcades)
+            await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
     except Exception:
         loga.error(f'Error: {traceback.format_exc()}')
         loga.error('获取机厅信息失败')
