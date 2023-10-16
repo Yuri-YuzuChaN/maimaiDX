@@ -1,23 +1,21 @@
 # maimaiDX
 
-移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 和 [nonebot2](https://v2.nonebot.dev) 的街机音游 **舞萌DX** 的查询插件
+移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
 ## 重要更新
 
-
+**`nonebot2` 版本已上架nonebot商店，使用 `nonebot2` 框架的使用者前往新项目仓库[地址](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)，该仓库后续只更新 `Hoshino` 框架，`nonebot2` 分支将停止更新**
 
 ## 使用方法
 
-1. 请根据以下需求 clone 本项目
-
-    - 使用 `HoshinoBot` 框架的BOT将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
-        ``` git
-        git clone https://github.com/Yuri-YuzuChaN/maimaiDX
-        ```
-    - 如果使用的 `nonebot2` 框架，前往查看分支 [nonebot2](https://github.com/Yuri-YuzuChaN/maimaiDX/tree/nonebot2)
-
+1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
+   
+    ``` git
+    git clone https://github.com/Yuri-YuzuChaN/maimaiDX
+    ```
+    
 2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
 3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
 4. 安装插件所需模块：`pip install -r requirements.txt`
