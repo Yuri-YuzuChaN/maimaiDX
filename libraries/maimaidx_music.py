@@ -525,7 +525,7 @@ class GroupAlias:
         await writefile(group_alias_file, self.config)
         return '群别名推送功能已关闭'
 
-    async def alias_global_change(self, set: list[int] | bool):
+    async def alias_global_change(self, set):
         self.config['global'] = set
         await writefile(group_alias_file, self.config)
 
