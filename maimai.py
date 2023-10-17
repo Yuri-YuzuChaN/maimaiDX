@@ -407,7 +407,7 @@ async def alias_status(bot: NoneBot, ev: CQEvent):
 @sv.on_suffix('别名推送')
 async def alias_on(bot: NoneBot, ev: CQEvent):
     if not priv.check_priv(ev, priv.ADMIN):
-        msg = '仅允许管理员开启'
+        await bot.finish(ev, '仅允许管理员开启', at_sender=True)
     gid = ev.group_id
     args: str = ev.message.extract_plain_text().strip()
     if args == '开启':
