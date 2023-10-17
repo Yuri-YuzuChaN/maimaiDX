@@ -1,13 +1,8 @@
 from io import BytesIO
-from typing import Dict, Union
+from typing import Dict
 
 import aiofiles
-from PIL import Image, ImageDraw
 
-from hoshino.typing import MessageSegment
-
-from .. import *
-from .image import DrawText
 from .maimai_best_50 import *
 from .maimaidx_api_data import *
 from .maimaidx_error import *

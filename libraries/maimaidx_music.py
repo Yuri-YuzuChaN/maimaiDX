@@ -1,11 +1,10 @@
 import asyncio
-import json
 import random
 import traceback
 from collections import namedtuple
 from copy import deepcopy
 from io import BytesIO
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, Tuple, Union
 
 import aiofiles
 import aiohttp

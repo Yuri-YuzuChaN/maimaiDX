@@ -5,7 +5,6 @@ from nonebot import NoneBot, on_startup
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
 
-from . import loga
 from .libraries.image import image_to_base64, text_to_image
 from .libraries.maimaidx_arcade import *
 

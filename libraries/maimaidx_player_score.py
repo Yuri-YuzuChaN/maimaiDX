@@ -3,7 +3,6 @@ import traceback
 from typing import List, Optional, Union
 
 import pyecharts.options as opts
-from PIL import Image
 from pyecharts.charts import Pie
 from pyecharts.render import make_snapshot
 from quart.utils import run_sync

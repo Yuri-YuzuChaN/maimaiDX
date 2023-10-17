@@ -8,11 +8,9 @@ from nonebot import NoneBot, on_startup
 
 from hoshino import Service, priv
 from hoshino.service import sucmd
-from hoshino.typing import CommandSession, CQEvent, MessageSegment
+from hoshino.typing import CommandSession, CQEvent
 
-from . import *
-from .libraries.image import *
-from .libraries.maimaidx_music import alias, guess, mai, update_local_alias
+from .libraries.maimaidx_music import alias, guess, update_local_alias
 from .libraries.maimaidx_music_info import *
 from .libraries.maimaidx_player_score import *
 from .libraries.tool import *
