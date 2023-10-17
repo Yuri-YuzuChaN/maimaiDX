@@ -131,7 +131,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     name = match.group(2)
     if not priv.check_priv(ev, priv.ADMIN):
         msg = '仅允许管理员订阅和取消订阅'
-    if not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) > 1:
+    elif not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) > 1:
         msg = f'找到多个相同店名的机厅，请使用店铺ID订阅\n' + '\n'.join([ f'{_.id}：{_.name}' for _ in _arc ])
     else:
         msg = await subscribe(gid, name, sub)
