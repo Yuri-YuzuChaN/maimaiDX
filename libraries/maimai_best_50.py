@@ -50,17 +50,17 @@ class UserInfo(BaseModel):
 
 class DrawBest:
 
-    def __init__(self, UserInfo: UserInfo, qqId: Optional[Union[int, str]] = None) -> None:
+    def __init__(self, user_info: UserInfo, qq_id: Optional[Union[int, str]] = None) -> None:
 
-        self.userName = UserInfo.nickname
-        self.plate = UserInfo.plate
-        self.addRating = UserInfo.additional_rating
-        self.Rating = UserInfo.rating
-        self.sdBest = UserInfo.charts.sd
-        self.dxBest = UserInfo.charts.dx
-        self.qqId = qqId
+        self.userName = user_info.nickname
+        self.plate = user_info.plate
+        self.addRating = user_info.additional_rating
+        self.Rating = user_info.rating
+        self.sdBest = user_info.charts.sd
+        self.dxBest = user_info.charts.dx
+        self.qqId = qq_id
 
-    def _findRaPic(self) -> str:
+    def __find_ra_pic(self) -> str:
         if self.Rating < 1000:
             num = '01'
         elif self.Rating < 2000:
@@ -85,16 +85,16 @@ class DrawBest:
             num = '11'
         return f'UI_CMN_DXRating_{num}.png'
 
-    def _findMatchLevel(self) -> str:
+    def __find_match_level(self) -> str:
         if self.addRating <= 10:
             num = f'{self.addRating:02d}'
         else:
             num = f'{self.addRating + 1:02d}'
         return f'UI_DNM_DaniPlate_{num}.png'
 
-    async def whiledraw(self, data: List[ChartInfo], type: bool) -> Image.Image:
+    async def whiledraw(self, data: List[ChartInfo], draw_type: bool) -> Image.Image:
         # y为第一排纵向坐标，dy为各排间距
-        y = 430 if type else 1670
+        y = 430 if draw_type else 1670
         dy = 170
 
         TEXT_COLOR = [(255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (103, 20, 141, 255)]
@@ -111,27 +111,27 @@ class DrawBest:
             version = Image.open(maimaidir / f'UI_RSL_MBase_Parts_{info.type}.png').resize((55, 19))
             rate = Image.open(maimaidir / f'UI_TTR_Rank_{score_Rank[info.rate]}.png').resize((95, 44))
 
-            self._im.alpha_composite(self._diff[info.level_index], (x, y))
-            self._im.alpha_composite(cover, (x + 5, y + 5))
-            self._im.alpha_composite(version, (x + 80, y + 141))
-            self._im.alpha_composite(rate, (x + 150, y + 98))
+            self.__im.alpha_composite(self.__diff[info.level_index], (x, y))
+            self.__im.alpha_composite(cover, (x + 5, y + 5))
+            self.__im.alpha_composite(version, (x + 80, y + 141))
+            self.__im.alpha_composite(rate, (x + 150, y + 98))
             if info.fc:
                 fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png').resize((45, 45))
-                self._im.alpha_composite(fc, (x + 260, y + 98))
+                self.__im.alpha_composite(fc, (x + 260, y + 98))
             if info.fs:
                 fs = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png').resize((45, 45))
-                self._im.alpha_composite(fs, (x + 315, y + 98))
+                self.__im.alpha_composite(fs, (x + 315, y + 98))
             
             dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
             diff_sum_dx = info.dxScore / dxscore * 100
-            dxtype, dxnum = dxScore(diff_sum_dx)
+            dxtype, dxnum = dx_score(diff_sum_dx)
             for _ in range(dxnum):
-                self._im.alpha_composite(self.dxstar[dxtype], (x + DXSTAR_DEST[dxnum] + 20 * _, y + 74))
+                self.__im.alpha_composite(self.dxstar[dxtype], (x + DXSTAR_DEST[dxnum] + 20 * _, y + 74))
 
             self._tb.draw(x + 40, y + 148, 20, info.song_id, anchor='mm')
             title = info.title
-            if coloumWidth(title) > 18:
-                title = changeColumnWidth(title, 17) + '...'
+            if coloum_width(title) > 18:
+                title = change_column_width(title, 17) + '...'
             self._siyuan.draw(x + 155, y + 20, 20, title, TEXT_COLOR[info.level_index], anchor='lm')
             p, s = f'{info.achievements:.4f}'.split('.')
             r = self._tb.get_box(p, 32)
@@ -148,43 +148,43 @@ class DrawBest:
         master = Image.open(maimaidir / 'b40_score_master.png')
         remaster = Image.open(maimaidir / 'b40_score_remaster.png')
         logo = Image.open(maimaidir / 'logo.png').resize((378, 172))
-        dx_rating = Image.open(maimaidir / self._findRaPic()).resize((300, 59))
-        Name = Image.open(maimaidir / 'Name.png')
-        MatchLevel = Image.open(maimaidir / self._findMatchLevel()).resize((134, 55))
-        ClassLevel = Image.open(maimaidir / 'UI_FBR_Class_00.png').resize((144, 87))
+        dx_rating = Image.open(maimaidir / self.__find_ra_pic()).resize((300, 59))
+        name = Image.open(maimaidir / 'Name.png')
+        match_level = Image.open(maimaidir / self.__find_match_level()).resize((134, 55))
+        class_level = Image.open(maimaidir / 'UI_FBR_Class_00.png').resize((144, 87))
         rating = Image.open(maimaidir / 'UI_CMN_Shougou_Rainbow.png').resize((454, 50))
-        self._diff = [basic, advanced, expert, master, remaster]
+        self.__diff = [basic, advanced, expert, master, remaster]
         self.dxstar = [Image.open(maimaidir / f'UI_RSL_DXScore_Star_0{_ + 1}.png').resize((20, 20)) for _ in range(3)]
 
         # 作图
-        self._im = Image.open(maimaidir / 'b40_bg.png').convert('RGBA')
+        self.__im = Image.open(maimaidir / 'b40_bg.png').convert('RGBA')
 
-        self._im.alpha_composite(logo, (5, 130))
+        self.__im.alpha_composite(logo, (5, 130))
         if self.plate:
             plate = Image.open(maimaidir / f'{self.plate}.png').resize((1420, 230))
         else:
             plate = Image.open(maimaidir / 'UI_Plate_300101.png').resize((1420, 230))
-        self._im.alpha_composite(plate, (390, 100))
+        self.__im.alpha_composite(plate, (390, 100))
         icon = Image.open(maimaidir / 'UI_Icon_309503.png').resize((214, 214))
-        self._im.alpha_composite(icon, (398, 108))
+        self.__im.alpha_composite(icon, (398, 108))
         if self.qqId:
             try:
                 async with aiohttp.request('GET', f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    qqLogo = Image.open(io.BytesIO(await resp.read()))
-                self._im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
-                self._im.alpha_composite(qqLogo.convert('RGBA').resize((201, 201)), (405, 115))
+                    qq_logo = Image.open(io.BytesIO(await resp.read()))
+                self.__im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
+                self.__im.alpha_composite(qq_logo.convert('RGBA').resize((201, 201)), (405, 115))
             except Exception:
                 pass
-        self._im.alpha_composite(dx_rating, (620, 122))
-        Rating = f'{self.Rating:05d}'
-        for n, i in enumerate(Rating):
-            self._im.alpha_composite(Image.open(maimaidir / f'UI_NUM_Drating_{i}.png').resize((28, 34)), (760 + 23 * n, 137))
-        self._im.alpha_composite(Name, (620, 200))
-        self._im.alpha_composite(MatchLevel, (935, 205))
-        self._im.alpha_composite(ClassLevel, (926, 105))
-        self._im.alpha_composite(rating, (620, 275))
+        self.__im.alpha_composite(dx_rating, (620, 122))
+        rating = f'{self.Rating:05d}'
+        for n, i in enumerate(rating):
+            self.__im.alpha_composite(Image.open(maimaidir / f'UI_NUM_Drating_{i}.png').resize((28, 34)), (760 + 23 * n, 137))
+        self.__im.alpha_composite(name, (620, 200))
+        self.__im.alpha_composite(match_level, (935, 205))
+        self.__im.alpha_composite(class_level, (926, 105))
+        self.__im.alpha_composite(rating, (620, 275))
 
-        text_im = ImageDraw.Draw(self._im)
+        text_im = ImageDraw.Draw(self.__im)
         self._meiryo = DrawText(text_im, MEIRYO)
         self._siyuan = DrawText(text_im, SIYUAN)
         self._tb = DrawText(text_im, TBFONT)
@@ -197,9 +197,10 @@ class DrawBest:
         await self.whiledraw(self.sdBest, True)
         await self.whiledraw(self.dxBest, False)
 
-        return self._im.resize((1760, 1920))
+        return self.__im.resize((1760, 1920))
 
-def dxScore(dx: int) -> Tuple[int, int]:
+
+def dx_score(dx: int) -> Tuple[int, int]:
     """
     返回值为 `Tuple`： `(星星种类，数量)`
     """
@@ -218,7 +219,7 @@ def dxScore(dx: int) -> Tuple[int, int]:
     return result
 
 
-def getCharWidth(o) -> int:
+def get_char_width(o) -> int:
     widths = [
         (126, 1), (159, 0), (687, 1), (710, 0), (711, 1), (727, 0), (733, 1), (879, 0), (1154, 1), (1161, 0),
         (4347, 1), (4447, 2), (7467, 1), (7521, 0), (8369, 1), (8426, 0), (9000, 1), (9002, 2), (11021, 1),
@@ -234,88 +235,90 @@ def getCharWidth(o) -> int:
     return 1
 
 
-def coloumWidth(s: str) -> int:
+def coloum_width(s: str) -> int:
     res = 0
     for ch in s:
-        res += getCharWidth(ord(ch))
+        res += get_char_width(ord(ch))
     return res
 
 
-def changeColumnWidth(s: str, len: int) -> str:
+def change_column_width(s: str, length: int) -> str:
     res = 0
-    sList = []
+    s_list = []
     for ch in s:
-        res += getCharWidth(ord(ch))
-        if res <= len:
-            sList.append(ch)
-    return ''.join(sList)
+        res += get_char_width(ord(ch))
+        if res <= length:
+            s_list.append(ch)
+    return ''.join(s_list)
 
 
-def computeRa(ds: float, achievement: float, israte: bool = False) -> Union[int, Tuple[int, str]]:
+def compute_ra(ds: float, achievement: float, israte: bool = False) -> Union[int, Tuple[int, str]]:
     if achievement < 50:
-        baseRa = 7.0
+        base_ra = 7.0
         rate = 'D'
     elif achievement < 60:
-        baseRa = 8.0
+        base_ra = 8.0
         rate = 'C'
     elif achievement < 70:
-        baseRa = 9.6
+        base_ra = 9.6
         rate = 'B'
     elif achievement < 75:
-        baseRa = 11.2
+        base_ra = 11.2
         rate = 'BB'
     elif achievement < 80:
-        baseRa = 12.0
+        base_ra = 12.0
         rate = 'BBB'
     elif achievement < 90:
-        baseRa = 13.6
+        base_ra = 13.6
         rate = 'A'
     elif achievement < 94:
-        baseRa = 15.2
+        base_ra = 15.2
         rate = 'AA'
     elif achievement < 97:
-        baseRa = 16.8
+        base_ra = 16.8
         rate = 'AAA'
     elif achievement < 98:
-        baseRa = 20.0
+        base_ra = 20.0
         rate = 'S'
     elif achievement < 99:
-        baseRa = 20.3
+        base_ra = 20.3
         rate = 'Sp'
     elif achievement < 99.5:
-        baseRa = 20.8
+        base_ra = 20.8
         rate = 'SS'
     elif achievement < 100:
-        baseRa = 21.1
+        base_ra = 21.1
         rate = 'SSp'
     elif achievement < 100.5:
-        baseRa = 21.6
+        base_ra = 21.6
         rate = 'SSS'
     else:
-        baseRa = 22.4
+        base_ra = 22.4
         rate = 'SSSp'
     
     if israte:
-        data = (math.floor(ds * (min(100.5, achievement) / 100) * baseRa), rate)
+        data = (math.floor(ds * (min(100.5, achievement) / 100) * base_ra), rate)
     else:
-        data = math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
+        data = math.floor(ds * (min(100.5, achievement) / 100) * base_ra)
 
     return data
 
-def generateAchievementList(ds: float):
+
+def generate_achievement_list(ds: float):
     _achievementList = []
     for index, acc in enumerate(achievementList):
         if index == len(achievementList) - 1:
             continue
         _achievementList.append(acc)
-        c_acc = (computeRa(ds, achievementList[index]) + 1) / ds / BaseRaSpp[index + 1] * 100
+        c_acc = (compute_ra(ds, achievementList[index]) + 1) / ds / BaseRaSpp[index + 1] * 100
         c_acc = math.ceil(c_acc * 10000) / 10000
         while c_acc < achievementList[index + 1]:
             _achievementList.append(c_acc)
-            c_acc = (computeRa(ds, c_acc + 0.0001) + 1) / ds / BaseRaSpp[index + 1] * 100
+            c_acc = (compute_ra(ds, c_acc + 0.0001) + 1) / ds / BaseRaSpp[index + 1] * 100
             c_acc = math.ceil(c_acc * 10000) / 10000
     _achievementList.append(100.5)
     return _achievementList
+
 
 async def generate(qqid: Optional[int] = None, username: Optional[str] = None) -> str:
     try:

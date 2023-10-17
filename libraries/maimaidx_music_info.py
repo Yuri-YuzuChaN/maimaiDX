@@ -31,8 +31,8 @@ async def draw_music_info(music: Music) -> MessageSegment:
     tb.draw(200, 195, 24, music.id, anchor='mm')
     sy.draw(410, 195, 22, music.basic_info.genre, anchor='mm')
     title = music.title
-    if coloumWidth(title) > 35:
-        title = changeColumnWidth(title, 34) + '...'
+    if coloum_width(title) > 35:
+        title = change_column_width(title, 34) + '...'
     sy.draw_partial_opacity(350, 660, 30, title, 1, anchor='mm')
     sy.draw_partial_opacity(350, 690, 12, music.basic_info.artist, 1, anchor='mm')
     sy.draw_partial_opacity(150, 725, 15, f'Version: {music.basic_info.version}', 1, anchor='lm')
@@ -79,8 +79,8 @@ async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment, N
 
         color = (140, 44, 213, 255)
         title = music.title
-        if coloumWidth(title) > 35:
-            title = changeColumnWidth(title, 34) + '...'
+        if coloum_width(title) > 35:
+            title = change_column_width(title, 34) + '...'
         sy.draw(320, 185, 24, title, color, 'lm')
         sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
         tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
@@ -92,7 +92,7 @@ async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment, N
         for _data in player_data:
             ds: float = music.ds[_data['level_index']]
             lv: int = _data['level_index']
-            ra, rate = computeRa(ds, _data['achievements'], israte=True)
+            ra, rate = compute_ra(ds, _data['achievements'], israte=True)
 
             rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((120, 57))
             im.alpha_composite(rank, (430, 515 + y * lv))
@@ -154,8 +154,8 @@ async def music_play_data_dev(qqid: int, songs: str) -> Union[str, MessageSegmen
 
         color = (140, 44, 213, 255)
         title = music.title
-        if coloumWidth(title) > 35:
-            title = changeColumnWidth(title, 34) + '...'
+        if coloum_width(title) > 35:
+            title = change_column_width(title, 34) + '...'
         sy.draw(320, 185, 24, title, color, 'lm')
         sy.draw(320, 225, 18, music.basic_info.artist, color, 'lm')
         tb.draw(320, 310, 20, f'BPM: {music.basic_info.bpm}', color, 'lm')
@@ -168,14 +168,14 @@ async def music_play_data_dev(qqid: int, songs: str) -> Union[str, MessageSegmen
             ds: float = _data['ds']
             lv: int = _data['level_index']
             dxscore = _data['dxScore']
-            ra, rate = computeRa(ds, _data['achievements'], israte=True)
+            ra, rate = compute_ra(ds, _data['achievements'], israte=True)
 
             rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((120, 57))
             im.alpha_composite(rank, (358, 518 + y * lv))
 
             _dxscore = sum(music.charts[lv].notes) * 3
             diff_sum_dx = dxscore / _dxscore * 100
-            dxtype, dxnum = dxScore(diff_sum_dx)
+            dxtype, dxnum = dx_score(diff_sum_dx)
             for _ in range(dxnum):
                 im.alpha_composite(dxstar[dxtype], (DXSTAR_DEST[dxnum] + 20 * _, 550 + y * lv))
 
@@ -220,11 +220,11 @@ async def new_draw_music_info(music: Music) -> str:
     
     im.alpha_composite(Image.open(await download_music_pictrue(music.id)), (205, 305))
     im.alpha_composite(Image.open(maimaidir / f'{music.basic_info.version}.png').resize((250, 120)), (1340, 590))
-    im.alpha_composite(Image.open(maimaidir / f'{music.type}.png'), ((1150, 643)))
+    im.alpha_composite(Image.open(maimaidir / f'{music.type}.png'), (1150, 643))
     
     title = music.title
-    if coloumWidth(title) > 42:
-        title = changeColumnWidth(title, 41) + '...'
+    if coloum_width(title) > 42:
+        title = change_column_width(title, 41) + '...'
     sy.draw(640, 350, 40, title, default_color, 'lm')
     sy.draw(640, 425, 30, music.basic_info.artist, default_color, 'lm')
     tb.draw(705, 548, 40, music.basic_info.bpm, default_color, 'lm')
@@ -266,7 +266,7 @@ async def update_rating_table() -> str:
         diff = [Image.new('RGBA', (75, 75), color) for color in bg_color]
         
         for ra in levelList[5:]:
-            musiclist = mai.total_list.lvList(True)
+            musiclist = mai.total_list.lv_list(True)
 
             if ra in lv1:
                 im = Image.open(ratingdir / 'Rating3.png').convert('RGBA')
@@ -352,7 +352,7 @@ async def rating_table_draw(qqid: int, rating: str) -> str:
                     'level': _data['level']
                 }
 
-        musiclist = mai.total_list.lvList(True)
+        musiclist = mai.total_list.lv_list(True)
         lvlist: Dict[str, List[RaMusic]] = {}
         for lv in list(reversed(ralist)):
             for _ra in musiclist[lv]:
@@ -370,7 +370,7 @@ async def rating_table_draw(qqid: int, rating: str) -> str:
                 else:
                     x += 85
                 if music.id in fromid and music.lv in fromid[music.id]:
-                    ra, rate = computeRa(music.ds, fromid[music.id][music.lv]['achievements'], israte=True)
+                    ra, rate = compute_ra(music.ds, fromid[music.id][music.lv]['achievements'], israte=True)
                     im.alpha_composite(b2, (x + 2, y - 18))
                     rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((78, 36))
                     im.alpha_composite(rank, (x, y))

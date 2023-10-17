@@ -43,7 +43,7 @@ async def _():
     mai.guess()
 
 
-@sucmd('updateData', aliases=('更新maimai数据'))
+@sucmd('updateData', aliases='更新maimai数据')
 async def _(session: CommandSession):
     await mai.get_music()
     await mai.get_music_alias()
@@ -190,9 +190,9 @@ async def random_song(bot: NoneBot, ev: CQEvent):
             tp = ['SD', 'DX']
         level = match.group(3)
         if match.group(2) == '':
-            music_data = mai.total_list.filter(level=level, type=tp)
+            music_data = mai.total_list.filter(level=level, music_type=tp)
         else:
-            music_data = mai.total_list.filter(level=level, diff=['绿黄红紫白'.index(match.group(2))], type=tp)
+            music_data = mai.total_list.filter(level=level, diff=['绿黄红紫白'.index(match.group(2))], music_type=tp)
         if len(music_data) == 0:
             msg = '没有这样的乐曲哦。'
         else:
@@ -428,7 +428,7 @@ async def _(session: CommandSession):
         return
 
 
-@sucmd('updatealias', aliases=('更新别名库'))
+@sucmd('updatealias', aliases='更新别名库')
 async def _(session: CommandSession):
     try:
         await mai.get_music_alias()
@@ -618,7 +618,7 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
 谱面成绩标准差：{stats.std_dev:.2f}''', at_sender=True)
 
 
-@sucmd('updatetable', aliases=('更新定数表'))
+@sucmd('updatetable', aliases='更新定数表')
 async def _(session: CommandSession):
     msg = await update_rating_table()
     await session.send(msg)

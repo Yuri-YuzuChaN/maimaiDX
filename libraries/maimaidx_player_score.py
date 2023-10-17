@@ -12,14 +12,14 @@ from hoshino.typing import MessageSegment
 
 from .. import *
 from .image import *
-from .maimai_best_50 import computeRa, generateAchievementList
+from .maimai_best_50 import compute_ra, generate_achievement_list
 from .maimaidx_api_data import maiApi
 from .maimaidx_error import *
 from .maimaidx_music import Music, mai
 
 realAchievementList = {}
 for acc in [i / 10 for i in range(10, 151)]:
-    realAchievementList[f'{acc:.1f}'] = generateAchievementList(acc)
+    realAchievementList[f'{acc:.1f}'] = generate_achievement_list(acc)
 
 
 async def music_global_data(music: Music, level_index: int) -> str:
@@ -165,13 +165,14 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
         for music in mai.total_list:
             for i, ds in enumerate(music.ds):
                 for achievement in realAchievementList[f'{ds:.1f}']:
-                    if rating and music.level[i] != rating: continue
+                    if rating and music.level[i] != rating:
+                        continue
                     if f'{achievement:.1f}' == '100.5':
                         index_score = 12
                     else:
                         index_score = [index for index, acc in enumerate(achievementList[:-1]) if acc <= achievement < achievementList[index + 1]][0]
                     if music.basic_info.is_new:
-                        music_ra = computeRa(ds, achievement)
+                        music_ra = compute_ra(ds, achievement)
                         if music_ra < dx_ra_lowest: continue
                         if [int(music.id), i] in player_dx_id_list:
                             player_ra = player_dx_list[player_dx_id_list.index([int(music.id), i])][2]
@@ -181,8 +182,9 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
                             if music_ra - dx_ra_lowest == int(score) and [int(music.id), i, music_ra] not in player_dx_list:
                                 music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                     else:
-                        music_ra = computeRa(ds, achievement)
-                        if music_ra < sd_ra_lowest: continue
+                        music_ra = compute_ra(ds, achievement)
+                        if music_ra < sd_ra_lowest:
+                            continue
                         if [int(music.id), i] in player_sd_id_list:
                             player_ra = player_sd_list[player_sd_id_list.index([int(music.id), i])][2]
                             if music_ra - player_ra == int(score) and [int(music.id), i, music_ra] not in player_sd_list:
@@ -509,8 +511,10 @@ async def level_achievement_list_data(qqid: int, username: Optional[str], rating
             if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
                 m = mai.total_list.by_id(str(s['id']))
                 msg += f'No.{i + 1} {s["achievements"]:.4f} {m.id}. {m.title} {diffs[s["level_index"]]} {m.ds[s["level_index"]]}'
-                if s["fc"]: msg += f' {comboRank[combo_rank.index(s["fc"])].upper()}'
-                if s["fs"]: msg += f' {syncRank[sync_rank.index(s["fs"])].upper()}'
+                if s["fc"]:
+                    msg += f' {comboRank[combo_rank.index(s["fc"])].upper()}'
+                if s["fs"]:
+                    msg += f' {syncRank[sync_rank.index(s["fs"])].upper()}'
                 msg += '\n'
         msg += f'第{page}页，共{len(song_list) // SONGS_PER_PAGE + 1}页'
     except UserNotFoundError as e:

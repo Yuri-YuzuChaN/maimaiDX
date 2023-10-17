@@ -129,14 +129,14 @@ class MusicList(List[Music]):
         return None
     
     def by_level(self, level: Union[str, List[str]], byid: bool = False) -> Optional[Union[List[Music], List[str]]]:
-        levelList = []             
+        level_list = []
         if isinstance(level, str):
-            levelList = [music.id if byid else music for music in self if level in music.level]
+            level_list = [music.id if byid else music for music in self if level in music.level]
         else:
-            levelList = [music.id if byid else music for music in self for lv in level if lv in music.level]
-        return levelList
+            level_list = [music.id if byid else music for music in self for lv in level if lv in music.level]
+        return level_list
 
-    def lvList(self, rating: bool = False) -> Dict[str, Dict[str, Union[List[Music], List[RaMusic]]]]:
+    def lv_list(self, rating: bool = False) -> Dict[str, Dict[str, Union[List[Music], List[RaMusic]]]]:
         level = {}
         for lv in levelList:
             if lv == '15':
@@ -147,7 +147,7 @@ class MusicList(List[Music]):
                 r = range(9, 6, -1)
             else:
                 r = range(6, -1, -1)
-            levellist = { f'{lv if "+" not in lv else lv[:-1]}.{_}': [] for _ in r }
+            levellist = {f'{lv if "+" not in lv else lv[:-1]}.{_}': [] for _ in r}
             musiclist = self.by_level(lv)
             for music in musiclist:
                 for diff, ds in enumerate(music.ds):
@@ -172,7 +172,7 @@ class MusicList(List[Music]):
                charter_search: Optional[str] = ...,
                genre: Optional[Union[str, List[str]]] = ...,
                bpm: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
-               type: Optional[Union[str, List[str]]] = ...,
+               music_type: Optional[Union[str, List[str]]] = ...,
                diff: List[int] = ...,
                ):
         new_list = MusicList()
@@ -190,7 +190,7 @@ class MusicList(List[Music]):
                 continue
             if not in_or_equal(music.basic_info.genre, genre):
                 continue
-            if not in_or_equal(music.type, type):
+            if not in_or_equal(music.type, music_type):
                 continue
             if not in_or_equal(music.basic_info.bpm, bpm):
                 continue
@@ -221,6 +221,7 @@ class Alias(BaseModel):
     Name: Optional[str] = None
     Alias: Optional[List[str]] = None
 
+
 class AliasList(List[Alias]):
 
     def by_id(self, music_id: int) -> Optional[List[Alias]]:
@@ -243,7 +244,7 @@ async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
         if (file := coverdir / f'{id}.png').exists():
             return file
         id = int(id)
-        if id > 10000 and id <= 11000:
+        if 10000 < id <= 11000:
             id -= 10000
         async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{id:05d}.png', timeout=aiohttp.ClientTimeout(total=60)) as req:
             if req.status == 200:
@@ -318,6 +319,7 @@ async def get_music_list() -> MusicList:
 
     return total_list
 
+
 async def get_music_alias_list() -> AliasList:
     """
     获取所有别名
@@ -348,6 +350,7 @@ async def get_music_alias_list() -> AliasList:
 
     return total_alias_list
 
+
 async def update_local_alias(id: str, alias_name: str) -> bool:
     try:
         if local_alias_file.exists():
@@ -363,6 +366,7 @@ async def update_local_alias(id: str, alias_name: str) -> bool:
     except Exception as e:
         log.error(f'添加本地别名失败: {e}')
         return False
+
 
 class MaiMusic:
 
@@ -400,6 +404,7 @@ class MaiMusic:
                     self.hot_music_ids.append(music.id)  # 游玩次数超过1w次加入猜歌库
         self.guess_data = list(filter(lambda x: x.id in self.hot_music_ids, self.total_list))
 
+
 mai = MaiMusic()
 
 
@@ -429,9 +434,9 @@ class Guess:
         """
         开始猜歌
         """
-        self.Group[gid] = await self.guessData()
+        self.Group[gid] = await self.guess_data()
 
-    async def guessData(self) -> GuessData:
+    async def guess_data(self) -> GuessData:
         """
         获取猜歌数据
         """
