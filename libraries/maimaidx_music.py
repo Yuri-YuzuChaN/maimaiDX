@@ -318,7 +318,7 @@ async def get_music_list() -> MusicList:
                 'charts'][music['id']] else chart_stats['charts'][music['id']]
         else:
             _stats = None
-        total_list[num] = Music(stats=_stats, **(total_list[num].model_dump()))
+        total_list[num] = Music(stats=_stats, **(total_list[num]))
 
     return total_list
 
