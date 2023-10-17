@@ -22,7 +22,7 @@ for acc in [i / 10 for i in range(10, 151)]:
     realAchievementList[f'{acc:.1f}'] = generate_achievement_list(acc)
 
 
-async def music_global_data(music: Music, level_index: int) -> str:
+async def music_global_data(music: Music, level_index: int) -> MessageSegment:
     """
     指令 `Ginfo`，查看当前谱面游玩详情
     """
@@ -500,7 +500,7 @@ async def level_process_data(qqid: int, username: Optional[str], rating: str, ra
 
 
 async def level_achievement_list_data(qqid: int, username: Optional[str], rating: str, page: Optional[str],
-                                      nickname: Optional[str]) -> str:
+                                      nickname: Optional[str]) -> MessageSegment:
     """
     查看分数列表
     

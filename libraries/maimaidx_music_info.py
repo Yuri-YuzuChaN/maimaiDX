@@ -107,7 +107,7 @@ async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment, N
 
             p, s = f'{_data["achievements"]:.4f}'.split('.')
             r = tb.get_box(p, 36)
-            tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
+            tb.draw(90, 545 + y * lv, 30, str(ds), anchor='mm')
             tb.draw(200, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
             tb.draw(200 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
             tb.draw(790, 545 + y * lv, 30, ra, TEXT_COLOR[lv], 'mm')
@@ -192,7 +192,7 @@ async def music_play_data_dev(qqid: int, songs: str) -> Union[str, MessageSegmen
 
             p, s = f'{_data["achievements"]:.4f}'.split('.')
             r = tb.get_box(p, 36)
-            tb.draw(90, 545 + y * lv, 30, ds, anchor='mm')
+            tb.draw(90, 545 + y * lv, 30, str(ds), anchor='mm')
             tb.draw(175, 567 + y * lv, 36, p, TEXT_COLOR[lv], 'ld')
             tb.draw(175 + r[2], 565 + y * lv, 30, f'.{s}%', TEXT_COLOR[lv], 'ld')
             tb.draw(550, (535 if dxnum != 0 else 548) + y * lv, 20, f'{dxscore}/{_dxscore}', TEXT_COLOR[lv], 'mm')
@@ -212,7 +212,7 @@ async def music_play_data_dev(qqid: int, songs: str) -> Union[str, MessageSegmen
     return msg
 
 
-async def new_draw_music_info(music: Music) -> str:
+async def new_draw_music_info(music: Music) -> MessageSegment:
     """
     新的查看谱面
     """
@@ -232,7 +232,7 @@ async def new_draw_music_info(music: Music) -> str:
         title = change_column_width(title, 41) + '...'
     sy.draw(640, 350, 40, title, default_color, 'lm')
     sy.draw(640, 425, 30, music.basic_info.artist, default_color, 'lm')
-    tb.draw(705, 548, 40, music.basic_info.bpm, default_color, 'lm')
+    tb.draw(705, 548, 40, str(music.basic_info.bpm), default_color, 'lm')
     tb.draw(640, 665, 40, f'ID {music.id}', default_color, 'lm')
     sy.draw(970, 665, 30, music.basic_info.genre, default_color, 'mm')
 
@@ -249,11 +249,11 @@ async def new_draw_music_info(music: Music) -> str:
             sy.draw(585 + 414 * (num - 2), 1523, 22, music.charts[num].charter, color, 'mm')
 
         notes = list(music.charts[num].notes)
-        tb.draw(658, 945 + 110 * num, 40, sum(notes), default_color, 'mm')
+        tb.draw(658, 945 + 110 * num, 40, str(sum(notes)), default_color, 'mm')
         if len(notes) == 4:
             notes.insert(3, 0)
         for n, c in enumerate(notes):
-            tb.draw(834 + 175 * n, 945 + 110 * num, 40, c, default_color, 'mm')
+            tb.draw(834 + 175 * n, 945 + 110 * num, 40, str(c), default_color, 'mm')
     msg = MessageSegment.image(image_to_base64(im))
 
     return msg

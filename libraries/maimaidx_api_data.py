@@ -7,16 +7,17 @@ from .. import config_json
 from .maimaidx_error import *
 
 
+def load_token() -> str:
+    return json.load(open(config_json, 'r', encoding='utf-8'))['token']
+
+
 class MaimaiAPI:
     MaiAPI = 'https://www.diving-fish.com/api/maimaidxprober'
     MaiAliasAPI = 'https://api.yuzuai.xyz/maimaidx'
 
     def __init__(self) -> None:
-        self.token = self.load_token()
+        self.token = load_token()
         self.headers = {'developer-token': self.token}
-
-    def load_token(self) -> str:
-        return json.load(open(config_json, 'r', encoding='utf-8'))['token']
 
     async def _request(self, method: str, url: str, **kwargs) -> Any:
         session = ClientSession(timeout=ClientTimeout(total=30))

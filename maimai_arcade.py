@@ -134,7 +134,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     elif not name.isdigit() and len(_arc := arcade.total.search_fullname(name)) > 1:
         msg = f'找到多个相同店名的机厅，请使用店铺ID订阅\n' + '\n'.join([f'{_.id}：{_.name}' for _ in _arc])
     else:
-        msg = await subscribe(gid, name, sub)
+        msg = await subscribe(str(gid), name, sub)
 
     await bot.send(ev, msg, at_sender=True)
 
@@ -209,7 +209,7 @@ async def arcade_person(bot: NoneBot, ev: CQEvent):
                 msg = await update_person(_arcade, nickname, value, person)
 
             await bot.send(ev, msg, at_sender=True)
-    except:
+    except Exception:
         pass
 
 
@@ -253,6 +253,6 @@ async def _():
             _.by = '自动清零'
             _.time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         await arcade.total.save_arcade()
-    except:
+    except Exception:
         return
     loga.info('maimaiDX排卡数据更新完毕')

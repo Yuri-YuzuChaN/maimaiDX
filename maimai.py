@@ -199,7 +199,7 @@ async def random_song(bot: NoneBot, ev: CQEvent):
         else:
             msg = await new_draw_music_info(music_data.random())
         await bot.send(ev, msg, at_sender=True)
-    except:
+    except Exception:
         await bot.send(ev, '随机命令错误，请检查语法', at_sender=True)
 
 
@@ -437,7 +437,7 @@ async def _(session: CommandSession):
         await mai.get_music_alias()
         log.info('手动更新别名库成功')
         await session.send('手动更新别名库成功')
-    except:
+    except Exception:
         log.error('手动更新别名库失败')
         await session.send('手动更新别名库失败')
 
@@ -462,7 +462,7 @@ async def alias_apply_status():
                         await sv.bot.send_group_msg(group_id=gid,
                                                     message='\n======\n'.join(msg) + f'\n浏览{public_addr}查看详情')
                         await asyncio.sleep(5)
-                    except:
+                    except Exception:
                         continue
         await asyncio.sleep(5)
         if end := await maiApi.get_alias_end():
@@ -480,7 +480,7 @@ async def alias_apply_status():
                         try:
                             await sv.bot.send_group_msg(group_id=gid, message='\n======\n'.join(msg2))
                             await asyncio.sleep(5)
-                        except:
+                        except Exception:
                             continue
             await mai.get_music_alias()
     except ServerError as e:
@@ -531,7 +531,7 @@ BREAK\t5/12.5/25(外加200落)'''
 分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
 BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)'''
             await bot.send(ev, msg, at_sender=True)
-        except:
+        except Exception:
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)
 
 
@@ -857,6 +857,6 @@ async def _():
     try:
         await mai.get_music()
         mai.guess()
-    except:
+    except Exception:
         return
     log.info('maimaiDX数据更新完毕')

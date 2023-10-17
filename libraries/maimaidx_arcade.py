@@ -140,7 +140,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                 data = None
                 loga.error('获取机厅信息失败')
         if data is not None:
-            arcadelist = ArcadeList()
+            arcade_list = ArcadeList()
             if not arcade.arcades:
                 for num in range(len(data)):
                     _arc = data[num]
@@ -157,7 +157,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                         'by': '',
                         'time': ''
                     }
-                    arcadelist.append(Arcade(**arcade_dict))
+                    arcade_list.append(Arcade(**arcade_dict))
             else:
                 for num in range(len(data)):
                     _arc = data[num]
@@ -184,20 +184,20 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                             'time': ''
                         }
                         arcade.arcades.insert(num, arcade_dict)
-                    arcadelist.append(Arcade(**arcade_dict))
+                    arcade_list.append(Arcade(**arcade_dict))
             for n in arcade.arcades:
                 if int(n['id']) >= 10000:
-                    arcadelist.append(Arcade(**n))
+                    arcade_list.append(Arcade(**n))
         else:
-            arcadelist = ArcadeList(arcade.arcades)
-            for num in range(len(arcadelist)):
-                arcadelist[num] = Arcade(**arcade.arcades[num])
+            arcade_list = ArcadeList(arcade.arcades)
+            for num in range(len(arcade_list)):
+                arcade_list[num] = Arcade(**arcade.arcades[num])
         if save:
-            await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
+            await writefile(arcades_json, [_.model_dump() for _ in arcade_list])
     except Exception:
         loga.error(f'Error: {traceback.format_exc()}')
         loga.error('获取机厅信息失败')
-    return arcadelist
+    return arcade_list
 
 
 async def updata_arcade(arcade_name: str, num: str):
@@ -245,7 +245,7 @@ async def update_alias(arcade_name: str, alias_name: str, add_del: bool):
     return msg
 
 
-async def subscribe(group_id: str, arcade_name: str, sub: bool):
+async def subscribe(group_id: int, arcade_name: str, sub: bool):
     """订阅机厅，`sub` 等于 `True` 为订阅，`False` 为取消订阅"""
     change = False
     if arcade_name.isdigit():

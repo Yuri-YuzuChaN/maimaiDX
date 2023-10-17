@@ -89,7 +89,7 @@ class DrawBest:
             num = f'{self.addRating + 1:02d}'
         return f'UI_DNM_DaniPlate_{num}.png'
 
-    async def whiledraw(self, data: List[ChartInfo], draw_type: bool) -> Image.Image:
+    async def whiledraw(self, data: List[ChartInfo], draw_type: bool) -> None:
         # y为第一排纵向坐标，dy为各排间距
         y = 430 if draw_type else 1670
         dy = 170
@@ -126,7 +126,7 @@ class DrawBest:
             for _ in range(dxnum):
                 self.__im.alpha_composite(self.dxstar[dxtype], (x + DXSTAR_DEST[dxnum] + 20 * _, y + 74))
 
-            self._tb.draw(x + 40, y + 148, 20, info.song_id, anchor='mm')
+            self._tb.draw(x + 40, y + 148, 20, str(info.song_id), anchor='mm')
             title = info.title
             if coloum_width(title) > 18:
                 title = change_column_width(title, 17) + '...'
@@ -175,8 +175,8 @@ class DrawBest:
             except Exception:
                 pass
         self.__im.alpha_composite(dx_rating, (620, 122))
-        rating = f'{self.Rating:05d}'
-        for n, i in enumerate(rating):
+        rating_str = f'{self.Rating:05d}'
+        for n, i in enumerate(rating_str):
             self.__im.alpha_composite(Image.open(maimaidir / f'UI_NUM_Drating_{i}.png').resize((28, 34)),
                                       (760 + 23 * n, 137))
         self.__im.alpha_composite(name, (620, 200))

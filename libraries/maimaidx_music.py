@@ -288,6 +288,7 @@ async def get_music_list() -> MusicList:
     except FileNotFoundError:
         log.error(
             f'未找到文件，请自行使用浏览器访问 "https://www.diving-fish.com/api/maimaidxprober/music_data" 将内容保存为 "music_data.json" 存放在 "static" 目录下并重启bot')
+        music_data = []
 
     # ChartStats
     try:
@@ -308,6 +309,7 @@ async def get_music_list() -> MusicList:
     except FileNotFoundError:
         log.error(
             f'未找到文件，请自行使用浏览器访问 "https://www.diving-fish.com/api/maimaidxprober/chart_stats" 将内容保存为 "chart_stats.json" 存放在 "static" 目录下并重启bot')
+        chart_stats = {}
 
     total_list: MusicList = MusicList(music_data)
     for num, music in enumerate(total_list):
@@ -316,7 +318,7 @@ async def get_music_list() -> MusicList:
                 'charts'][music['id']] else chart_stats['charts'][music['id']]
         else:
             _stats = None
-        total_list[num] = Music(stats=_stats, **total_list[num])
+        total_list[num] = Music(stats=_stats, **(total_list[num].model_dump()))
 
     return total_list
 
@@ -336,6 +338,7 @@ async def get_music_alias_list() -> AliasList:
         log.error(e)
     except UnknownError:
         log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
+    finally:
         alias_data = await openfile(alias_file)
         if not alias_data:
             log.error(
@@ -363,7 +366,7 @@ async def update_local_alias(id: str, alias_name: str) -> bool:
         if id not in local_alias_data:
             local_alias_data[id] = []
         local_alias_data[id].append(alias_name.lower())
-        mai.total_alias_list.by_id(id)[0].Alias.append(alias_name.lower())
+        mai.total_alias_list.by_id(int(id))[0].Alias.append(alias_name.lower())
         await writefile(local_alias_file, local_alias_data)
         return True
     except Exception as e:
@@ -379,13 +382,13 @@ class MaiMusic:
         封装所有曲目信息以及猜歌数据，便于更新
         """
 
-    async def get_music(self) -> MusicList:
+    async def get_music(self) -> None:
         """
         获取所有曲目数据
         """
         self.total_list = await get_music_list()
 
-    async def get_music_alias(self) -> AliasList:
+    async def get_music_alias(self) -> None:
         """
         获取所有曲目别名
         """
@@ -451,7 +454,7 @@ class Guess:
             f'{"没" if len(music.ds) == 4 else ""}有白谱',
             f'的 BPM 是 {music.basic_info.bpm}'
         ], 6)
-        answer = mai.total_alias_list.by_id(music.id)[0].Alias
+        answer = mai.total_alias_list.by_id(int(music.id))[0].Alias
         answer.append(music.id)
         img = Image.open(await download_music_pictrue(music.id))
         w, h = img.size
@@ -522,7 +525,7 @@ class GroupAlias:
         await writefile(group_alias_file, self.config)
         return '群别名推送功能已关闭'
 
-    async def alias_global_change(self, set: bool):
+    async def alias_global_change(self, set: list[int] | bool):
         self.config['global'] = set
         await writefile(group_alias_file, self.config)
 
