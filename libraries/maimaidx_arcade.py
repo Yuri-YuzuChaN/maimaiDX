@@ -11,7 +11,6 @@ from .maimaidx_music import writefile
 
 
 class Arcade(BaseModel):
-    
     name: str
     location: str
     province: str
@@ -29,7 +28,7 @@ class ArcadeList(List[Arcade]):
 
     async def save_arcade(self):
         return await writefile(arcades_json, [_.model_dump() for _ in self])
-    
+
     def search_name(self, name: str) -> List[Arcade]:
         """模糊查询机厅"""
         arcade_list = []
@@ -40,9 +39,9 @@ class ArcadeList(List[Arcade]):
                 arcade_list.append(arcade)
             elif name in arcade.alias:
                 arcade_list.append(arcade)
-                
+
         return arcade_list
-    
+
     def search_fullname(self, name: str) -> List[Arcade]:
         """查询店铺全名机厅"""
         arcade_list = []
@@ -51,16 +50,16 @@ class ArcadeList(List[Arcade]):
                 arcade_list.append(arcade)
 
         return arcade_list
-    
+
     def search_alias(self, alias: str) -> List[Arcade]:
         """查询别名机厅"""
         arcade_list = []
         for arcade in self:
             if alias in arcade.alias:
                 arcade_list.append(arcade)
-        
+
         return arcade_list
-    
+
     def search_id(self, id: str) -> List[Arcade]:
         """指定ID查询机厅"""
         arcade_list = []
@@ -82,7 +81,7 @@ class ArcadeList(List[Arcade]):
                 self.remove(arcade)
                 return True
         return False
-    
+
     def group_in_arcade(self, group_id: int, arcade_name: str) -> bool:
         """是否已订阅该机厅"""
         for arcade in self:
@@ -90,7 +89,7 @@ class ArcadeList(List[Arcade]):
                 if group_id in arcade.group:
                     return True
         return False
-    
+
     def group_subscribe_arcade(self, group_id: int) -> List[Arcade]:
         """已订阅机厅"""
         arcade_list = []
@@ -115,15 +114,14 @@ class ArcadeList(List[Arcade]):
 
 
 class ArcadeData:
-    
     total: Optional[ArcadeList]
-    
-    def __init__(self) -> None: 
+
+    def __init__(self) -> None:
         if not arcades_json.exists():
             with open(arcades_json, 'w', encoding='utf8') as f:
                 json.dump([], f)
         self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
-    
+
     async def get_arcade(self):
         self.total = await download_arcade_info()
         self.id_list = [c_a.id for c_a in self.total]
@@ -134,7 +132,8 @@ arcade = ArcadeData()
 
 async def download_arcade_info(save: bool = True) -> ArcadeList:
     try:
-        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location', timeout=aiohttp.ClientTimeout(total=30)) as req:
+        async with aiohttp.request('GET', 'http://wc.wahlap.net/maidx/rest/location',
+                                   timeout=aiohttp.ClientTimeout(total=30)) as req:
             if req.status == 200:
                 data = await req.json()
             else:
@@ -214,7 +213,7 @@ async def updata_arcade(arcade_name: str, num: str):
     else:
         msg = f'未找到机厅：{arcade_name}'
     return msg
-    
+
 
 async def update_alias(arcade_name: str, alias_name: str, add_del: bool):
     """变更机厅别名"""
@@ -272,10 +271,10 @@ async def subscribe(group_id: str, arcade_name: str, sub: bool):
     else:
         msg = f'未找到机厅：{arcade_name}'
     if change:
-        await arcade.total.save_arcade() 
+        await arcade.total.save_arcade()
     return msg
-        
-        
+
+
 async def update_person(arcade_list: List[Arcade], user_name: str, value: str, person: int):
     """变更机厅人数"""
     if len(arcade_list) == 1:

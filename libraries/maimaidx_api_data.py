@@ -8,10 +8,9 @@ from .maimaidx_error import *
 
 
 class MaimaiAPI:
-    
     MaiAPI = 'https://www.diving-fish.com/api/maimaidxprober'
     MaiAliasAPI = 'https://api.yuzuai.xyz/maimaidx'
-    
+
     def __init__(self) -> None:
         self.token = self.load_token()
         self.headers = {'developer-token': self.token}
@@ -24,7 +23,7 @@ class MaimaiAPI:
         res = await session.request(method, url, **kwargs)
 
         data = None
-        
+
         if self.MaiAPI in url:
             if res.status == 200:
                 data = await res.json()
@@ -56,7 +55,8 @@ class MaimaiAPI:
         """获取单曲数据"""
         return await self._request('GET', self.MaiAPI + '/chart_stats')
 
-    async def query_user(self, project: str, *, qqid: Optional[int] = None, username: Optional[str] = None, version: Optional[List[str]] = None):
+    async def query_user(self, project: str, *, qqid: Optional[int] = None, username: Optional[str] = None,
+                         version: Optional[List[str]] = None):
         """
         请求用户数据
         
@@ -148,6 +148,6 @@ class MaimaiAPI:
             'uid': user_id
         }
         return await self._request('POST', self.MaiAliasAPI + '/agreeuser', params=params)
-    
+
 
 maiApi = MaimaiAPI()

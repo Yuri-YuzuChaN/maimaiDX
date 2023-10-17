@@ -125,7 +125,8 @@ async def music_global_data(music: Music, level_index: int) -> str:
             trigger='item', formatter='{a} <br/>{b}: {c} ({d}%)'
         )
     ).render(str(static / 'temp_pie.html'))
-    await run_sync(make_snapshot)(snapshot, str(static / 'temp_pie.html'), str(static / 'temp_pie.png'), is_remove_html=False)
+    await run_sync(make_snapshot)(snapshot, str(static / 'temp_pie.html'), str(static / 'temp_pie.png'),
+                                  is_remove_html=False)
 
     im = Image.open(static / 'temp_pie.png')
     msg = MessageSegment.image(image_to_base64(im))
@@ -133,7 +134,8 @@ async def music_global_data(music: Music, level_index: int) -> str:
     return msg
 
 
-async def rise_score_data(qqid: int, username: Optional[str], rating: str, score: str, nickname: Optional[str] = None) -> str:
+async def rise_score_data(qqid: int, username: Optional[str], rating: str, score: str,
+                          nickname: Optional[str] = None) -> str:
     """
     上分数据
     
@@ -170,28 +172,37 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
                     if f'{achievement:.1f}' == '100.5':
                         index_score = 12
                     else:
-                        index_score = [index for index, acc in enumerate(achievementList[:-1]) if acc <= achievement < achievementList[index + 1]][0]
+                        index_score = [index for index, acc in enumerate(achievementList[:-1]) if
+                                       acc <= achievement < achievementList[index + 1]][0]
                     if music.basic_info.is_new:
                         music_ra = compute_ra(ds, achievement)
                         if music_ra < dx_ra_lowest: continue
                         if [int(music.id), i] in player_dx_id_list:
                             player_ra = player_dx_list[player_dx_id_list.index([int(music.id), i])][2]
-                            if music_ra - player_ra == int(score) and [int(music.id), i, music_ra] not in player_dx_list:
-                                music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
+                            if music_ra - player_ra == int(score) and [int(music.id), i,
+                                                                       music_ra] not in player_dx_list:
+                                music_dx_list.append(
+                                    [music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                         else:
-                            if music_ra - dx_ra_lowest == int(score) and [int(music.id), i, music_ra] not in player_dx_list:
-                                music_dx_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
+                            if music_ra - dx_ra_lowest == int(score) and [int(music.id), i,
+                                                                          music_ra] not in player_dx_list:
+                                music_dx_list.append(
+                                    [music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                     else:
                         music_ra = compute_ra(ds, achievement)
                         if music_ra < sd_ra_lowest:
                             continue
                         if [int(music.id), i] in player_sd_id_list:
                             player_ra = player_sd_list[player_sd_id_list.index([int(music.id), i])][2]
-                            if music_ra - player_ra == int(score) and [int(music.id), i, music_ra] not in player_sd_list:
-                                music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
+                            if music_ra - player_ra == int(score) and [int(music.id), i,
+                                                                       music_ra] not in player_sd_list:
+                                music_sd_list.append(
+                                    [music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
                         else:
-                            if music_ra - sd_ra_lowest == int(score) and [int(music.id), i, music_ra] not in player_sd_list:
-                                music_sd_list.append([music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
+                            if music_ra - sd_ra_lowest == int(score) and [int(music.id), i,
+                                                                          music_ra] not in player_sd_list:
+                                music_sd_list.append(
+                                    [music, diffs[i], ds, achievement, scoreRank[index_score + 1].upper(), music_ra])
 
         if len(music_dx_list) == 0 and len(music_sd_list) == 0:
             return '没有找到这样的乐曲'
@@ -206,7 +217,7 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
             result += f'\n为{appellation}推荐以下new乐曲：\n'
             for music, diff, ds, achievement, rank, ra in sorted(music_dx_list, key=lambda i: int(i[0].id)):
                 result += f'{music.id}. {music.title} {diff} {ds} {achievement} {rank} {ra}\n'
-                
+
         msg = MessageSegment.image(image_to_base64(text_to_image(result.strip())))
     except UserNotFoundError as e:
         msg = str(e)
@@ -215,7 +226,7 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
     except Exception as e:
         log.error(traceback.format_exc())
         msg = f'未知错误：{type(e)}\n请联系Bot管理员'
-        
+
     return msg
 
 
@@ -237,7 +248,7 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
         song_remain_master = []
         song_remain_re_master = []
         song_remain_difficult = []
-        
+
         if ver in ['霸', '舞']:
             version = list(set(_v for _v in list(plate_to_version.values())[:-9]))
         elif ver == '真':
@@ -251,7 +262,7 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
         else:
             version = [plate_to_version[ver]]
         data = await maiApi.query_user('plate', qqid=qqid, username=username, version=version)
-        
+
         if ver == '真':
             verlist = list(filter(lambda x: x['title'] != 'ジングルベル', data['verlist']))
         else:
@@ -267,7 +278,8 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
                     song_remain_expert.append([song['id'], song['level_index']])
                 if song['level_index'] == 3 and song['achievements'] < (100.0 if plan == '将' else 80.0):
                     song_remain_master.append([song['id'], song['level_index']])
-                if ver in ['舞', '霸'] and song['level_index'] == 4 and song['achievements'] < (100.0 if plan == '将' else 80.0):
+                if ver in ['舞', '霸'] and song['level_index'] == 4 and song['achievements'] < (
+                100.0 if plan == '将' else 80.0):
                     song_remain_re_master.append([song['id'], song['level_index']])
                 song_played.append([song['id'], song['level_index']])
         elif plan in ['極', '极']:
@@ -341,7 +353,8 @@ Advanced剩余{len(song_remain_advanced)}首
 Expert剩余{len(song_remain_expert)}首
 Master剩余{len(song_remain_master)}首
 '''
-        song_remain: list[list] = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
+        song_remain: list[
+            list] = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
         song_record = [[s['id'], s['level_index']] for s in verlist]
         if ver in ['舞', '霸']:
             msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
@@ -402,7 +415,8 @@ Master剩余{len(song_remain_master)}首
     return msg
 
 
-async def level_process_data(qqid: int, username: Optional[str], rating: str, rank: str, nickname: Optional[str]) -> str:
+async def level_process_data(qqid: int, username: Optional[str], rating: str, rank: str,
+                             nickname: Optional[str]) -> str:
     """
     查看谱面等级进度
     
@@ -427,13 +441,15 @@ async def level_process_data(qqid: int, username: Optional[str], rating: str, ra
         elif rank.lower() in comboRank:
             combo_index = comboRank.index(rank.lower())
             for song in data['verlist']:
-                if song['level'] == rating and ((song['fc'] and combo_rank.index(song['fc']) < combo_index) or not song['fc']):
+                if song['level'] == rating and (
+                        (song['fc'] and combo_rank.index(song['fc']) < combo_index) or not song['fc']):
                     song_remain.append([song['id'], song['level_index']])
                 song_played.append([song['id'], song['level_index']])
         elif rank.lower() in syncRank:
             sync_index = syncRank.index(rank.lower())
             for song in data['verlist']:
-                if song['level'] == rating and ((song['fs'] and sync_rank.index(song['fs']) < sync_index) or not song['fs']):
+                if song['level'] == rating and (
+                        (song['fs'] and sync_rank.index(song['fs']) < sync_index) or not song['fs']):
                     song_remain.append([song['id'], song['level_index']])
                 song_played.append([song['id'], song['level_index']])
         for music in mai.total_list:
@@ -483,7 +499,8 @@ async def level_process_data(qqid: int, username: Optional[str], rating: str, ra
     return msg
 
 
-async def level_achievement_list_data(qqid: int, username: Optional[str], rating: str, page: Optional[str], nickname: Optional[str]) -> str:
+async def level_achievement_list_data(qqid: int, username: Optional[str], rating: str, page: Optional[str],
+                                      nickname: Optional[str]) -> str:
     """
     查看分数列表
     
