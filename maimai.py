@@ -229,20 +229,16 @@ async def search_song(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, f'结果过多（{len(result)} 条），请缩小查询范围。', at_sender=True)
 
 
-@sv.on_prefix(['id', 'Id', 'ID'])
+@sv.on_rex(re.compile(r'id\s?([0-9]+)$', re.IGNORECASE))
 async def query_chart(bot: NoneBot, ev: CQEvent):
-    id: str = ev.message.extract_plain_text().strip()
-    if not id:
-        return
-    if id.isdigit():
-        music = mai.total_list.by_id(id)
-        if not music:
-            msg = f'未找到ID为[{id}]的乐曲'
-        else:
-            msg = await new_draw_music_info(music)
-        await bot.send(ev, msg)
+    match: Match[str] = ev['match']
+    id = match.group(1)
+    music = mai.total_list.by_id(id)
+    if not music:
+        msg = f'未找到ID为[{id}]的乐曲'
     else:
-        await bot.finish(ev, '仅允许使用id查询', at_sender=True)
+        msg = await new_draw_music_info(music)
+    await bot.send(ev, msg)
 
 
 @sv.on_fullmatch(['今日mai', '今日舞萌', '今日运势'])
@@ -284,20 +280,28 @@ async def what_song(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, '您要找的是不是：' + (await new_draw_music_info(music)), at_sender=True)
 
 
-@sv.on_suffix(['有什么别称', '有什么别名'])
+@sv.on_rex(re.compile(r'^(id)?\s?(.+)\s?有什么别[名称]$', re.IGNORECASE))
 async def how_song(bot: NoneBot, ev: CQEvent):
-    name: str = ev.message.extract_plain_text().strip().lower()
-    
-    alias = mai.total_alias_list.by_alias(name)
-    if not alias:
-        if name.isdigit():
-            alias_id = mai.total_alias_list.by_id(name)
-            if not alias_id:
-                await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
-            else:
-                alias = alias_id
-        else:
+    match: Match[str] = ev['match']
+    findid = bool(match.group(1))
+    name = match.group(2)
+    if findid and name.isdigit():
+        alias_id = mai.total_alias_list.by_id(name)
+        if not alias_id:
             await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
+        else:
+            alias = alias_id
+    else:
+        alias = mai.total_alias_list.by_alias(name)
+        if not alias:
+            if name.isdigit():
+                alias_id = mai.total_alias_list.by_id(name)
+                if not alias_id:
+                    await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
+                else:
+                    alias = alias_id
+            else:
+                await bot.finish(ev, '未找到此歌曲\n可以使用 添加别名 指令给该乐曲添加别名', at_sender=True)
     if len(alias) != 1:
         msg = []
         for songs in alias:
