@@ -229,7 +229,7 @@ async def search_song(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, f'结果过多（{len(result)} 条），请缩小查询范围。', at_sender=True)
 
 
-@sv.on_rex(re.compile(r'id\s?([0-9]+)$', re.IGNORECASE))
+@sv.on_rex(re.compile(r'^id\s?([0-9]+)$', re.IGNORECASE))
 async def query_chart(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     id = match.group(1)
