@@ -338,6 +338,13 @@ async def get_music_alias_list() -> AliasList:
         if not alias_data:
             log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
             raise ValueError
+    except Exception:
+        log.error(f'Error: {traceback.format_exc()}')
+        log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
+        alias_data = await openfile(alias_file)
+        if not alias_data:
+            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
+            raise ValueError
 
     for id, music in local_alias_data.items():
         for name in music:
