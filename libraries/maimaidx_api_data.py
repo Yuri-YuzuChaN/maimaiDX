@@ -22,32 +22,30 @@ class MaimaiAPI:
     
     
     async def _request(self, method: str, url: str, **kwargs) -> Any:
-        session = ClientSession(timeout=ClientTimeout(total=30))
-        res = await session.request(method, url, **kwargs)
+        async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+            async with session.request(method, url, **kwargs) as res:
+                data = None
 
-        data = None
-        
-        if self.MaiAPI in url:
-            if res.status == 200:
-                data = await res.json()
-            elif res.status == 400:
-                raise UserNotFoundError
-            elif res.status == 403:
-                raise UserDisabledQueryError
-            else:
-                raise UnknownError
-        elif self.MaiAliasAPI in url:
-            if res.status == 200:
-                data = await res.json()
-                if 'error' in data:
-                    raise ValueError(f'发生错误：{data["error"]}')
-            elif res.status == 400:
-                raise EnterError
-            elif res.status == 500:
-                raise ServerError
-            else:
-                raise UnknownError
-        await session.close()
+                if self.MaiAPI in url:
+                    if res.status == 200:
+                        data = await res.json()
+                    elif res.status == 400:
+                        raise UserNotFoundError
+                    elif res.status == 403:
+                        raise UserDisabledQueryError
+                    else:
+                        raise UnknownError
+                elif self.MaiAliasAPI in url:
+                    if res.status == 200:
+                        data = await res.json()
+                        if 'error' in data:
+                            raise ValueError(f'发生错误：{data["error"]}')
+                    elif res.status == 400:
+                        raise EnterError
+                    elif res.status == 500:
+                        raise ServerError
+                    else:
+                        raise UnknownError
         return data
     
     
