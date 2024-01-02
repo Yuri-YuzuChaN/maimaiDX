@@ -1,7 +1,7 @@
 import json
 import time
 import traceback
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 from pydantic import BaseModel
@@ -124,6 +124,14 @@ class ArcadeData:
             with open(arcades_json, 'w', encoding='utf8') as f:
                 json.dump([], f)
         self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
+        self.idList = []
+
+    def get_by_id(self, id) -> Union[None, Dict]:
+        id_list = [c_a['id'] for c_a in self.arcades]
+        if id in id_list:
+            return self.arcades[id_list.index(id)]
+        else:
+            return None
     
     async def getArcade(self):
         self.total = await download_arcade_info()
@@ -162,8 +170,8 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
             else:
                 for num in range(len(data)):
                     _arc = data[num]
-                    arcade_dict = arcade.arcades[num]
-                    if _arc['id'] == arcade_dict['id']:
+                    arcade_dict = arcade.get_by_id(_arc['id'])
+                    if arcade_dict is not None:
                         arcade_dict['name'] = _arc['arcadeName']
                         arcade_dict['location'] = _arc['address']
                         arcade_dict['province'] = _arc['province']
