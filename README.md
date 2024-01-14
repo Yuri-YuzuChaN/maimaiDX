@@ -6,7 +6,10 @@
 
 ## 重要更新
 
-**`nonebot2` 版本已上架nonebot商店，使用 `nonebot2` 框架的使用者前往新项目仓库[地址](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)，该仓库后续只更新 `Hoshino` 框架，`nonebot2` 分支将停止更新**
+**2024-01-14**
+
+1. 新增模块 `numpy`
+2. 此次更新新增一张图片，用于更新定数表，如觉得重新下载资源包麻烦，请使用[该链接](https://cloud.yuzuchan.moe/f/K9u9/top.png)下载图片，并将图片保存为文件名 `top.png` 存放在静态文件夹 `/static/mai/pic` 目录下
 
 ## 使用方法
 
@@ -16,7 +19,7 @@
     git clone https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
     
-2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://vote.yuzuai.xyz/download/static.zip) 或  [下载节点2](https://share.yuzuai.xyz/d/aria/static.zip?sign=R9J9HEdOqoRwTpjkHBTsVIwJbmWqolxI5p-JQd1rvJ4=:0)
+2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://cloud.yuzuchan.moe/f/7Jfn/static.zip)
 3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
 4. 安装插件所需模块：`pip install -r requirements.txt`
 5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
@@ -71,6 +74,11 @@
 | 更新maimai数据                                            | Bot管理员私聊指令，手动更新已存所有数据  |
 
 ## 更新说明
+
+**2024-01-14**
+
+1. 优先使用本地谱面
+2. 使用 `numpy` 模块重新绘制定数表
 
 **2023-09-23**
 

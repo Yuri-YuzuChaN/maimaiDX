@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 from typing import Tuple
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .. import SIYUAN
@@ -47,6 +48,22 @@ class DrawText:
         font = ImageFont.truetype(self._font, size)
         self._img.text((pos_x + po, pos_y + po), str(text), (0, 0, 0, 128), font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
         self._img.text((pos_x, pos_y), str(text), color, font, anchor, stroke_width=stroke_width, stroke_fill=stroke_fill)
+
+
+def draw_gradient(width: int, 
+        height: int, 
+        rgb_start: Tuple[int, int, int] = (203, 162, 253), 
+        rgb_stop: Tuple[int, int, int] = (251, 244, 127), 
+        horizontal: Tuple[bool, bool, bool] = (False, False, False)
+    ) -> Image.Image:
+    result = np.zeros((height, width, 3), dtype=np.uint8)
+    for i, (start, stop, is_ho) in enumerate(zip(rgb_start, rgb_stop, horizontal)):
+        if is_ho:
+            result[:, :, i] = np.tile(np.linspace(start, stop, width), (height, 1))
+        else:
+            result[:, :, i] = np.tile(np.linspace(start, stop, height), (width, 1)).T
+
+    return Image.fromarray(result).convert('RGBA')
 
 
 def draw_text(img_pil: Image.Image, text: str, offset_x: float):

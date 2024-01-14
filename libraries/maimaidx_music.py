@@ -246,6 +246,8 @@ async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
         id = int(id)
         if id > 10000 and id <= 11000:
             id -= 10000
+        if (file := coverdir / f'{id}.png').exists():
+            return file
         async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{id:05d}.png', timeout=aiohttp.ClientTimeout(total=60)) as req:
             if req.status == 200:
                 return BytesIO(await req.read())
