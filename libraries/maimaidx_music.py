@@ -239,16 +239,16 @@ class AliasList(List[Alias]):
         return alias_list
 
 
-async def download_music_pictrue(id: Union[int, str]) -> Union[str, BytesIO]:
+async def download_music_pictrue(song_id: Union[int, str]) -> Union[str, BytesIO]:
     try:
-        if (file := coverdir / f'{id}.png').exists():
+        if (file := coverdir / f'{song_id}.png').exists():
             return file
-        id = int(id)
-        if id > 10000 and id <= 11000:
-            id -= 10000
-        if (file := coverdir / f'{id}.png').exists():
-            return file
-        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{id:05d}.png', timeout=aiohttp.ClientTimeout(total=60)) as req:
+        song_id = int(song_id)
+        if len(str(song_id)) == 4 or (song_id > 10000 and song_id <= 11000):
+            for _id in [song_id + 10000, song_id - 10000]:
+                if (file := coverdir / f'{_id}.png').exists():
+                    return file
+        async with aiohttp.request('GET', f'https://www.diving-fish.com/covers/{song_id:05d}.png', timeout=aiohttp.ClientTimeout(total=60)) as req:
             if req.status == 200:
                 return BytesIO(await req.read())
             else:
