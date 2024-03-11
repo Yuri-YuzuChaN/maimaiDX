@@ -227,7 +227,7 @@ class AliasList(List[Alias]):
     def by_id(self, music_id: int) -> Optional[List[Alias]]:
         alias_music = []
         for music in self:
-            if music.ID == music_id:
+            if music.SongID == int(music_id):
                 alias_music.append(music)
         return alias_music
     
