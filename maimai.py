@@ -567,10 +567,10 @@ async def maiinfo(bot: NoneBot, ev: CQEvent):
         elif len(alias) != 1:
             msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
             for songs in alias:
-                msg += f'{songs.ID}：{songs.Name}\n'
+                msg += f'{songs.SongID}：{songs.Name}\n'
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
-            songs = str(alias[0].ID)
+            songs = str(alias[0].SongID)
     if maiApi.token:
         pic = await music_play_data_dev(qqid, songs)
     else:
@@ -602,10 +602,10 @@ async def globinfo(bot: NoneBot, ev: CQEvent):
         elif len(alias) != 1:
             msg = f'找到相同别名的曲目，请使用以下ID查询：\n'
             for songs in alias:
-                msg += f'{songs.ID}：{songs.Name}\n'
+                msg += f'{songs.SongID}：{songs.Name}\n'
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
-            id = str(alias[0].ID)
+            id = str(alias[0].SongID)
     music = mai.total_list.by_id(id)
     if not music.stats:
         await bot.finish(ev, '该乐曲还没有统计信息', at_sender=True)
