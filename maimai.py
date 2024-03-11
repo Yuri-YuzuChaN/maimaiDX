@@ -356,6 +356,8 @@ async def apply_alias(bot: NoneBot, ev: CQEvent):
         if alias_name in isexist['Alias']:
             await bot.finish(ev, f'该曲目的别名 <{alias_name}> 已存在，不能重复添加别名，如果bot未生效，请联系BOT管理员使用指令 <更新别名库>')
         status = await maiApi.post_alias(id, alias_name, ev.user_id)
+        if isinstance(status, str):
+            await bot.finish(ev, status, at_sender=True)
         msg = f'''您已提交以下别名申请
 ID：{id}
 别名：{alias_name}
