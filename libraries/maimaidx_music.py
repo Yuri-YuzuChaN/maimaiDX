@@ -218,7 +218,7 @@ def search_charts(checker: List[Chart], elem: str, diff: List[int]):
 
 class Alias(BaseModel):
 
-    ID: Optional[str] = None
+    SongID: Optional[int] = None
     Name: Optional[str] = None
     Alias: Optional[List[str]] = None
 
@@ -329,8 +329,9 @@ async def get_music_alias_list() -> AliasList:
         local_alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await openfile(local_alias_file)
     else:
         local_alias_data = {}
+    alias_data: List[Dict[str, Union[int, str, List[str]]]] = []
     try:
-        alias_data: Dict[str, Dict[str, Union[str, List[str]]]] = await maiApi.get_alias()
+        alias_data = await maiApi.get_alias()
         await writefile(alias_file, alias_data)
     except ServerError as e:
         log.error(e)
@@ -338,23 +339,16 @@ async def get_music_alias_list() -> AliasList:
         log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
         alias_data = await openfile(alias_file)
         if not alias_data:
-            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
-            raise ValueError
-    except Exception:
-        log.error(f'Error: {traceback.format_exc()}')
-        log.error('获取所有曲目别名信息错误，请检查网络环境。已切换至本地暂存文件')
-        alias_data = await openfile(alias_file)
-        if not alias_data:
-            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuai.xyz/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
+            log.error('本地暂存别名文件为空，请自行使用浏览器访问 "https://api.yuzuchan.moe/maimaidx/maimaidxalias" 获取别名数据并保存在 "static/all_alias.json" 文件中并重启bot')
             raise ValueError
 
-    for id, music in local_alias_data.items():
-        for name in music:
-            alias_data[id]['Alias'].append(name)
+    for _a in alias_data:
+        if (song_id := str(_a['SongID'])) in local_alias_data:
+            _a['Alias'].extend(local_alias_data[song_id])
     
     total_alias_list = AliasList(alias_data)
     for _ in range(len(total_alias_list)):
-        total_alias_list[_] = Alias(ID=total_alias_list[_], Name=alias_data[total_alias_list[_]]['Name'], Alias=alias_data[total_alias_list[_]]['Alias'])
+        total_alias_list[_] = Alias(**alias_data[_])
 
     return total_alias_list
 
