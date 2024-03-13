@@ -124,7 +124,7 @@ async def modify_arcade(bot: NoneBot, ev: CQEvent):
     await bot.send(ev, msg, at_sender=True)
 
 
-@sv_arcade.on_rex(r'^(订阅机厅|取消订阅机厅|取消订阅)\s(.+)')
+@sv_arcade.on_rex(r'^(订阅机厅|取消订阅机厅|取消订阅)\s(.+)', normalize=False)
 async def _(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev['match']
     gid = ev.group_id
