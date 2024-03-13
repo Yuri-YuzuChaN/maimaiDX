@@ -282,7 +282,7 @@ async def what_song(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, msg.strip(), at_sender=True)
 
     music = mai.total_list.by_id(str(data[0].SongID))
-    await bot.send(ev, '您要找的是不是：' + (await new_draw_music_info(music, ev.user_id)), at_sender=True)
+    await bot.send(ev, '您要找的是不是：' + (await new_draw_music_info(music)), at_sender=True)
 
 
 @sv.on_rex(re.compile(r'^(id)?\s?(.+)\s?有什么别[名称]$', re.IGNORECASE))
