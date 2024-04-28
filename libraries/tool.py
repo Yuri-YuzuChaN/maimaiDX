@@ -1,6 +1,7 @@
 import time
 import aiofiles
 from pathlib import Path
+import base64
 
 
 def hash(qq: int):
@@ -23,7 +24,8 @@ def render_forward_msg(msg_list: list, uid: int=10001, name: str='maimaiDX'):
     return forward_msg
 
 
-async def read_image(file: Path) -> bytes:
+async def read_image(file: Path) -> str:
     async with aiofiles.open(file, 'rb') as f:
-        img = await f.read()
-    return img
+        _bytes = await f.read()
+    base64_str = base64.b64encode(_bytes).decode()
+    return 'base64://' + base64_str
