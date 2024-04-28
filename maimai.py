@@ -52,7 +52,7 @@ async def _(session: CommandSession):
 
 @sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 async def dx_help(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, MessageSegment.image(f'file:///{Root / "maimaidxhelp.png"}'), at_sender=True)
+    await bot.send(ev, MessageSegment.image(await read_image(Root / 'maimaidxhelp.png')), at_sender=True)
 
 
 @sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
@@ -640,7 +640,7 @@ async def rating_table(bot: NoneBot, ev: CQEvent):
             img = ratingdir / '14.png'
         else:
             img = ratingdir / f'{args}.png'
-        await bot.send(ev, MessageSegment.image(f'''file:///{img}'''))
+        await bot.send(ev, MessageSegment.image(await read_image(img)))
     else:
         await bot.send(ev, '无法识别的定数', at_sender=True)
 

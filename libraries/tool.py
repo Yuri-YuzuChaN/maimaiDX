@@ -1,10 +1,13 @@
 import time
+import aiofiles
+from pathlib import Path
 
 
 def hash(qq: int):
     days = int(time.strftime("%d", time.localtime(time.time()))) + 31 * int(
         time.strftime("%m", time.localtime(time.time()))) + 77
     return (days * qq) >> 8
+
 
 def render_forward_msg(msg_list: list, uid: int=10001, name: str='maimaiDX'):
     forward_msg = []
@@ -18,3 +21,9 @@ def render_forward_msg(msg_list: list, uid: int=10001, name: str='maimaiDX'):
             }
         })
     return forward_msg
+
+
+async def read_image(file: Path) -> bytes:
+    async with aiofiles.open(file, 'rb') as f:
+        img = await f.read()
+    return img
