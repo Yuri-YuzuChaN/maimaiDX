@@ -22,7 +22,11 @@ class EnterError(Exception):
     
     def __str__(self) -> str:
         return '参数输入错误'
-    
+
+
+class CoverError(Exception):
+    """图片错误"""
+
 
 class UnknownError(Exception):
     """未知错误"""

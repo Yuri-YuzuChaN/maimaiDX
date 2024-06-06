@@ -6,9 +6,29 @@
 
 ## 重要更新
 
-**2024-03-12**
+**2024-06-07**
 
-**由于别名服务器旧域名将于 `2024-03-15` 过期，并且重构了别名服务器，请求以及参数均已变更，请尽快更新避免无法访问别名服务器**
+1. 更新至 `舞萌DX 2024`
+2. 更换所有图片绘制，需删除除 `json` 后缀的所有文件，**请重新进行使用方法第二步**
+3. 更改部分 `json` 文件名称，便于识别，具体文件如下，**请务必修改文件名，否则开关文件以及本地别名文件将不会被读取**
+   - `all_alias.json`    修改为 `music_alias.json`
+   - `local_alias.json`  修改为 `local_music_alias.json`
+   - `chart_stats.json`  修改为 `music_chart.json`
+   - `group_alias.json`  修改为 `group_alias_switch.json`
+   - `guess_config.json` 修改为 `group_guess_switch.json`
+4. 新增管理员私聊指令 `更新完成表`，用于更新 `BUDDiES` 版本 `双系` 牌子
+5. 新增指令 `完成表`，可查询牌子完成表，例如：`祝极完成表`
+6. 新增指令 `猜曲绘`
+7. 查看谱面支持计算个人加分情况，指令包括 `是什么歌`，`id`
+8. 指令 `mai什么` 支持随机发送推分谱面，指令中需包含 `加分`，`上分` 字样，例如：`今日mai打什么上分`
+9.  修改指令 `分数列表` 和 `进度` 发送方式
+10. 优化所有模块
+
+**时间紧凑，以下实现未完成，将在后续更新跟进**
+
+1. 修改牌子进度为图片形式，详细各个谱面完成进度
+2. 宴会场定数表
+3. 新的 `help` 图片
 
 ## 使用方法
 
@@ -18,14 +38,12 @@
     git clone https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
     
-2. 下载静态资源文件，将该压缩文件解压至插件根目录，即 `maimaiDX/static` 并覆盖，[下载链接](https://cloud.yuzuchan.moe/f/DjSw/static.zip)
+2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static` 并覆盖，[下载链接](https://cloud.yuzuchan.moe/f/j7UB/Resource.zip)
 3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
 4. 安装插件所需模块：`pip install -r requirements.txt`
 5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
 6. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 7. 重启HoshinoBot
-
-**插件默认为关闭状态，如发现BOT无反应，请手动开启插件**
 
 ## 指令
 
@@ -49,6 +67,7 @@
 | 开启/关闭mai猜歌                                     | 开关猜歌功能                        |
 | 重置猜歌                                            | 停止当前进行的猜歌                  |
 | 猜歌                                             | 顾名思义，识别id，歌名和别称               |
+| 猜曲绘                                            | 猜曲绘                                |
 | minfo<@> <id/别称/曲名>                            | 查询单曲成绩                        |
 | ginfo[绿黄红紫白] <id/别称/曲名>                        | 查询乐曲游玩总览，不加难度默认为紫谱         |
 | b50 <游戏名>                                      | 查询b50                         |
@@ -73,6 +92,24 @@
 | 更新maimai数据                                            | Bot管理员私聊指令，手动更新已存所有数据  |
 
 ## 更新说明
+
+**2024-06-07**
+
+1. 更新至 `舞萌DX 2024`
+2. 更换所有图片绘制，需删除除 `json` 后缀的所有文件，**请重新进行使用方法第二步**
+3. 更改部分 `json` 文件名称，便于识别，具体文件如下，**请务必修改文件名，否则开关文件以及本地别名文件将不会被读取**
+   - `all_alias.json`    修改为 `music_alias.json`
+   - `local_alias.json`  修改为 `local_music_alias.json`
+   - `chart_stats.json`  修改为 `music_chart.json`
+   - `group_alias.json`  修改为 `group_alias_switch.json`
+   - `guess_config.json` 修改为 `group_guess_switch.json`
+4. 新增管理员私聊指令 `更新完成表`，用于更新 `BUDDiES` 版本 `双系` 牌子
+5. 新增指令 `完成表`，可查询牌子完成表，例如：`祝极完成表`
+6. 新增指令 `猜曲绘`
+7. 查看谱面支持计算个人加分情况，指令包括 `是什么歌`，`id`
+8. 指令 `mai什么` 支持随机发送推分谱面，指令中需包含 `加分`，`上分` 字样，例如：`今日mai打什么上分`
+9.  修改指令 `分数列表` 和 `进度` 发送方式
+10. 优化所有模块
 
 **2024-03-12**
 

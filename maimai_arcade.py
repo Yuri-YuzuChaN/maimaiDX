@@ -5,7 +5,6 @@ from nonebot import NoneBot, on_startup
 from hoshino import Service, priv
 from hoshino.typing import CQEvent, MessageSegment
 
-from . import loga
 from .libraries.image import image_to_base64, text_to_image
 from .libraries.maimaidx_arcade import *
 
@@ -40,7 +39,7 @@ async def dx_arcade_help(bot: NoneBot, ev: CQEvent):
 
 @sv_arcade.on_prefix(['添加机厅', '新增机厅'])
 async def add_arcade(bot: NoneBot, ev: CQEvent):
-    args: list[str] = ev.message.extract_plain_text().strip().split()
+    args: List[str] = ev.message.extract_plain_text().strip().split()
     if not priv.check_priv(ev, priv.SUPERUSER):
         msg = '仅允许主人添加机厅\n请使用 来杯咖啡+内容 联系主人'
     elif len(args) == 1 and args[0] in ['帮助', 'help', '指令帮助']:
@@ -98,7 +97,7 @@ async def delele_arcade(bot: NoneBot, ev: CQEvent):
 
 @sv_arcade.on_prefix(['添加机厅别名', '删除机厅别名'])
 async def _(bot: NoneBot, ev: CQEvent):
-    args: list[str] = ev.message.extract_plain_text().strip().split()
+    args: List[str] = ev.message.extract_plain_text().strip().split()
     a = True if ev.prefix == '添加机厅别名' else False
     if len(args) != 2:
         msg = '格式错误：添加/删除机厅别名 <店名> <别名>'

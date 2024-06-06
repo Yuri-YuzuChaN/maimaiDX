@@ -1,57 +1,92 @@
-import io
 import math
 import traceback
-from typing import List, Optional, Tuple, Union
+from io import BytesIO
+from typing import Optional, Tuple, Union, overload
 
-import aiohttp
-from hoshino.typing import MessageSegment
 from PIL import Image, ImageDraw
-from pydantic import BaseModel
+
+from hoshino.typing import MessageSegment
 
 from .. import *
 from .image import DrawText, image_to_base64
 from .maimaidx_api_data import maiApi
 from .maimaidx_error import *
-from .maimaidx_music import download_music_pictrue, mai
+from .maimaidx_model import ChartInfo, PlayInfoDefault, PlayInfoDev, UserInfo
+from .maimaidx_music import mai
 
 
-class ChartInfo(BaseModel):
-    
-    achievements: float
-    ds: float
-    dxScore: int
-    fc: Optional[str] = ''
-    fs: Optional[str] = ''
-    level: str
-    level_index: int
-    level_label: str
-    ra: int
-    rate: str
-    song_id: int
-    title: str
-    type: str
+class Draw:
+
+    basic = Image.open(maimaidir / 'b50_score_basic.png')
+    advanced = Image.open(maimaidir / 'b50_score_advanced.png')
+    expert = Image.open(maimaidir / 'b50_score_expert.png')
+    master = Image.open(maimaidir / 'b50_score_master.png')
+    remaster = Image.open(maimaidir / 'b50_score_remaster.png')
+    title_bg = Image.open(maimaidir / 'title2.png').resize((600, 120))
+    design_bg = Image.open(maimaidir / 'design.png').resize((1320, 120))
+    _diff = [basic, advanced, expert, master, remaster]
+
+    def __init__(self, image: Image.Image = None) -> None:
+        self._im = image
+        dr = ImageDraw.Draw(self._im)
+        self._mr = DrawText(dr, MEIRYO)
+        self._sy = DrawText(dr, SIYUAN)
+        self._tb = DrawText(dr, TBFONT)
+
+    async def whiledraw(self, data: Union[List[ChartInfo], List[PlayInfoDefault], List[PlayInfoDev]], best: bool, height: int = 0) -> None:
+        # y为第一排纵向坐标，dy为各排间距
+        dy = 170
+        if data and isinstance(data[0], ChartInfo):
+            y = 430 if best else 1700
+        else:
+            y = height
+        TEXT_COLOR = [(255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (138, 0, 226, 255)]
+        x = 70
+        for num, info in enumerate(data):
+            if num % 5 == 0:
+                x = 70
+                y += dy if num != 0 else 0
+            else:
+                x += 416
+
+            cover = Image.open(await maiApi.download_music_pictrue(info.song_id)).resize((135, 135))
+            version = Image.open(maimaidir / f'{info.type.upper()}.png').resize((55, 19))
+            if info.rate.islower():
+                rate = Image.open(maimaidir / f'UI_TTR_Rank_{score_Rank_l[info.rate]}.png').resize((95, 44))
+            else:
+                rate = Image.open(maimaidir / f'UI_TTR_Rank_{info.rate}.png').resize((95, 44))
+
+            self._im.alpha_composite(self._diff[info.level_index], (x, y))
+            self._im.alpha_composite(cover, (x + 5, y + 5))
+            self._im.alpha_composite(version, (x + 80, y + 141))
+            self._im.alpha_composite(rate, (x + 150, y + 98))
+            if info.fc:
+                fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png').resize((45, 45))
+                self._im.alpha_composite(fc, (x + 246, y + 99))
+            if info.fs:
+                fs = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png').resize((45, 45))
+                self._im.alpha_composite(fs, (x + 291, y + 99))
+
+            dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
+            dxnum = dxScore(info.dxScore / dxscore * 100)
+            if dxnum:
+                self._im.alpha_composite(Image.open(maimaidir / f'UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png'),
+                                         (x + 335, y + 102))
+
+            self._tb.draw(x + 40, y + 148, 20, info.song_id, TEXT_COLOR[info.level_index], anchor='mm')
+            title = info.title
+            if coloumWidth(title) > 18:
+                title = changeColumnWidth(title, 17) + '...'
+            self._sy.draw(x + 155, y + 20, 20, title, TEXT_COLOR[info.level_index], anchor='lm')
+            self._tb.draw(x + 155, y + 50, 32, f'{info.achievements:.4f}%', TEXT_COLOR[info.level_index], anchor='lm')
+            self._tb.draw(x + 338, y + 82, 20, f'{info.dxScore}/{dxscore}', TEXT_COLOR[info.level_index], anchor='mm')
+            self._tb.draw(x + 155, y + 82, 22, f'{info.ds} -> {info.ra}', TEXT_COLOR[info.level_index], anchor='lm')
 
 
-class Data(BaseModel):
-
-    sd: Optional[List[ChartInfo]] = None
-    dx: Optional[List[ChartInfo]] = None
-
-
-class UserInfo(BaseModel):
-
-    additional_rating: Optional[int]
-    charts: Optional[Data]
-    nickname: Optional[str]
-    plate: Optional[str] = None
-    rating: Optional[int]
-    username: Optional[str]
-
-
-class DrawBest:
+class DrawBest(Draw):
 
     def __init__(self, UserInfo: UserInfo, qqId: Optional[Union[int, str]] = None) -> None:
-
+        super().__init__(Image.open(maimaidir / 'b50_bg.png').convert('RGBA'))
         self.userName = UserInfo.nickname
         self.plate = UserInfo.plate
         self.addRating = UserInfo.additional_rating
@@ -92,85 +127,26 @@ class DrawBest:
             num = f'{self.addRating + 1:02d}'
         return f'UI_DNM_DaniPlate_{num}.png'
 
-    async def whiledraw(self, data: List[ChartInfo], type: bool) -> Image.Image:
-        # y为第一排纵向坐标，dy为各排间距
-        y = 430 if type else 1670
-        dy = 170
+    async def draw(self) -> Image.Image:
 
-        TEXT_COLOR = [(255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (255, 255, 255, 255), (103, 20, 141, 255)]
-        DXSTAR_DEST = [0, 330, 320, 310, 300, 290]
-
-        for num, info in enumerate(data):
-            if num % 5 == 0:
-                x = 70
-                y += dy if num != 0 else 0
-            else:
-                x += 416
-
-            cover = Image.open(await download_music_pictrue(info.song_id)).resize((135, 135))
-            version = Image.open(maimaidir / f'UI_RSL_MBase_Parts_{info.type}.png').resize((55, 19))
-            rate = Image.open(maimaidir / f'UI_TTR_Rank_{score_Rank[info.rate]}.png').resize((95, 44))
-
-            self._im.alpha_composite(self._diff[info.level_index], (x, y))
-            self._im.alpha_composite(cover, (x + 5, y + 5))
-            self._im.alpha_composite(version, (x + 80, y + 141))
-            self._im.alpha_composite(rate, (x + 150, y + 98))
-            if info.fc:
-                fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[info.fc]}.png').resize((45, 45))
-                self._im.alpha_composite(fc, (x + 260, y + 98))
-            if info.fs:
-                fs = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fsl[info.fs]}.png').resize((45, 45))
-                self._im.alpha_composite(fs, (x + 315, y + 98))
-            
-            dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
-            diff_sum_dx = info.dxScore / dxscore * 100
-            dxtype, dxnum = dxScore(diff_sum_dx)
-            for _ in range(dxnum):
-                self._im.alpha_composite(self.dxstar[dxtype], (x + DXSTAR_DEST[dxnum] + 20 * _, y + 74))
-
-            self._tb.draw(x + 40, y + 148, 20, info.song_id, anchor='mm')
-            title = info.title
-            if coloumWidth(title) > 18:
-                title = changeColumnWidth(title, 17) + '...'
-            self._siyuan.draw(x + 155, y + 20, 20, title, TEXT_COLOR[info.level_index], anchor='lm')
-            p, s = f'{info.achievements:.4f}'.split('.')
-            r = self._tb.get_box(p, 32)
-            self._tb.draw(x + 155, y + 70, 32, p, TEXT_COLOR[info.level_index], anchor='ld')
-            self._tb.draw(x + 155 + r[2], y + 68, 22, f'.{s}%', TEXT_COLOR[info.level_index], anchor='ld')
-            self._tb.draw(x + 340, y + 60, 18, f'{info.dxScore}/{dxscore}', TEXT_COLOR[info.level_index], anchor='mm')
-            self._tb.draw(x + 155, y + 80, 22, f'{info.ds} -> {info.ra}', TEXT_COLOR[info.level_index], anchor='lm')
-
-    async def draw(self):
-        
-        basic = Image.open(maimaidir / 'b40_score_basic.png')
-        advanced = Image.open(maimaidir / 'b40_score_advanced.png')
-        expert = Image.open(maimaidir / 'b40_score_expert.png')
-        master = Image.open(maimaidir / 'b40_score_master.png')
-        remaster = Image.open(maimaidir / 'b40_score_remaster.png')
         logo = Image.open(maimaidir / 'logo.png').resize((378, 172))
         dx_rating = Image.open(maimaidir / self._findRaPic()).resize((300, 59))
         Name = Image.open(maimaidir / 'Name.png')
         MatchLevel = Image.open(maimaidir / self._findMatchLevel()).resize((134, 55))
         ClassLevel = Image.open(maimaidir / 'UI_FBR_Class_00.png').resize((144, 87))
         rating = Image.open(maimaidir / 'UI_CMN_Shougou_Rainbow.png').resize((454, 50))
-        self._diff = [basic, advanced, expert, master, remaster]
-        self.dxstar = [Image.open(maimaidir / f'UI_RSL_DXScore_Star_0{_ + 1}.png').resize((20, 20)) for _ in range(3)]
-
-        # 作图
-        self._im = Image.open(maimaidir / 'b40_bg.png').convert('RGBA')
 
         self._im.alpha_composite(logo, (5, 130))
         if self.plate:
-            plate = Image.open(maimaidir / f'{self.plate}.png').resize((1420, 230))
+            plate = Image.open(platedir / f'{self.plate}.png').resize((1420, 230))
         else:
-            plate = Image.open(maimaidir / 'UI_Plate_300101.png').resize((1420, 230))
+            plate = Image.open(maimaidir / 'UI_Plate_300501.png').resize((1420, 230))
         self._im.alpha_composite(plate, (390, 100))
         icon = Image.open(maimaidir / 'UI_Icon_309503.png').resize((214, 214))
         self._im.alpha_composite(icon, (398, 108))
         if self.qqId:
             try:
-                async with aiohttp.request('GET', f'http://q1.qlogo.cn/g?b=qq&nk={self.qqId}&s=100', timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    qqLogo = Image.open(io.BytesIO(await resp.read()))
+                qqLogo = Image.open(BytesIO(await maiApi.qqlogo(self.qqId)))
                 self._im.alpha_composite(Image.new('RGBA', (203, 203), (255, 255, 255, 255)), (404, 114))
                 self._im.alpha_composite(qqLogo.convert('RGBA').resize((201, 201)), (405, 115))
             except Exception:
@@ -184,37 +160,33 @@ class DrawBest:
         self._im.alpha_composite(ClassLevel, (926, 105))
         self._im.alpha_composite(rating, (620, 275))
 
-        text_im = ImageDraw.Draw(self._im)
-        self._meiryo = DrawText(text_im, MEIRYO)
-        self._siyuan = DrawText(text_im, SIYUAN)
-        self._tb = DrawText(text_im, TBFONT)
-
-        self._siyuan.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
+        self._sy.draw(635, 235, 40, self.userName, (0, 0, 0, 255), 'lm')
         sdrating, dxrating = sum([_.ra for _ in self.sdBest]), sum([_.ra for _ in self.dxBest])
         self._tb.draw(847, 295, 28, f'B35: {sdrating} + B15: {dxrating} = {self.Rating}', (0, 0, 0, 255), 'mm', 3, (255, 255, 255, 255))
-        self._meiryo.draw(900, 2365, 35, f'Designed by Yuri-YuzuChaN & BlueDeer233 | Generated by {BOTNAME} BOT', (103, 20, 141, 255), 'mm', 3, (255, 255, 255, 255))
+        self._mr.draw(900, 2465, 35, f'Designed by Yuri-YuzuChaN & BlueDeer233 | Generated by {BOTNAME} BOT', (0, 50, 100, 255), 'mm', 3, (255, 255, 255, 255))
 
         await self.whiledraw(self.sdBest, True)
         await self.whiledraw(self.dxBest, False)
 
         return self._im.resize((1760, 1920))
 
-def dxScore(dx: int) -> Tuple[int, int]:
+
+def dxScore(dx: int) -> int:
     """
     返回值为 `Tuple`： `(星星种类，数量)`
     """
     if dx <= 85:
-        result = (0, 0)
+        result = 0
     elif dx <= 90:
-        result = (0, 1)
+        result = 1
     elif dx <= 93:
-        result = (0, 2)
+        result = 2
     elif dx <= 95:
-        result = (1, 3)
+        result = 3
     elif dx <= 97:
-        result = (1, 4)
+        result = 4
     else:
-        result = (2, 5)
+        result = 5
     return result
 
 
@@ -251,7 +223,27 @@ def changeColumnWidth(s: str, len: int) -> str:
     return ''.join(sList)
 
 
-def computeRa(ds: float, achievement: float, israte: bool = False) -> Union[int, Tuple[int, str]]:
+@overload
+def computeRa(ds: float, achievement: float) -> int:
+    """
+    - `ds`: 定数
+    - `achievement`: 成绩
+    """
+@overload
+def computeRa(ds: float, achievement: float, *, onlyrate: bool = False) -> str:
+    """
+    - `ds`: 定数
+    - `achievement`: 成绩
+    - `onlyrate`: 返回评价
+    """
+@overload
+def computeRa(ds: float, achievement: float, *, israte: bool = False) -> Tuple[int, str]:
+    """
+    - `ds`: 定数
+    - `achievement`: 成绩
+    - `israte`: 返回元组 (底分, 评价)
+    """
+def computeRa(ds: float, achievement: float, *, onlyrate: bool = False, israte: bool = False) -> Union[int, Tuple[int, str]]:
     if achievement < 50:
         baseRa = 7.0
         rate = 'D'
@@ -294,9 +286,11 @@ def computeRa(ds: float, achievement: float, israte: bool = False) -> Union[int,
     else:
         baseRa = 22.4
         rate = 'SSSp'
-    
+
     if israte:
         data = (math.floor(ds * (min(100.5, achievement) / 100) * baseRa), rate)
+    elif onlyrate:
+        data = rate
     else:
         data = math.floor(ds * (min(100.5, achievement) / 100) * baseRa)
 

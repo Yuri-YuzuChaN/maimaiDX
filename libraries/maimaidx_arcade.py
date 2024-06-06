@@ -120,13 +120,10 @@ class ArcadeData:
     total: Optional[ArcadeList]
     
     def __init__(self) -> None: 
-        if not arcades_json.exists():
-            with open(arcades_json, 'w', encoding='utf8') as f:
-                json.dump([], f)
         self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
         self.idList = []
 
-    def get_by_id(self, id) -> Union[None, Dict]:
+    def get_by_id(self, id: int) -> Union[None, Dict]:
         id_list = [c_a['id'] for c_a in self.arcades]
         if id in id_list:
             return self.arcades[id_list.index(id)]
@@ -148,8 +145,8 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
             else:
                 data = None
                 loga.error('获取机厅信息失败')
-        if data != None:
-            arcadelist = ArcadeList()
+        arcadelist = ArcadeList()
+        if data is not None:
             if not arcade.arcades:
                 for num in range(len(data)):
                     _arc = data[num]
@@ -198,15 +195,14 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                 if int(n['id']) >= 10000:
                     arcadelist.append(Arcade(**n))
         else:
-            arcadelist = ArcadeList(arcade.arcades)
-            for num in range(len(arcadelist)):
-                arcadelist[num] = Arcade(**arcade.arcades[num])
+            for _a in arcade.arcades:
+                arcadelist.append(Arcade(**_a))
         if save:
             await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
+        return arcadelist
     except Exception:
         loga.error(f'Error: {traceback.format_exc()}')
         loga.error('获取机厅信息失败')
-    return arcadelist
 
 
 async def updata_arcade(arcadeName: str, num: str):
@@ -254,7 +250,7 @@ async def update_alias(arcadeName: str, aliasName: str, add_del: bool):
     return msg
 
 
-async def subscribe(group_id: str, arcadeName: str, sub: bool):
+async def subscribe(group_id: int, arcadeName: str, sub: bool):
     """订阅机厅，`sub` 等于 `True` 为订阅，`False` 为取消订阅"""
     change = False
     if arcadeName.isdigit():

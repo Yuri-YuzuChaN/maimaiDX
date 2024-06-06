@@ -1,16 +1,20 @@
 import json
-from typing import Any, List, Optional
+from io import BytesIO
+from pathlib import Path
+from typing import Any, List, Optional, Union
 
 from aiohttp import ClientSession, ClientTimeout
 
-from .. import config_json
+from .. import config_json, coverdir
 from .maimaidx_error import *
 
 
 class MaimaiAPI:
     
     MaiAPI = 'https://www.diving-fish.com/api/maimaidxprober'
+    MaiCover = 'https://www.diving-fish.com/covers'
     MaiAliasAPI = 'https://api.yuzuchan.moe/maimaidx'
+    QQAPI = 'http://q1.qlogo.cn/g'
     
     def __init__(self) -> None:
         self.token = self.load_token()
@@ -43,6 +47,11 @@ class MaimaiAPI:
                 raise ServerError
             else:
                 raise UnknownError
+        elif self.QQAPI in url:
+            if res.status == 200:
+                data = await res.read()
+            else:
+                raise
         await session.close()
         return data
     
@@ -88,7 +97,23 @@ class MaimaiAPI:
         if username:
             params['username'] = username
         return await self._request('GET', self.MaiAPI + f'/dev/player/records', headers=self.headers, params=params)
-    
+
+    async def query_user_dev2(self, *, qqid: Optional[int] = None, username: Optional[str] = None, music_id: Union[str, List[Union[int, str]]]):
+        """
+        使用开发者接口获取用户指定曲目数据，请确保拥有和输入了开发者 `token`
+
+        - `qqid`: 用户QQ
+        - `username`: 查分器用户名
+        - `music_id`: 曲目id，可以为单个ID或者列表
+        """
+        json = {}
+        if qqid:
+            json['qq'] = qqid
+        if username:
+            json['username'] = username
+        json['music_id'] = music_id
+        return await self._request('POST', self.MaiAPI + f'/dev/player/record', headers=self.headers, json=json)
+
     async def rating_ranking(self):
         """获取查分器排行榜"""
         return await self._request('GET', self.MaiAPI + f'/rating_ranking')
@@ -148,6 +173,34 @@ class MaimaiAPI:
             'AgreeUser': user_id
         }
         return await self._request('POST', self.MaiAliasAPI + '/agreeuser', json=json)
-    
+
+    async def download_music_pictrue(self, song_id: Union[int, str]) -> Union[Path, BytesIO]:
+        try:
+            if (file := coverdir / f'{song_id}.png').exists():
+                return file
+            song_id = int(song_id)
+            if song_id > 100000:
+                song_id -= 100000
+                if (file := coverdir / f'{song_id}.png').exists():
+                    return file
+            if 1000 < song_id < 10000 or 10000 < song_id <= 11000:
+                for _id in [song_id + 10000, song_id - 10000]:
+                    if (file := coverdir / f'{_id}.png').exists():
+                        return file
+            pic = await self._request('GET', self.MaiCover + f'/{song_id:05d}.png')
+            return BytesIO(pic)
+        except CoverError:
+            return coverdir / '11000.png'
+        except Exception:
+            return coverdir / '11000.png'
+
+    async def qqlogo(self, qqid: int) -> bytes:
+        params = {
+            'b': 'qq',
+            'nk': qqid,
+            's': 100
+        }
+        return await self._request('GET', self.QQAPI, params=params)
+
 
 maiApi = MaimaiAPI()
