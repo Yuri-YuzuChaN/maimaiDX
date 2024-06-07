@@ -335,7 +335,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[str, Mes
         music = mai.total_list.by_version(ver)
         plate_num = len(music)
         obj = await maiApi.query_user('plate', qqid=qqid, version=ver)
-        playerdata: List[PlayInfoDefault] = list(filter(lambda x: x.song_id not in ignore_music, [PlayInfoDefault(**v, ds=mai.total_list.by_id(str(v['id'])).ds[v['level_index']]) for v in obj['verlist']]))
+        playerdata: List[PlayInfoDefault] = list(filter(lambda x: str(x.song_id) not in ignore_music, [PlayInfoDefault(**v, ds=mai.total_list.by_id(str(v['id'])).ds[v['level_index']]) for v in obj['verlist']]))
         newdata = sorted(list(filter(lambda x: x.level_index == 3, playerdata)), key=lambda x: x.level_index,reverse=True)
         ra: Dict[str, Dict[str, Optional[PlayInfoDefault]]] = {}
         """
@@ -427,12 +427,13 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[str, Mes
                         y += 115
                     else:
                         x += 115
-                    if (m := ra[_r][_ms]) and m.fc == 'ap':
+                    if (m := ra[_r][_ms]) and (m.fc == 'ap' or m.fc == 'app'):
                         im.alpha_composite(b2, (x - 25, y - 25))
                         ap = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[m.fc]}.png').resize((75, 75))
                         im.alpha_composite(ap, (x - 12, y - 12))
         if plan == '舞舞':
             lv = [plate_num - sum([1 for _ in playerdata if _.level_index == n and 'fsd' in _.fs]) for n in range(4)]
+            fs = ['fsd', 'fdx', 'fsdp', 'fdxp']
             for _r in ra:
                 x = 235
                 y += 15
@@ -442,7 +443,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[str, Mes
                         y += 115
                     else:
                         x += 115
-                    if (m := ra[_r][_ms]) and m.fs == 'fsd':
+                    if (m := ra[_r][_ms]) and m.fs in fs:
                         im.alpha_composite(b2, (x - 25, y - 25))
                         fsd = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl[m.fs]}.png').resize((75, 75))
                         im.alpha_composite(fsd, (x - 12, y - 12))
