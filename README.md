@@ -38,7 +38,7 @@
     git clone https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
     
-2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static` 并覆盖，[下载链接](https://cloud.yuzuchan.moe/f/j7UB/Resource.zip)
+2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static` 并覆盖，[下载链接](https://share.yuzuchan.moe/d/aria/Resource.zip?sign=LOqwqDVm95dYnkEDYKX2E-VGj0xc_JxrsFnuR1BcvtI=:0)
 3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
 4. 安装插件所需模块：`pip install -r requirements.txt`
 5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
