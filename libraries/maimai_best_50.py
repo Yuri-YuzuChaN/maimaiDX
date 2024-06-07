@@ -167,7 +167,7 @@ class DrawBest(Draw):
         await self.whiledraw(self.sdBest, True)
         await self.whiledraw(self.dxBest, False)
 
-        return self._im.resize((1760, 1920))
+        return self._im.resize((1760, 2000))
 
 
 def dxScore(dx: int) -> int:
