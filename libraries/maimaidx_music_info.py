@@ -174,7 +174,7 @@ async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment]:
                     dxscore = info.dxScore
                     _dxscore = sum(music.charts[num].notes) * 3
                     dxnum = dxScore(dxscore / _dxscore * 100)
-                    rating, rate = info.ra, info.rate
+                    rating, rate = info.ra, score_Rank_l[info.rate]
                     im.alpha_composite(Image.open(maimaidir / 'ra-dx.png'), (1350, 396 + y * num))
                     if dxnum != 0:
                         im.alpha_composite(Image.open(maimaidir / f'UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png'), (1351, 438 + y * num))
@@ -278,8 +278,8 @@ async def draw_rating_table(qqid: int, rating: str, isfc: bool = False) -> Union
                         if _fc := fromid[music.id][music.lv]['fc']:
                             achievements_fc_list[ralist.index(music.lvp)].append(combo_rank.index(_fc)) if merge else achievements_fc_list.append(combo_rank.index(_fc))
                             im.alpha_composite(b2, (x + 2, y - 18))
-                            fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[_fc]}.png')
-                            im.alpha_composite(fc, (x + 14, y - 7))
+                            fc = Image.open(maimaidir / f'UI_MSS_MBase_Icon_{fcl[_fc]}.png').resize((50, 50))
+                            im.alpha_composite(fc, (x + 15, y - 6))
                     else:
                         score = fromid[music.id][music.lv]['achievements']
                         achievements_fc_list[ralist.index(music.lvp)].append(score) if merge else achievements_fc_list.append(score)

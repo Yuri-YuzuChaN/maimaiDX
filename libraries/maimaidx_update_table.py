@@ -40,9 +40,9 @@ async def update_rating_table() -> str:
         dx = Image.open(maimaidir / 'DX.png').convert('RGBA').resize((44, 16))
         diff = [Image.new('RGBA', (75, 75), color) for color in bg_color]
         atime = 0
+        musiclist = mai.total_list.lvList(rating=True)
         for ra in levelList[5:]:
             _otime = time.time()
-            musiclist = mai.total_list.lvList(rating=True)
 
             if ra in levelList[-3:]:
                 bg = ratingdir / '14.png'
