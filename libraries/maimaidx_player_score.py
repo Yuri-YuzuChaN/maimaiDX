@@ -479,9 +479,9 @@ async def level_process_data(
         elif plan.lower() in comboRank:
             plannum = 1
             planlist[1] = comboRank.index(plan.lower())
-        elif plan.lower() in syncRank:
+        elif plan.lower() in syncRank2:
             plannum = 2
-            planlist[2] = syncRank.index(plan.lower())
+            planlist[2] = syncRank2.index(plan.lower())
 
         for _d in obj:
             info = calc(_d)
@@ -494,7 +494,7 @@ async def level_process_data(
                     _p = music[song_id]
                 if (plannum == 0 and info.achievements >= planlist[plannum]) \
                         or (plannum == 1 and info.fc and combo_rank.index(info.fc) >= planlist[plannum]) \
-                        or (plannum == 2 and info.fs and (sync_rank.index(info.fs) >= planlist[plannum] if info.fs and info.fs in sync_rank else sync_rank2.index(info.fs) >= planlist[plannum])):
+                        or (plannum == 2 and info.fs and (sync_rank2.index(info.fs) >= planlist[plannum] if info.fs and info.fs in sync_rank2 else sync_rank_p.index(info.fs) >= planlist[plannum])):
                     _p.completed = info
                 else:
                     _p.unfinished = info

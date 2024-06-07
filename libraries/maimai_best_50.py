@@ -70,8 +70,7 @@ class Draw:
             dxscore = sum(mai.total_list.by_id(str(info.song_id)).charts[info.level_index].notes) * 3
             dxnum = dxScore(info.dxScore / dxscore * 100)
             if dxnum:
-                self._im.alpha_composite(Image.open(maimaidir / f'UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png'),
-                                         (x + 335, y + 102))
+                self._im.alpha_composite(Image.open(maimaidir / f'UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png'), (x + 335, y + 102))
 
             self._tb.draw(x + 40, y + 148, 20, info.song_id, TEXT_COLOR[info.level_index], anchor='mm')
             title = info.title
