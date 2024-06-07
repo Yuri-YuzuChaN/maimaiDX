@@ -67,7 +67,8 @@ levelList: List[str] = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9',
 achievementList: List[float] = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 BaseRaSpp: List[float] = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 fcl: Dict[str, str] = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp', 'sp': 'SP'}
-fsl: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDP', 'sync': 'SP', 'sp': 'SP'}
+fsl: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDp', 'sync': 'SP', 'sp': 'SP'}
+fsl2: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDp', 'sync': 'Sync', 'sp': 'Sync'}
 ignore_music: List[str] = ['70', '146', '189', '190', '341', '419', '451', '455', '460', '687', '688', '712', '731', '792', '853', '10146', '11213', '11253', '11267']
 plate_to_version: Dict[str, str] = {
     '初': 'maimai',

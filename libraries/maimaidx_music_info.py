@@ -189,7 +189,7 @@ async def music_play_data(qqid: int, songs: str) -> Union[str, MessageSegment]:
                 if info.fc:
                     im.alpha_composite(Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[info.fc]}.png').resize((93, 93)), (1141, 381 + y * num))
                 if info.fs:
-                    im.alpha_composite(Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl[info.fs]}.png').resize((93, 93)), (1226, 381 + y * num))
+                    im.alpha_composite(Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl2[info.fs]}.png').resize((93, 93)), (1226, 381 + y * num))
                 im.alpha_composite(Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((160, 76)), (1540, 400 + y * num))
 
                 tb.draw(770, 440 + y * num, 70, f'{info.achievements:.4f}%', color, 'lm')
