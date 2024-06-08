@@ -71,7 +71,7 @@ BaseRaSpp: List[float] = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.
 fcl: Dict[str, str] = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp', 'sp': 'SP'}
 fsl: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDp', 'sync': 'SP', 'sp': 'SP'}
 fsl2: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDp', 'sync': 'Sync', 'sp': 'Sync'}
-ignore_music: List[str] = ['70', '146', '189', '190', '341', '419', '451', '455', '460', '687', '688', '712', '731', '792', '853', '10146', '11213', '11253', '11267']
+ignore_music: List[str] = ['70', '146', '185', '189', '190', '341', '419', '451', '455', '460', '524', '687', '688', '712', '731', '792', '853', '10146', '11213', '11253', '11267']
 plate_to_version: Dict[str, str] = {
     '初': 'maimai',
     '真': 'maimai PLUS',
