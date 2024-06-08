@@ -28,7 +28,7 @@ async def draw_music_info(music: Music, qqid: Optional[int] = None, user: Option
                 player = UserInfo(**obj)
             else:
                 player = user
-            if music.basic_info.version in list(plate_to_version.values())[-2:]:
+            if music.basic_info.version in list(plate_to_version.values())[-1]:
                 bestlist = player.charts.dx
                 isfull = bool(len(bestlist) == 15)
             else:
