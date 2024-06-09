@@ -417,7 +417,8 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[str, Mes
                         rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((102, 48))
                         im.alpha_composite(rank, (x - 25, y))
         if plan == '神':
-            lv = [plate_num - sum([1 for _ in playerdata if _.level_index == n and 'ap' in _.fc]) for n in range(4)]
+            _fc = ['ap', 'app']
+            lv = [plate_num - sum([1 for _ in playerdata if _.level_index == n and _.fc in _fc]) for n in range(4)]
             for _r in ra:
                 x = 235
                 y += 15
@@ -427,13 +428,13 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[str, Mes
                         y += 115
                     else:
                         x += 115
-                    if (m := ra[_r][_ms]) and (m.fc == 'ap' or m.fc == 'app'):
+                    if (m := ra[_r][_ms]) and m.fc in _fc:
                         im.alpha_composite(b2, (x - 25, y - 25))
                         ap = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[m.fc]}.png').resize((75, 75))
                         im.alpha_composite(ap, (x - 12, y - 12))
         if plan == '舞舞':
-            lv = [plate_num - sum([1 for _ in playerdata if _.level_index == n and 'fsd' in _.fs]) for n in range(4)]
             fs = ['fsd', 'fdx', 'fsdp', 'fdxp']
+            lv = [plate_num - sum([1 for _ in playerdata if _.level_index == n and _.fs in fs]) for n in range(4)]
             for _r in ra:
                 x = 235
                 y += 15
