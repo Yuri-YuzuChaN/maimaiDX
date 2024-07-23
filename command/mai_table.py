@@ -88,7 +88,6 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
-    nickname = ''
     username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
@@ -100,13 +99,11 @@ async def _(bot: NoneBot, ev: CQEvent):
     if rating and rating not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     elif match.group(3):
-        nickname = match.group(3)
         username = match.group(3).strip()
-
-    if qqid != ev.user_id:
-        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
+    if username:
+        qqid = None
         
-    data = await rise_score_data(qqid, username, rating, score, nickname)
+    data = await rise_score_data(qqid, username, rating, score)
     await bot.send(ev, data, at_sender=True)
     
 
@@ -114,7 +111,6 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
-    nickname = ''
     username = None
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
@@ -125,13 +121,11 @@ async def _(bot: NoneBot, ev: CQEvent):
     if f'{ver}{plan}' == '真将':
         await bot.finish(ev, '真系没有真将哦', at_sender=True)
     elif match.group(3):
-        nickname = match.group(3)
         username = match.group(3).strip()
+    if username:
+        qqid = None
 
-    if qqid != ev.user_id:
-        nickname = (await bot.get_stranger_info(user_id=qqid))['nickname']
-
-    data = await player_plate_data(qqid, username, ver, plan, nickname)
+    data = await player_plate_data(qqid, username, ver, plan)
     await bot.send(ev, data, at_sender=True)
 
 
@@ -149,7 +143,6 @@ async def _(bot: NoneBot, ev: CQEvent):
     category = match.group(3)
     page = match.group(4)
     username = match.group(5)
-
     if level not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
     if plan.lower() not in scoreRank + comboRank + syncRank:

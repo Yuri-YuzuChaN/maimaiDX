@@ -209,7 +209,11 @@ async def _(bot: NoneBot, ev: CQEvent):
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
             music = mai.total_list.by_id(str(alias_data[0].SongID))
-            await bot.finish(ev, '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), at_sender=True)
+            if music:
+                msg = '您要找的是不是：' + (await draw_music_info(music, ev.user_id))
+            else:
+                msg = f'未找到别名为「{name}」的歌曲\n※ 可以使用「添加别名」指令给该乐曲添加别名\n※ 如果是歌名的一部分，请使用「查歌」指令查询哦。'
+            await bot.finish(ev, msg, at_sender=True)
     # id
     if name.isdigit() and (music := mai.total_list.by_id(name)):
         await bot.finish(ev, '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), at_sender=True)

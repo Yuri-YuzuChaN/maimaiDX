@@ -1,5 +1,6 @@
 import time
 import traceback
+from textwrap import dedent
 from typing import Optional
 
 import pyecharts.options as opts
@@ -81,7 +82,7 @@ async def music_global_data(music: Music, level_index: int) -> MessageSegment:
     return MessageSegment.image(image_to_base64(im))
 
 
-async def rise_score_data(qqid: int, username: Optional[str], rating: str, score: str, nickname: Optional[str] = None) -> str:
+async def rise_score_data(qqid: int, username: Optional[str], rating: str, score: str) -> str:
     """
     上分数据
     
@@ -142,7 +143,7 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
         if len(music_dx_list) == 0 and len(music_sd_list) == 0:
             return '没有找到这样的乐曲'
 
-        appellation = nickname if nickname else '您'
+        appellation = username if username else '您'
         result = ''
         if len(music_sd_list) != 0:
             result += f'为{appellation}推荐以下标准乐曲：\n'
@@ -165,9 +166,9 @@ async def rise_score_data(qqid: int, username: Optional[str], rating: str, score
     return msg
 
 
-async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: str, nickname: Optional[str]) -> str:
+async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: str) -> str:
     """
-    查看将牌
+    查看牌子进度
     
     - `qqid` : 用户QQ
     - `username` : 查分器用户名
@@ -256,7 +257,7 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
                     song_remain_re_master.append([song['id'], song['level_index']])
                 song_played.append([song['id'], song['level_index']])
         for music in mai.total_list:
-            if ver == '真' and music.title == 'ジングルベル':
+            if music.id in ignore_music:
                 continue
             if music.basic_info.version in version:
                 if [int(music.id), 0] not in song_played:
@@ -279,16 +280,18 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
             if music.ds[song[1]] > 13.6:
                 song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], song[1]])
 
-        appellation = nickname if nickname else '您'
+        appellation = username if username else '您'
 
-        msg = f'''{appellation}的{ver}{plan}剩余进度如下：
-Basic剩余{len(song_remain_basic)}首
-Advanced剩余{len(song_remain_advanced)}首
-Expert剩余{len(song_remain_expert)}首
-Master剩余{len(song_remain_master)}首
-'''
+        msg = dedent(f'''\
+            {appellation}的{ver}{plan}剩余进度如下：
+            Basic剩余{len(song_remain_basic)}首
+            Advanced剩余{len(song_remain_advanced)}首
+            Expert剩余{len(song_remain_expert)}首
+            Master剩余{len(song_remain_master)}首
+        ''')
         song_remain: List[List] = song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master
         song_record = [[s['id'], s['level_index']] for s in verlist]
+        fs = ['fsd', 'fdx', 'fsdp', 'fdxp']
         if ver in ['舞', '霸']:
             msg += f'Re:Master剩余{len(song_remain_re_master)}首\n'
         if len(song_remain_difficult) > 0:
@@ -301,11 +304,11 @@ Master剩余{len(song_remain_master)}首
                         if plan in ['将', '者']:
                             self_record = str(verlist[record_index]['achievements']) + '%'
                         elif plan in ['極', '极', '神']:
-                            if verlist[record_index]['fc']:
-                                self_record = comboRank[combo_rank.index(verlist[record_index]['fc'])].upper()
+                            if fc := verlist[record_index]['fc']:
+                                self_record = comboRank[combo_rank.index(fc)].upper()
                         elif plan == '舞舞':
-                            if verlist[record_index]['fs']:
-                                self_record = syncRank[sync_rank.index(verlist[record_index]['fs'])].upper()
+                            if (sync := verlist[record_index]['fs']) and sync in fs:
+                                self_record = syncRank[sync_rank.index(sync)].upper()
                     msg += f'No.{i + 1} {s[0]}. {s[1]} {s[2]} {s[3]} {self_record}'.strip() + '\n'
                 if len(song_remain_difficult) > 10:
                     msg = MessageSegment.image(image_to_base64(text_to_image(msg.strip())))
@@ -479,9 +482,9 @@ async def level_process_data(
         elif plan.lower() in comboRank:
             plannum = 1
             planlist[1] = comboRank.index(plan.lower())
-        elif plan.lower() in syncRank2:
+        elif plan.lower() in syncRank:
             plannum = 2
-            planlist[2] = syncRank2.index(plan.lower())
+            planlist[2] = syncRank.index(plan.lower())
 
         for _d in obj:
             info = calc(_d)
@@ -494,7 +497,7 @@ async def level_process_data(
                     _p = music[song_id]
                 if (plannum == 0 and info.achievements >= planlist[plannum]) \
                         or (plannum == 1 and info.fc and combo_rank.index(info.fc) >= planlist[plannum]) \
-                        or (plannum == 2 and info.fs and (sync_rank2.index(info.fs) >= planlist[plannum] if info.fs and info.fs in sync_rank2 else sync_rank_p.index(info.fs) >= planlist[plannum])):
+                        or (plannum == 2 and info.fs and (sync_rank.index(info.fs) >= planlist[plannum] if info.fs and info.fs in sync_rank else sync_rank_p.index(info.fs) >= planlist[plannum])):
                     _p.completed = info
                 else:
                     _p.unfinished = info
@@ -674,16 +677,17 @@ async def rating_ranking_data(name: Optional[str], page: Optional[int]) -> str:
         rank_data = await maiApi.rating_ranking()
 
         sorted_rank_data = sorted(rank_data, key=lambda r: r['ra'], reverse=True)
+        _time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         if name:
             if name in [r['username'].lower() for r in sorted_rank_data]:
                 rank_index = [r['username'].lower() for r in sorted_rank_data].index(name) + 1
                 nickname = sorted_rank_data[rank_index - 1]['username']
-                data = f'截止至 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}\n玩家 {nickname} 在Diving Fish网站已注册用户ra排行第{rank_index}'
+                data = f'截止至 {_time}\n玩家 {nickname} 在Diving Fish网站已注册用户ra排行第{rank_index}'
             else:
                 data = '未找到该玩家'
         else:
             user_num = len(sorted_rank_data)
-            msg = f'截止至 {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}，Diving Fish网站已注册用户ra排行：\n'
+            msg = f'截止至 {_time}，Diving Fish网站已注册用户ra排行：\n'
             if page * 50 > user_num:
                 page = user_num // 50 + 1
             end = page * 50 if page * 50 < user_num else user_num

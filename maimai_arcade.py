@@ -50,7 +50,7 @@ async def add_arcade(bot: NoneBot, ev: CQEvent):
         else:
             if not arcade.total.search_fullname(args[0]):
                 aid = sorted(arcade.idList, reverse=True)
-                if (sid := int(aid[0])) >= 10000:
+                if (sid := aid[0]) >= 10000:
                     sid += 1
                 else:
                     sid = 10000

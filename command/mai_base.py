@@ -17,6 +17,7 @@ from ..libraries.maimaidx_music_info import draw_music_info
 from ..libraries.maimaidx_player_score import rating_ranking_data
 from ..libraries.tool import hash
 
+
 update_data         = sucmd('updatedata', aliases=('更新maimai数据'))
 maimaidxhelp        = sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 maimaidxrepo        = sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])

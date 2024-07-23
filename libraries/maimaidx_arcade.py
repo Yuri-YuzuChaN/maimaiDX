@@ -132,7 +132,7 @@ class ArcadeData:
     
     async def getArcade(self):
         self.total = await download_arcade_info()
-        self.idList = [c_a.id for c_a in self.total]
+        self.idList = [int(c_a.id) for c_a in self.total]
 
 arcade = ArcadeData()
 
