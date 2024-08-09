@@ -292,7 +292,7 @@ async def get_music_alias_list() -> AliasList:
             raise ValueError
 
     total_alias_list = AliasList()
-    for _a in alias_data:
+    for _a in filter(lambda x: mai.total_list.by_id(x['SongID']), alias_data):
         if (song_id := str(_a['SongID'])) in local_alias_data:
             _a['Alias'].extend(local_alias_data[song_id])
         total_alias_list.append(Alias(**_a))
