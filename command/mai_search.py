@@ -64,6 +64,8 @@ async def _(bot: NoneBot, ev: CQEvent):
     elif len(args) == 2:
         try:
             result = song_level(float(args[0]), float(args[1]))
+            if not result:
+                raise
         except:
             page = int(args[1]) if args[1].isdigit() else 1
             result = song_level(float(args[0]), float(args[0]))
