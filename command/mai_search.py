@@ -22,21 +22,13 @@ search_alias_song   = sv.on_suffix(('是什么歌', '是啥歌'))
 query_chart         = sv.on_rex(re.compile(r'^id\s?([0-9]+)$', re.IGNORECASE))
 
 
-def song_level(ds1: float, ds2: float, stats1: str = None, stats2: str = None) -> list:
+def song_level(ds1: float, ds2: float) -> list:
     result = []
     music_data = mai.total_list.filter(ds=(ds1, ds2))
     music_data.sort(key=lambda x: int(x.id))
-    if stats1:
-        if stats2:
-            stats1 = stats1 + ' ' + stats2
-            stats1 = stats1.title()
-        for music in music_data:
-            for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
-    else:
-        for music in music_data:
-            for i in music.diff:
-                result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
+    for music in music_data:
+        for i in music.diff:
+            result.append((music.id, music.title, music.ds[i], diffs[i], music.level[i]))
     return result
 
 
@@ -73,14 +65,18 @@ async def _(bot: NoneBot, ev: CQEvent):
         try:
             result = song_level(float(args[0]), float(args[1]))
         except:
-            result = song_level(float(args[0]), float(args[0]), str(args[1]))
+            page = int(args[1]) if args[1].isdigit() else 1
+            result = song_level(float(args[0]), float(args[0]))
     elif len(args) == 3:
         try:
-            result = song_level(float(args[0]), float(args[1]), str(args[2]))
+            page = int(args[2]) if args[2].isdigit() else 1
+            result = song_level(float(args[0]), float(args[1]))
         except:
-            result = song_level(float(args[0]), float(args[0]), str(args[1]), str(args[2]))
+            page = int(args[2]) if args[2].isdigit() else 1
+            result = song_level(float(args[0]), float(args[0]))
     else:
-        result = song_level(float(args[0]), float(args[1]), str(args[2]), str(args[3]))
+        result = song_level(float(args[0]), float(args[1]))
+        page = int(args[2]) if args[2].isdigit() else 1
     if not result:
         await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
     msg = ''
