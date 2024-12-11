@@ -369,35 +369,31 @@ class Guess:
         """裁切曲绘"""
         im = Image.open(await maiApi.download_music_pictrue(music.id))
         w, h = im.size
-        # 计算图像的频率权重
         def calculate_frequency_weights(image):
-            gray_image = np.array(image.convert("L"))  # 转换为灰度图
-            freq = np.fft.fft2(gray_image)  # 计算2D傅里叶变换
-            freq_shift = np.fft.fftshift(freq)  # 将低频移到中心
-            magnitude = np.abs(freq_shift)  # 计算幅值
-            normalized_magnitude = magnitude / magnitude.max()  # 归一化到0-1范围
-            weights = normalized_magnitude**2  # 权重为频率的平方
+            gray_image = np.array(image.convert("L"))
+            freq = np.fft.fft2(gray_image)
+            freq_shift = np.fft.fftshift(freq)
+            magnitude = np.abs(freq_shift)
+            normalized_magnitude = magnitude / magnitude.max()
+            weights = normalized_magnitude**2
             return weights
         weights = calculate_frequency_weights(im)
-        # 随机生成裁切比例
-        scale = random.uniform(0.15, 0.4)  # random裁切比例
-        w2, h2 = int(w * scale), int(h * scale)  # 计算裁切块的宽高
+        scale = random.uniform(0.15, 0.4)  # 裁剪尺寸范围 可在此修改
+        w2, h2 = int(w * scale), int(h * scale)
         top_p = min(1.3 - np.power(scale, 0.4), 0.95) * 100
-        # 根据权重选择裁切区域（仅在Top x%的权重区域中选择）
         def select_crop_region(weights, crop_width, crop_height):
             h, w = weights.shape
             valid_regions = weights[:h - crop_height + 1, :w - crop_width + 1]
             flattened_weights = valid_regions.flatten()
-            threshold = np.percentile(flattened_weights, top_p)  # Top x%的阈值
+            threshold = np.percentile(flattened_weights, top_p)
             valid_indices = np.where(flattened_weights >= threshold)[0]
             probabilities = flattened_weights[valid_indices]
-            probabilities /= probabilities.sum()  # 归一化概率
+            probabilities /= probabilities.sum()
             chosen_index = np.random.choice(valid_indices, p=probabilities)
             top_left_y = chosen_index // valid_regions.shape[1]
             top_left_x = chosen_index % valid_regions.shape[1]
             return top_left_x, top_left_y
         x, y = select_crop_region(weights, w2, h2)
-        # 裁切图片
         im = im.crop((x, y, x + w2, y + h2))
         return im
 
