@@ -277,8 +277,9 @@ async def player_plate_data(qqid: int, username: Optional[str], ver: str, plan: 
         song_remain_re_master = sorted(song_remain_re_master, key=lambda i: int(i[0]))
         for song in song_remain_basic + song_remain_advanced + song_remain_expert + song_remain_master + song_remain_re_master:
             music = mai.total_list.by_id(str(song[0]))
-            if music.ds[song[1]] > 13.6:
-                song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], song[1]])
+            if int(music.id) < 100000:      # 跳过宴谱id
+                if music.ds[song[1]] > 13.6:
+                    song_remain_difficult.append([music.id, music.title, diffs[song[1]], music.ds[song[1]], song[1]])
 
         appellation = username if username else '您'
 
