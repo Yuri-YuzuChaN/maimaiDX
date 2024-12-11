@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Tuple, overload
 
 from PIL import Image
+import numpy as np
 
 from .. import *
 from .image import image_to_base64
