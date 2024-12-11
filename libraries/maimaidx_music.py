@@ -364,36 +364,38 @@ class Guess:
     async def startpic(self, gid: str):
         """开始猜曲绘"""
         self.Group[gid] = await self.guesspicdata()
+        
+    def calculate_frequency_weights(self, image: Image.Image) -> np.ndarray:
+        gray_image = np.array(image.convert('L'))
+        freq = np.fft.fft2(gray_image)
+        freq_shift = np.fft.fftshift(freq)
+        magnitude = np.abs(freq_shift)
+        normalized_magnitude = magnitude / magnitude.max()
+        weights = normalized_magnitude ** 2
+        return weights
+    
+    def select_crop_region(weights: np.ndarray, crop_width: int, crop_height: int, top_p: int) -> Tuple[int, int]:
+        h, w = weights.shape
+        valid_regions = weights[:h - crop_height + 1, :w - crop_width + 1]
+        flattened_weights = valid_regions.flatten()
+        threshold = np.percentile(flattened_weights, top_p)
+        valid_indices = np.where(flattened_weights >= threshold)[0]
+        probabilities = flattened_weights[valid_indices]
+        probabilities /= probabilities.sum()
+        chosen_index = np.random.choice(valid_indices, p=probabilities)
+        top_left_y = chosen_index // valid_regions.shape[1]
+        top_left_x = chosen_index % valid_regions.shape[1]
+        return top_left_x, top_left_y
 
     async def pic(self, music: Music) -> Image.Image:
         """裁切曲绘"""
         im = Image.open(await maiApi.download_music_pictrue(music.id))
         w, h = im.size
-        def calculate_frequency_weights(image):
-            gray_image = np.array(image.convert("L"))
-            freq = np.fft.fft2(gray_image)
-            freq_shift = np.fft.fftshift(freq)
-            magnitude = np.abs(freq_shift)
-            normalized_magnitude = magnitude / magnitude.max()
-            weights = normalized_magnitude**2
-            return weights
-        weights = calculate_frequency_weights(im)
+        weights = self.calculate_frequency_weights(im)
         scale = random.uniform(0.15, 0.4)  # 裁剪尺寸范围 可在此修改
         w2, h2 = int(w * scale), int(h * scale)
         top_p = min(1.3 - np.power(scale, 0.4), 0.95) * 100
-        def select_crop_region(weights, crop_width, crop_height):
-            h, w = weights.shape
-            valid_regions = weights[:h - crop_height + 1, :w - crop_width + 1]
-            flattened_weights = valid_regions.flatten()
-            threshold = np.percentile(flattened_weights, top_p)
-            valid_indices = np.where(flattened_weights >= threshold)[0]
-            probabilities = flattened_weights[valid_indices]
-            probabilities /= probabilities.sum()
-            chosen_index = np.random.choice(valid_indices, p=probabilities)
-            top_left_y = chosen_index // valid_regions.shape[1]
-            top_left_x = chosen_index % valid_regions.shape[1]
-            return top_left_x, top_left_y
-        x, y = select_crop_region(weights, w2, h2)
+        x, y = self.select_crop_region(weights, w2, h2, top_p)
         im = im.crop((x, y, x + w2, y + h2))
         return im
 
