@@ -374,7 +374,7 @@ class Guess:
         weights = normalized_magnitude ** 2
         return weights
     
-    def select_crop_region(weights: np.ndarray, crop_width: int, crop_height: int, top_p: int) -> Tuple[int, int]:
+    def select_crop_region(self, weights: np.ndarray, crop_width: int, crop_height: int, top_p: int) -> Tuple[int, int]:
         h, w = weights.shape
         valid_regions = weights[:h - crop_height + 1, :w - crop_width + 1]
         flattened_weights = valid_regions.flatten()
