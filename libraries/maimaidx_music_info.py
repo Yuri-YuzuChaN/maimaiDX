@@ -185,6 +185,7 @@ async def draw_music_play_data(qqid: int, music_id: str) -> Union[str, MessageSe
         for num, info in enumerate(diff):
             im.alpha_composite(Image.open(maimaidir / f'd-{num}.png'), (650, 235 + y * num))
             if info:
+                im.alpha_composite(Image.open(maimaidir / 'ra-dx.png'), (850, 272 + y * num))
                 if dev:
                     dxscore = info.dxScore
                     _dxscore = sum(music.charts[num].notes) * 3
@@ -199,7 +200,6 @@ async def draw_music_play_data(qqid: int, music_id: str) -> Union[str, MessageSe
                 else:
                     rating, rate = computeRa(music.ds[num], info.achievements, israte=True)
                     
-                im.alpha_composite(Image.open(maimaidir / 'ra-dx.png'), (850, 272 + y * num))
                 im.alpha_composite(Image.open(maimaidir / 'fcfs.png'), (965, 265 + y * num))
                 if info.fc:
                     im.alpha_composite(
