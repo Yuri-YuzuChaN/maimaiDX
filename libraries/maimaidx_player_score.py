@@ -482,7 +482,10 @@ async def player_plate_data(qqid: int, username: str, version: str, plan: str) -
     """
     if version in platecn:
         version = platecn[version]
-    if version in ['霸', '舞']:
+    if version == '真':
+        ver = [plate_to_version['真']] + [plate_to_version['初']]
+        _ver = version
+    elif version in ['霸', '舞']:
         ver = list(set(_v for _v in list(plate_to_version.values())[:-9]))
         _ver = '舞'
     elif version in ['熊', '华', '華']:

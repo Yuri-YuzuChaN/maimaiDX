@@ -407,7 +407,10 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
     try:
         if version in platecn:
             version = platecn[version]
-        if version in ['熊', '华', '華']:
+        if version == '真':
+            ver = [plate_to_version['真']] + [plate_to_version['初']]
+            _ver = version
+        elif version in ['熊', '华', '華']:
             ver = [plate_to_version['熊']]
             _ver = '熊&华'
         elif version in ['爽', '煌']:
