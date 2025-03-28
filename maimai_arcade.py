@@ -247,7 +247,7 @@ async def arcade_query_person(bot: NoneBot, ev: CQEvent):
 @sv_arcade.scheduled_job('cron', hour='3')
 async def _():
     try:
-        await download_arcade_info(False)
+        await download_arcade_info()
         for _ in arcade.total:
             _.person = 0
             _.by = '自动清零'

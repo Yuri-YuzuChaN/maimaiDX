@@ -1,77 +1,159 @@
 import json
-from io import BytesIO
-from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict
 
 from aiohttp import ClientSession, ClientTimeout
 
-from .. import config_json, coverdir
 from .maimaidx_error import *
+from .maimaidx_model import *
+from .. import config_json
+
+
+class MaiConfig(BaseModel):
+    
+    maimaidxtoken: Optional[str] = None
+    maimaidxproberproxy: bool = False
+    maimaidxaliasproxy: bool = False
 
 
 class MaimaiAPI:
     
-    MaiAPI = 'https://www.diving-fish.com/api/maimaidxprober'
+    MaiProxyAPI = 'https://proxy.yuzuchan.xyz'
+    
+    MaiProberAPI = 'https://www.diving-fish.com/api/maimaidxprober'
     MaiCover = 'https://www.diving-fish.com/covers'
-    MaiAliasAPI = 'https://api.yuzuchan.moe/maimaidx'
+    MaiAliasAPI = 'https://www.yuzuchan.moe/api/maimaidx'
     QQAPI = 'http://q1.qlogo.cn/g'
     
     def __init__(self) -> None:
-        self.token = self.load_token()
-        self.headers = {'developer-token': self.token}
+        """封装Api"""
+        self.config: MaiConfig = self.load_config()
+        self.headers = None
+        self.token = None
+        self.MaiProberProxyAPI = None
+        self.MaiAliasProxyAPI = None
     
-    def load_token(self) -> str:
-        return json.load(open(config_json, 'r', encoding='utf-8'))['token']
+    def load_config(self) -> MaiConfig:
+        return MaiConfig.model_validate(json.load(open(config_json, 'r', encoding='utf-8')))
     
-    async def _request(self, method: str, url: str, **kwargs) -> Any:
-        session = ClientSession(timeout=ClientTimeout(total=30))
-        res = await session.request(method, url, **kwargs)
+    def load_token_proxy(self) -> None:
+        self.MaiProberProxyAPI = self.MaiProberAPI if not self.config.maimaidxproberproxy else self.MaiProxyAPI + '/maimaidxprober'
+        self.MaiAliasProxyAPI = self.MaiAliasAPI if not self.config.maimaidxaliasproxy else self.MaiProxyAPI + '/maimaidxaliases'
+        self.token = self.config.maimaidxtoken
+        if self.token:
+            self.headers = {'developer-token': self.token}
+    
+    
+    async def _requestalias(self, method: str, endpoint: str, **kwargs) -> Any:
+        """
+        别名库通用请求
 
-        data = None
-        
-        if self.MaiAPI in url:
-            if res.status == 200:
-                data = await res.json()
-            elif res.status == 400:
-                raise UserNotFoundError
-            elif res.status == 403:
-                raise UserDisabledQueryError
-            else:
-                raise UnknownError
-        elif self.MaiAliasAPI in url:
-            if res.status == 200:
-                data = (await res.json())['content']
-            elif res.status == 400:
-                raise EnterError
-            elif res.status == 500:
-                raise ServerError
-            else:
-                raise UnknownError
-        elif self.QQAPI in url:
-            if res.status == 200:
-                data = await res.read()
-            else:
-                raise
-        await session.close()
+        Params:
+            `method`: 请求方式
+            `endpoint`: 请求接口
+            `kwargs`: 其它参数
+        Returns:
+            `Dict[str, Any]` 返回结果
+        """
+        async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+            async with session.request(method, self.MaiAliasProxyAPI + endpoint, **kwargs) as res:
+                if res.status == 200:
+                    data = (await res.json())['content']
+                    if data == {} or data == []:
+                        raise AliasesNotFoundError
+                    if isinstance(data, str):
+                        return data
+                elif res.status == 201:
+                    data = await res.json()
+                elif res.status == 400:
+                    raise EnterError
+                elif res.status == 500:
+                    raise ServerError
+                else:
+                    raise UnknownError
+        return data
+
+    async def _requestmai(self, method: str, endpoint: str, **kwargs) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        查分器通用请求
+
+        Params:
+            `method`: 请求方式
+            `endpoint`: 请求接口
+            `kwargs`: 其它参数
+        Returns:
+            `Dict[str, Any]` 返回结果
+        """
+        async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+            async with session.request(method, self.MaiProberProxyAPI + endpoint, headers=self.headers, **kwargs) as res:
+                if res.status == 200:
+                    data = await res.json()
+                elif res.status == 400:
+                    error: Dict = await res.json()
+                    if 'message' in error:
+                        if error['message'] == 'no such user':
+                            raise UserNotFoundError
+                        elif error['message'] == 'user not exists':
+                            raise UserNotExistsError
+                        else:
+                            raise UserNotFoundError
+                    elif 'msg' in error:
+                        if error['msg'] == '开发者token有误':
+                            raise TokenError
+                        elif error['msg'] == '开发者token被禁用':
+                            raise TokenDisableError
+                        else:
+                            raise TokenNotFoundError
+                    else:
+                        raise UserNotFoundError
+                elif res.status == 403:
+                    raise UserDisabledQueryError
+                else:
+                    raise UnknownError
         return data
     
     async def music_data(self):
         """获取曲目数据"""
-        return await self._request('GET', self.MaiAPI + '/music_data')
-    
+        return await self._requestmai('GET', '/music_data')
+
     async def chart_stats(self):
         """获取单曲数据"""
-        return await self._request('GET', self.MaiAPI + '/chart_stats')
-    
-    async def query_user(self, project: str, *, qqid: Optional[int] = None, username: Optional[str] = None, version: Optional[List[str]] = None):
+        return await self._requestmai('GET', '/chart_stats')
+
+    async def query_user_b50(self, *, qqid: Optional[int] = None, username: Optional[str] = None) -> UserInfo:
+        """
+        获取玩家B50
+        
+        Params:
+            `qqid`: QQ号
+            `username`: 用户名
+        Returns:
+            `UserInfo` b50数据模型
+        """
+        json = {}
+        if qqid:
+            json['qq'] = qqid
+        if username:
+            json['username'] = username
+        json['b50'] = True
+
+        return UserInfo.model_validate(await self._requestmai('POST', '/query/player', json=json))
+
+    async def query_user_plate(
+        self,
+        *,
+        qqid: Optional[int] = None,
+        username: Optional[str] = None,
+        version: Optional[List[str]] = None
+    ) -> List[PlayInfoDefault]:
         """
         请求用户数据
-        
-        - `project`: 查询的功能
-            - `player`: 查询用户b50
-            - `plate`: 按版本查询用户游玩成绩
-        - `qqid`: 用户QQ
-        - `username`: 查分器用户名
+
+        Params:
+            `qqid`: 用户QQ
+            `username`: 查分器用户名
+            `version`: 版本
+        Returns:
+            `List[PlayInfoDefault]` 数据列表
         """
         json = {}
         if qqid:
@@ -80,31 +162,47 @@ class MaimaiAPI:
             json['username'] = username
         if version:
             json['version'] = version
-        if project == 'player':
-            json['b50'] = True
-        return await self._request('POST', self.MaiAPI + f'/query/{project}', json=json)
-    
-    async def query_user_dev(self, *, qqid: Optional[int] = None, username: Optional[str] = None):
+        result = await self._requestmai('POST', '/query/plate', json=json)
+        if not result['verlist']:
+            raise MusicNotPlayError
+
+        return [PlayInfoDefault.model_validate(d) for d in result['verlist']]
+
+    async def query_user_get_dev(self, *, qqid: Optional[int] = None, username: Optional[str] = None) -> UserInfoDev:
         """
         使用开发者接口获取用户数据，请确保拥有和输入了开发者 `token`
-        
-        - `qqid`: 用户QQ
-        - `username`: 查分器用户名
+
+        Params:
+            qqid: 用户QQ
+            username: 查分器用户名
+        Returns:
+            `UserInfoDev` 开发者用户信息
         """
         params = {}
         if qqid:
             params['qq'] = qqid
         if username:
             params['username'] = username
-        return await self._request('GET', self.MaiAPI + f'/dev/player/records', headers=self.headers, params=params)
+        
+        result = await self._requestmai('GET', '/dev/player/records', params=params)
+        return UserInfoDev.model_validate(result)
 
-    async def query_user_dev2(self, *, qqid: Optional[int] = None, username: Optional[str] = None, music_id: Union[str, List[Union[int, str]]]):
+    async def query_user_post_dev(
+        self,
+        *,
+        qqid: Optional[int] = None,
+        username: Optional[str] = None,
+        music_id: Union[str, int, List[Union[str, int]]]
+    ) -> List[PlayInfoDev]:
         """
         使用开发者接口获取用户指定曲目数据，请确保拥有和输入了开发者 `token`
 
-        - `qqid`: 用户QQ
-        - `username`: 查分器用户名
-        - `music_id`: 曲目id，可以为单个ID或者列表
+        Params:
+            `qqid`: 用户QQ
+            `username`: 查分器用户名
+            `music_id`: 曲目id，可以为单个ID或者列表
+        Returns:
+            `List[PlayInfoDev]` 开发者成绩列表
         """
         json = {}
         if qqid:
@@ -112,95 +210,125 @@ class MaimaiAPI:
         if username:
             json['username'] = username
         json['music_id'] = music_id
-        return await self._request('POST', self.MaiAPI + f'/dev/player/record', headers=self.headers, json=json)
-
-    async def rating_ranking(self):
-        """获取查分器排行榜"""
-        return await self._request('GET', self.MaiAPI + f'/rating_ranking')
         
-    async def get_alias(self):
+        result = await self._requestmai('POST', '/dev/player/record', json=json)
+        if result == {}:
+            raise MusicNotPlayError
+        
+        if isinstance(music_id, list):
+            return [PlayInfoDev.model_validate(d) for k, v in result.items() for d in v]
+        return [PlayInfoDev.model_validate(d) for d in result[str(music_id)]]
+
+    async def rating_ranking(self) -> List[UserRanking]:
+        """
+        获取查分器排行榜
+        
+        Returns:
+            `List[UserRanking]` 按`ra`从高到低排序后的查分器排行模型列表
+        """
+        result = await self._requestmai('GET', '/rating_ranking')
+        return sorted([UserRanking.model_validate(u) for u in result], key=lambda x: x.ra, reverse=True)
+
+    async def get_plate_json(self) -> Dict[str, List[int]]:
+        """获取所有版本牌子完成需求"""
+        return await self._requestalias('GET', '/maimaidxplate')
+    
+    async def get_alias(self) -> Dict[str, Union[str, int, List[str]]]:
         """获取所有别名"""
-        return await self._request('GET', self.MaiAliasAPI + '/maimaidxalias')
-    
-    async def get_songs(self, name: str):
-        """使用别名查询曲目"""
-        return await self._request('GET', self.MaiAliasAPI + '/getsongs', params={'name': name})
-    
-    async def get_songs_alias(self, song_id: int):
-        """使用曲目 `id` 查询别名"""
-        return await self._request('GET', self.MaiAliasAPI + '/getsongsalias', params={'song_id': song_id})
-    
-    async def get_alias_status(self):
+        return await self._requestalias('GET', '/maimaidxalias')
+
+    async def get_songs(self, name: str) -> Union[List[AliasStatus], List[Alias]]:
+        """
+        使用别名查询曲目。
+        状态码为 `201` 时返回值为 `List[AliasStatus]`。
+        状态码为 `200` 时返回值为 `List[Alias]`。
+        
+        Params:
+            `name`: 别名
+        Returns:
+            `Union[List[AliasStatus], List[Alias]]`
+        """
+        result = await self._requestalias('GET', '/getsongs', params={'name': name})
+        if 'status_code' in result:
+            r = [AliasStatus.model_validate(s) for s in result['content']]
+        else:
+            r = [Alias.model_validate(s) for s in result]
+        return r
+
+    async def get_songs_alias(self, song_id: int) -> Alias:
+        """
+        使用曲目 `id` 查询别名
+        
+        Params:
+            `song_id`: 曲目 `ID`
+        Returns:
+            `Alias`
+        """
+        result = await self._requestalias('GET', '/getsongsalias', params={'song_id': song_id})
+        return Alias.model_validate(result)
+
+    async def get_alias_status(self) -> List[AliasStatus]:
         """获取当前正在进行的别名投票"""
-        return await self._request('GET', self.MaiAliasAPI + '/getaliasstatus')
-    
-    async def get_alias_end(self):
-        """获取五分钟内结束的别名投票"""
-        return await self._request('GET', self.MaiAliasAPI + '/getaliasend')
-    
-    async def transfer_music(self):
-        """中转查分器曲目数据"""
-        return await self._request('GET', self.MaiAliasAPI + '/maimaidxmusic')
-    
-    async def transfer_chart(self):
-        """中转查分器单曲数据"""
-        return await self._request('GET', self.MaiAliasAPI + '/maimaidxchartstats')
-    
-    async def post_alias(self, id: int, aliasname: str, user_id: int):
+        result = await self._requestalias('GET', '/getaliasstatus')
+        return [AliasStatus.model_validate(s) for s in result]
+
+    async def post_alias(self, song_id: int, aliasname: str, user_id: int) -> AliasStatus:
         """
         提交别名申请
-        
-        - `id`: 曲目 `id`
-        - `aliasname`: 别名
-        - `user_id`: 提交的用户
+
+        Params:
+            `id`: 曲目 `id`
+            `aliasname`: 别名
+            `user_id`: 提交的用户
+        Returns:
+            `AliasStatus`
         """
         json = {
-            'SongID': id,
+            'SongID': song_id,
             'ApplyAlias': aliasname,
             'ApplyUID': user_id
         }
-        return await self._request('POST', self.MaiAliasAPI + '/applyalias', json=json)
-    
-    async def post_agree_user(self, tag: str, user_id: int):
+        return AliasStatus.model_validate(await self._requestalias('POST', '/applyalias', json=json))
+
+    async def post_agree_user(self, tag: str, user_id: int) -> str:
         """
         提交同意投票
-        
-        - `tag`: 标签
-        - `user_id`: 同意投票的用户
+
+        Params:
+            `tag`: 标签
+            `user_id`: 同意投票的用户
+        Returns:
+            `str`
         """
         json = {
             'Tag': tag,
             'AgreeUser': user_id
         }
-        return await self._request('POST', self.MaiAliasAPI + '/agreeuser', json=json)
+        return await self._requestalias('POST', '/agreeuser', json=json)
 
-    async def download_music_pictrue(self, song_id: Union[int, str]) -> Union[Path, BytesIO]:
-        try:
-            if (file := coverdir / f'{song_id}.png').exists():
-                return file
-            song_id = int(song_id)
-            if song_id > 100000:
-                song_id -= 100000
-                if (file := coverdir / f'{song_id}.png').exists():
-                    return file
-            if 1000 < song_id < 10000 or 10000 < song_id <= 11000:
-                for _id in [song_id + 10000, song_id - 10000]:
-                    if (file := coverdir / f'{_id}.png').exists():
-                        return file
-            pic = await self._request('GET', self.MaiCover + f'/{song_id:05d}.png')
-            return BytesIO(pic)
-        except CoverError:
-            return coverdir / '11000.png'
-        except Exception:
-            return coverdir / '11000.png'
+    async def transfer_music(self):
+        """中转查分器曲目数据"""
+        return await self._requestalias('GET', '/maimaidxmusic')
 
-    async def qqlogo(self, qqid: int) -> bytes:
-        params = {
-            'b': 'qq',
-            'nk': qqid,
-            's': 100
-        }
-        return await self._request('GET', self.QQAPI, params=params)
+    async def transfer_chart(self):
+        """中转查分器单曲数据"""
+        return await self._requestalias('GET', '/maimaidxchartstats')
+
+    async def qqlogo(self, qqid: int = None, icon: str = None) -> Optional[bytes]:
+        """获取QQ头像"""
+        async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+            if qqid:
+                params = {
+                    'b': 'qq',
+                    'nk': qqid,
+                    's': 100
+                }
+                res = await session.request('GET', self.QQAPI, params=params)
+            elif icon:
+                res = await session.request('GET', icon)
+            else:
+                return None
+            return await res.read()
 
 
 maiApi = MaimaiAPI()

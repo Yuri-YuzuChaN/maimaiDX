@@ -5,11 +5,11 @@ from nonebot import NoneBot
 
 from hoshino.typing import CQEvent, MessageSegment
 
-from .. import sv
+from .. import log, sv
 from ..libraries.image import image_to_base64, text_to_image
 from ..libraries.maimai_best_50 import generate
 from ..libraries.maimaidx_music import mai
-from ..libraries.maimaidx_music_info import music_play_data
+from ..libraries.maimaidx_music_info import draw_music_play_data
 from ..libraries.maimaidx_player_score import music_global_data
 
 best50  = sv.on_prefix(['b50', 'B50'])
@@ -53,7 +53,7 @@ async def _(bot: NoneBot, ev: CQEvent):
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
             songs = str(alias[0].SongID)
-    pic = await music_play_data(qqid, songs)
+    pic = await draw_music_play_data(qqid, songs)
     await bot.send(ev, pic, at_sender=True)
 
 
@@ -84,6 +84,7 @@ async def _(bot: NoneBot, ev: CQEvent):
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
             id = str(alias[0].SongID)
+
     music = mai.total_list.by_id(id)
     if not music.stats:
         await bot.finish(ev, '该乐曲还没有统计信息', at_sender=True)
@@ -106,17 +107,18 @@ async def _(bot: NoneBot, ev: CQEvent):
     args: str = ev.message.extract_plain_text().strip()
     pro = args.split()
     if len(pro) == 1 and pro[0] == '帮助':
-        msg = dedent('''此功能为查找某首歌分数线设计。
-                    命令格式：分数线 <难度+歌曲id> <分数线>
-                    例如：分数线 紫799 100
-                    命令将返回分数线允许的 TAP GREAT 容错以及 BREAK 50落等价的 TAP GREAT 数。
-                    以下为 TAP GREAT 的对应表：
-                    GREAT/GOOD/MISS
-                    TAP\t1/2.5/5
-                    HOLD\t2/5/10
-                    SLIDE\t3/7.5/15
-                    TOUCH\t1/2.5/5
-                    BREAK\t5/12.5/25(外加200落)''')
+        msg = dedent('''\
+            此功能为查找某首歌分数线设计。
+            命令格式：分数线 <难度+歌曲id> <分数线>
+            例如：分数线 紫799 100
+            命令将返回分数线允许的 TAP GREAT 容错以及 BREAK 50落等价的 TAP GREAT 数。
+            以下为 TAP GREAT 的对应表：
+            GREAT/GOOD/MISS
+            TAP   1/2.5/5
+            HOLD  2/5/10
+            SLIDE 3/7.5/15
+            TOUCH 1/2.5/5
+            BREAK 5/12.5/25(外加200落)''')
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
     else:
         try:
@@ -139,9 +141,10 @@ async def _(bot: NoneBot, ev: CQEvent):
             reduce = 101 - line
             if reduce <= 0 or reduce >= 101:
                 raise ValueError
-            msg = f'''{music.title} {level_labels2[level_index]}
-分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
-BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)'''
+            msg = dedent(f'''{music.title} {level_labels2[level_index]}
+                分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
+                BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)''')
             await bot.send(ev, msg, at_sender=True)
-        except:
+        except (AttributeError, ValueError) as e:
+            log.exception(e)
             await bot.send(ev, '格式错误，输入“分数线 帮助”以查看帮助信息', at_sender=True)

@@ -2,14 +2,15 @@ import re
 from re import Match
 
 from nonebot import NoneBot
-from PIL import Image
 
-from hoshino.service import sucmd
-from hoshino.typing import CommandSession, CQEvent, MessageSegment
+from hoshino.typing import CQEvent
 
 from .. import *
-from ..libraries.image import image_to_base64
-from ..libraries.maimaidx_music_info import draw_plate_table, draw_rating_table
+from ..libraries.maimaidx_music_info import (
+    draw_plate_table,
+    draw_rating,
+    draw_rating_table,
+)
 from ..libraries.maimaidx_player_score import (
     level_achievement_list_data,
     level_process_data,
@@ -18,25 +19,42 @@ from ..libraries.maimaidx_player_score import (
 )
 from ..libraries.maimaidx_update_table import update_plate_table, update_rating_table
 
-update_table            = sucmd('updatetable', aliases=('更新定数表'))
-update_plate            = sucmd('updateplate', aliases=('更新完成表'))
-table_pfm               = sv.on_suffix('完成表')
+update_table            = sv.on_fullmatch('更新定数表')
+update_plate            = sv.on_fullmatch('更新完成表')
 rating_table            = sv.on_suffix('定数表')
-rise_score              = sv.on_rex(r'^我要在?([0-9]+\+?)?上([0-9]+)分\s?(.+)?')
-plate_process           = sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽舞霸宙星祭祝双])([極极将舞神者]舞?)进度\s?(.+)?')
+table_pfm               = sv.on_suffix('完成表')
+rise_score              = sv.on_rex(r'^我要在?([0-9]+\+?)?[上加\+]([0-9]+)?分\s?(.+)?')
+plate_process           = sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌宙星祭祝双])([極极将舞神者]舞?)进度\s?(.+)?')
 level_process           = sv.on_rex(r'^([0-9]+\+?)\s?([abcdsfxp\+]+)\s?([\u4e00-\u9fa5]+)?进度\s?([0-9]+)?\s?(.+)?')
 level_achievement_list  = sv.on_rex(r'^([0-9]+\.?[0-9]?\+?)分数列表\s?([0-9]+)?\s?(.+)?')
 
 
 @update_table
-async def _(session: CommandSession):
-    await session.send(await update_rating_table())
+async def _(bot: NoneBot, ev: CQEvent):
+    if not priv.check_priv(ev, priv.SUPERUSER):
+        return
+    await bot.send(ev, await update_rating_table())
 
 
 @update_plate
-async def _(session: CommandSession):
-    await session.send(await update_plate_table())
-    
+async def _(bot: NoneBot, ev: CQEvent):
+    if not priv.check_priv(ev, priv.SUPERUSER):
+        return
+    await bot.send(ev, await update_plate_table())
+
+
+@rating_table
+async def _(bot: NoneBot, ev: CQEvent):
+    args: str = ev.message.extract_plain_text().strip()
+    if args in levelList[:5]:
+        await bot.send(ev, '只支持查询lv6-15的定数表', at_sender=True)
+    elif args in levelList[5:]:
+        path = ratingdir / f'{args}.png'
+        pic = draw_rating(args, path)
+        await bot.send(ev, pic)
+    else:
+        await bot.send(ev, '无法识别的定数', at_sender=True)
+
 
 @table_pfm
 async def _(bot: NoneBot, ev: CQEvent):
@@ -69,36 +87,27 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, '无法识别的表格', at_sender=True)
 
 
-@rating_table
-async def _(bot: NoneBot, ev: CQEvent):
-    args: str = ev.message.extract_plain_text().strip()
-    if args in levelList[:5]:
-        await bot.send(ev, '只支持查询lv6-15的定数表', at_sender=True)
-    elif args in levelList[5:]:
-        if args in levelList[-3:]:
-            img = ratingdir / '14.png'
-        else:
-            img = ratingdir / f'{args}.png'
-        await bot.send(ev, MessageSegment.image(image_to_base64(Image.open(img))))
-    else:
-        await bot.send(ev, '无法识别的定数', at_sender=True)
-
-
 @rise_score
 async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
     username = None
+    score = 0
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
 
-    rating = match.group(1)
-    score = match.group(2)
+    if not match:
+        rating = None
+        score = None
+    else:
+        rating = match.group(1)
+        if match.group(2):
+            score = int(match.group(2))
     
     if rating and rating not in levelList:
         await bot.finish(ev, '无此等级', at_sender=True)
-    elif match.group(3):
+    if match.group(3):
         username = match.group(3).strip()
     if username:
         qqid = None
@@ -111,7 +120,7 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     match: Match[str] = ev['match']
-    username = None
+    username = ''
     for i in ev.message:
         if i.type == 'at' and i.data['qq'] != 'all':
             qqid = int(i.data['qq'])
@@ -150,7 +159,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     if levelList.index(level) < 11 or (plan.lower() in scoreRank and scoreRank.index(plan.lower()) < 8):
         await bot.finish(ev, '兄啊，有点志向好不好', at_sender=True)
     if category:
-        if category in ['已完成', '未完成', '未开始']:
+        if category in ['已完成', '未完成', '未开始', '未游玩']:
             _c = {
                 '已完成': 'completed',
                 '未完成': 'unfinished',

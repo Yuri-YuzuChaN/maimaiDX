@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 ##### Music
 class Stats(BaseModel):
-
+    
     cnt: Optional[float] = None
     diff: Optional[str] = None
     fit_diff: Optional[float] = None
@@ -22,13 +22,13 @@ Notes2 = namedtuple('Notes', ['tap', 'hold', 'slide', 'touch', 'brk'])
 
 
 class Chart(BaseModel):
-
+    
     notes: Union[Notes1, Notes2]
     charter: str = None
 
 
 class BasicInfo(BaseModel):
-
+    
     title: str
     artist: str
     genre: str
@@ -39,7 +39,7 @@ class BasicInfo(BaseModel):
 
 
 class Music(BaseModel):
-
+    
     id: str
     title: str
     type: str
@@ -63,10 +63,22 @@ class RaMusic(BaseModel):
 
 ##### Aliases
 class Alias(BaseModel):
-
+    
     SongID: int
     Name: str
     Alias: List[str]
+
+
+class AliasStatus(BaseModel):
+    
+    Tag: str
+    SongID: int
+    ApplyAlias: str
+    IsNew: bool
+    IsEnd: bool
+    Time: str
+    AgreeVotes: int
+    Votes: int
 
 
 ##### Guess
@@ -86,41 +98,22 @@ class GuessDefaultData(GuessData):
 class GuessPicData(GuessData): ...
 
 
+class Switch(BaseModel):
+
+    enable: List[int] = []
+    disable: List[int] = []
+
+
+class GuessSwitch(Switch): ...
+
+
+##### AliasesPush
+class AliasesPush(Switch):
+    
+    global_switch: bool = Field(True, alias='global')
+
+
 ##### Best50
-class ChartInfo(BaseModel):
-    
-    achievements: float
-    ds: float
-    dxScore: int
-    fc: Optional[str] = ''
-    fs: Optional[str] = ''
-    level: str
-    level_index: int
-    level_label: str
-    ra: int
-    rate: str
-    song_id: int
-    title: str
-    type: str
-
-
-class Data(BaseModel):
-
-    sd: Optional[List[ChartInfo]] = None
-    dx: Optional[List[ChartInfo]] = None
-
-
-class UserInfo(BaseModel):
-
-    additional_rating: Optional[int]
-    charts: Optional[Data]
-    nickname: Optional[str]
-    plate: Optional[str] = None
-    rating: Optional[int]
-    username: Optional[str]
-    
-    
-##### PlayedInfo
 class PlayInfo(BaseModel):
     
     achievements: float
@@ -136,15 +129,38 @@ class PlayInfo(BaseModel):
     rate: str = ''
 
 
-class PlayInfoDefault(PlayInfo):
-    
-    song_id: int = Field(alias='id')
-
-
-class PlayInfoDev(PlayInfo):
+class ChartInfo(PlayInfo):
     
     level_label: str
     song_id: int
+
+
+class Data(BaseModel):
+    
+    sd: Optional[List[ChartInfo]] = None
+    dx: Optional[List[ChartInfo]] = None
+
+
+class _UserInfo(BaseModel):
+    
+    additional_rating: Optional[int]
+    nickname: Optional[str]
+    plate: Optional[str] = None
+    rating: Optional[int]
+    username: Optional[str]
+
+
+class UserInfo(_UserInfo):
+    
+    charts: Optional[Data]
+
+class PlayInfoDefault(PlayInfo):
+    
+    song_id: int = Field(alias='id')
+    table_level: List[int] = []
+
+
+class PlayInfoDev(ChartInfo): ...
 
 
 class TableData(BaseModel):
@@ -157,3 +173,31 @@ class PlanInfo(BaseModel):
     
     completed: Union[PlayInfoDefault, PlayInfoDev] = None
     unfinished: Union[PlayInfoDefault, PlayInfoDev] = None
+
+
+class RiseScore(BaseModel):
+    
+    song_id: int
+    title: str
+    type: str
+    level_index: int
+    ds: float
+    ra: int
+    rate: str
+    achievements: float
+    oldra: Optional[int] = 0
+    oldrate: Optional[str] = 'D'
+    oldachievements: Optional[float] = 0
+
+
+##### Dev
+class UserInfoDev(_UserInfo):
+    
+    records: Optional[List[PlayInfoDev]] = None
+
+
+##### Rank
+class UserRanking(BaseModel):
+    
+    username: str
+    ra: int

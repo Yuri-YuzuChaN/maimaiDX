@@ -1,18 +1,21 @@
 # maimaiDX
 
-移植自 xybot 及 [mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
+[![python3](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
+[![QQGroup](https://img.shields.io/badge/QQGroup-Join-blue)](https://qm.qq.com/q/gDIf3fGSPe)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+移植自[mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
 ## 重要更新
 
-**2024-07-23**
+**2025-03-28**
 
-1. 更新部分牌子完成表和 `SyncPlay` 图片，下载更新图片包 `Update.zip` 解压，将 `static` 复制到插件根目录并覆盖，即 `maimaiDX/static`。**如果怕缺少图片请进行[使用方法第二步](#使用方法)**
-   - [私人云盘](https://share.yuzuchan.moe/d/aria/Update.zip?sign=PFnIZpgyB_HptU-hHIQ-S_qhuuGTNDlmEEtmaEpmJlA=:0)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzuchan_yuzuai_onmicrosoft_com/EcFTIQemNF9NlNQj8RZSdhABiV64tFi-X8-8a7JKxfEKJQ?e=P5nPnx)
-2. 修复 `新增机厅` 指令 `id` 未增加的问题
-3. 修复 `牌子进度` 指令 `sync` 未匹配的问题
+> [!WARNING]
+> 对于这个版本之前的插件和修改版的插件请注意，预更新版本别名库将全部更换成新的 `API` 地址，返回的数据结构均更改，目前旧版 `API` 将再运行一段时间，预计正式更新 `舞萌DX2025` 时将会关闭
+
+1. 预更新 `舞萌DX2025` UI，资源全部更换，更新部分依赖和文件，**请重新进行使用方法**
 
 ## 使用方法
 
@@ -23,61 +26,37 @@
     ```
    
 2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static`
-   - [私人云盘](https://share.yuzuchan.moe/d/aria/Resource.zip?sign=LOqwqDVm95dYnkEDYKX2E-VGj0xc_JxrsFnuR1BcvtI=:0)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzuchan_yuzuai_onmicrosoft_com/EaS3jPYdMwxGiU3V_V64nRIBk6QA5Gdhs2TkJQ2bLssxbw?e=Mm6cWY)
-3. 如果您拥有查分器的开发者 `token`，可修改 `maimaiDX/static/config.json` 文件，将 `token` 填入文件
+
+   - [私人云盘](https://cloud.yuzuchan.moe/f/1bUn/Resource.7z)
+   - [AList网盘](https://share.yuzuchan.moe/p/Resource.7z?sign=EvCwaGwJrneyD1Olq00NG3HXNK7fQKpx_sa3Ck9Uzjs=:0)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzuchan_yuzuai_onmicrosoft_com/EdGUKRSo-VpHjT2noa_9EroBVO27iYMSQO3oFnZjpYTbqA?e=FE4KXY)
+
+3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
+
+   1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
+   2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `ture`，别名库同理
+   ``` json
+   {
+      "maimaidxtoken": "maimaidxtoken",
+      "maimaidxproberproxy": true,
+      "maimaidxaliasproxy": false
+   }
+   ```
+
 4. 安装插件所需模块：`pip install -r requirements.txt`
-5. 在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
-6. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
-7. 重启HoshinoBot
+5. 安装 `PhantomJS`，在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
+6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
+7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
+8. 重启HoshinoBot
 
-## 指令
-
-| 命令                                             | 功能                            |
-|------------------------------------------------|-------------------------------|
-| 帮助maimaiDX                                     | 查看指令帮助                        |
-| 今日舞萌                                           | 查看今天的舞萌运势                     |
-| XXXmaimaiXXX什么                                 | 随机一首歌                         |
-| 随个[dx/标准][绿黄红紫白]<难度>                           | 随机一首指定条件的乐曲                   |
-| 查歌<乐曲标题的一部分>                                   | 查询符合条件的乐曲                     |
-| id<歌曲编号>                                | 查询乐曲信息或谱面信息                   |
-| <歌曲别名>是什么歌                                     | 查询乐曲别名对应的乐曲                   |
-| <id/歌曲别称>有什么别称                                 | 查询歌曲别名                        |
-| 添加本地别名 <歌曲ID> <歌曲别名>                         | 添加本地别名，不上传别名服务器         |
-| 添加别称 <歌曲ID> <歌曲别名>                             | 申请添加歌曲别名                      |
-| 当前别名投票 <页数>                                        | 查看正在进行的投票                     |
-| 同意别名 <标签>                                      | 同意其中一个标签的别名申请，可通过指令 当前别名投票 查看 |
-| 开启/关闭别名推送                                      | 开启或关闭新别名投票的推送                 |
-| 定数查歌 <定数> 定数查歌 <定数下限> <定数上限>                   | 查询定数对应的乐曲                     |
-| 分数线 <难度+歌曲id> <分数线>                            | 展示歌曲的分数线                      |
-| 开启/关闭mai猜歌                                     | 开关猜歌功能                        |
-| 重置猜歌                                            | 停止当前进行的猜歌                  |
-| 猜歌                                             | 顾名思义，识别id，歌名和别称               |
-| 猜曲绘                                            | 猜曲绘                                |
-| minfo<@> <id/别称/曲名>                            | 查询单曲成绩                        |
-| ginfo[绿黄红紫白] <id/别称/曲名>                        | 查询乐曲游玩总览，不加难度默认为紫谱         |
-| b50 <游戏名>                                      | 查询b50                         |
-| 我要在<难度>上<分数>分 <游戏名>                            | 查看推荐的上分乐曲                     |
-| 我要(在<难度>)上<分数>分 <名字>                           | 查看推荐的上分乐曲                     |
-| <牌子名称>进度 <名字>                                  | 查看牌子完成进度                      |
-| <等级><评价>进度 <名字>                                | 查看等级评价完成进度                    |
-| <等级> 分数列表 <名字>                                 | 查看等级评价列表                      |
-| 查看排名,查看排行 <页数>/<名字>                            | 查看水鱼网站的用户ra排行                 |
-| 添加机厅 <店名> <位置> <机台数量>                     | 添加机厅信息                        |
-| 删除机厅 <店名>                                      | 删除机厅信息                        |
-| 修改机厅 <店名> 数量 <数量>                           | 修改机厅信息                        |
-| 订阅机厅 <店名>                                      | 订阅机厅，简化后续指令                   |
-| 查看订阅                                           | 查看群组订阅机厅的信息                   |
-| 取消订阅,取消订阅机厅                                    | 取消群组机厅订阅                      |
-| 添加机厅别名 <店名> <别名>                                | 添加机厅别名                      |
-| 查找机厅,查询机厅,机厅查找,机厅查询 <关键词>                      | 查询对应机厅信息                      |
-| <店名/别名>人数设置,设定,增加,加,+,减少,减,-<人数>                  | 操作排卡人数                        |
-| <店名/别名>有多少人,有几人,有几卡,几人,几卡                         | 查看排卡人数                        |
-| 全局[关闭/开启]别名推送                               | Bot管理员私聊指令，开关所有群的别名推送   |
-| 更新别名库                                            | Bot管理员私聊指令，手动更新别名库   |
-| 更新maimai数据                                            | Bot管理员私聊指令，手动更新已存所有数据  |
+> [!WARNING]
+> 未配置 `PhantomJS` 支持的Bot，在使用 `ginfo` 指令时会被强制关闭 Bot 进程
 
 ## 更新说明
+
+**2024-03-28**
+
+1. 预更新 `舞萌DX2025` UI
 
 **2024-07-24**
 

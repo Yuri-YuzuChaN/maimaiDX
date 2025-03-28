@@ -6,7 +6,7 @@ from typing import Any, Union
 import aiofiles
 
 
-def hash(qq: int):
+def qqhash(qq: int):
     days = int(time.strftime("%d", time.localtime(time.time()))) + 31 * int(
         time.strftime("%m", time.localtime(time.time()))) + 77
     return (days * qq) >> 8

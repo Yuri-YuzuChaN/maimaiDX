@@ -4,35 +4,36 @@ from re import Match
 from nonebot import NoneBot
 from PIL import Image
 
-from hoshino.service import sucmd
-from hoshino.typing import CommandSession, CQEvent, MessageSegment
+from hoshino.service import priv
+from hoshino.typing import CQEvent, MessageSegment
 
 from .. import BOTNAME, Root, log, sv
-from ..libraries.image import image_to_base64
+from ..libraries.image import image_to_base64, music_picture
 from ..libraries.maimaidx_api_data import maiApi
-from ..libraries.maimaidx_error import UserDisabledQueryError, UserNotFoundError
-from ..libraries.maimaidx_model import UserInfo
+from ..libraries.maimaidx_error import *
 from ..libraries.maimaidx_music import mai
 from ..libraries.maimaidx_music_info import draw_music_info
 from ..libraries.maimaidx_player_score import rating_ranking_data
-from ..libraries.tool import hash
+from ..libraries.tool import qqhash
 
-
-update_data         = sucmd('updatedata', aliases=('更新maimai数据'))
+update_data         = sv.on_fullmatch('更新maimai数据')
 maimaidxhelp        = sv.on_fullmatch(['帮助maimaiDX', '帮助maimaidx'])
 maimaidxrepo        = sv.on_fullmatch(['项目地址maimaiDX', '项目地址maimaidx'])
 mai_today           = sv.on_prefix(['今日mai', '今日舞萌', '今日运势'])
 mai_what            = sv.on_rex(r'.*mai.*什么(.+)?')
 random_song         = sv.on_rex(r'^[来随给]个((?:dx|sd|标准))?([绿黄红紫白]?)([0-9]+\+?)$')
 rating_ranking      = sv.on_prefix(['查看排名', '查看排行'])
+my_rating_ranking   = sv.on_fullmatch('我的排名')
 data_update_daily   = sv.scheduled_job('cron', hour='4')
 
 
 @update_data
-async def _(session: CommandSession):
+async def _(bot: NoneBot, ev: CQEvent):
+    if not priv.check_priv(ev, priv.SUPERUSER):
+        return
     await mai.get_music()
     await mai.get_music_alias()
-    await session.send('maimai数据更新完成')
+    await bot.send(ev, 'maimai数据更新完成')
 
 
 @maimaidxhelp
@@ -49,7 +50,7 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     wm_list = ['拼机', '推分', '越级', '下埋', '夜勤', '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
     uid = ev.user_id
-    h = hash(uid)
+    h = qqhash(uid)
     rp = h % 100
     wm_value = []
     for i in range(11):
@@ -65,7 +66,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     ds = '/'.join([str(_) for _ in music.ds])
     msg += f'{BOTNAME} Bot提醒您：打机时不要大力拍打或滑动哦\n今日推荐歌曲：\n'
     msg += f'ID.{music.id} - {music.title}'
-    msg += MessageSegment.image(image_to_base64(Image.open(await maiApi.download_music_pictrue(music.id))))
+    msg += MessageSegment.image(image_to_base64(Image.open(music_picture(music.id))))
     msg += ds
     await bot.send(ev, msg, at_sender=True)
 
@@ -77,8 +78,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     user = None
     if (point := match.group(1)) and ('推分' in point or '上分' in point or '加分' in point):
         try:
-            obj = await maiApi.query_user('player', qqid=ev.user_id)
-            user = UserInfo(**obj)
+            user = await maiApi.query_user_b50(qqid=ev.user_id)
             r = random.randint(0, 1)
             _ra = 0
             ignore = []
@@ -97,9 +97,7 @@ async def _(bot: NoneBot, ev: CQEvent):
                     if int(_m.id) in ignore:
                         musiclist.remove(_m)
                 music = musiclist.random()
-        except UserNotFoundError:
-            pass
-        except UserDisabledQueryError:
+        except (UserNotFoundError, UserDisabledQueryError):
             pass
     await bot.send(ev, await draw_music_info(music, ev.user_id, user))
 
@@ -124,9 +122,9 @@ async def _(bot: NoneBot, ev: CQEvent):
             msg = '没有这样的乐曲哦。'
         else:
             msg = await draw_music_info(music_data.random(), ev.user_id)
-        await bot.send(ev, msg, at_sender=True)
     except:
-        await bot.send(ev, '随机命令错误，请检查语法', at_sender=True)
+        msg = '随机命令错误，请检查语法'
+    await bot.send(ev, msg, at_sender=True)
         
         
 @rating_ranking
@@ -139,8 +137,22 @@ async def _(bot: NoneBot, ev: CQEvent):
     else:
         name = args.lower()
     
-    data = await rating_ranking_data(name, page)
-    await bot.send(ev, data, at_sender=True)
+    pic = await rating_ranking_data(name, page)
+    await bot.send(ev, pic, at_sender=True)
+
+
+@my_rating_ranking
+async def _(bot: NoneBot, ev: CQEvent):
+    try:
+        user = await maiApi.query_user_b50(qqid=ev.user_id)
+        rank_data = await maiApi.rating_ranking()
+        for num, rank in enumerate(rank_data):
+            if rank.username == user.username:
+                result = f'您的Rating为「{rank.ra}」，排名第「{num + 1}」名'
+                await bot.finish(ev, result, at_sender=True)
+    except (UserNotFoundError, UserNotExistsError, UserDisabledQueryError) as e:
+        await bot.finish(ev, str(e), at_sender=True)
+
 
 
 @data_update_daily
