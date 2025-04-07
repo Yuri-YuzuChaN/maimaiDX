@@ -480,8 +480,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
             Image.open(platedir / f'{version}{"極" if plan == "极" else plan}.png').resize((1000, 161)), 
             (200, 35)
         )
-        lv: List[int] = [0 for _ in range(number)]
-        lv.insert(0, plate_total_num)
+        lv: List[set[int]] = [set() for _ in range(number)]
         y = 245
         # if plan == '者':
         #     for level in ra:
@@ -518,7 +517,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
                             im.alpha_composite(complete_bg, (x, y))
                             fc = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[play.fc]}.png').resize((75, 75))
                             im.alpha_composite(fc, (x + 13, y + 3))
-                        lv[n + 1] += 1
+                        lv[n].add(play.song_id)
                         f.append(n)
                     for n in f:
                         im.alpha_composite(finished_bg[n], (x + 5 + 25 * n, y + 67))
@@ -540,7 +539,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
                             rate = computeRa(play.ds, play.achievements, onlyrate=True)
                             rank = Image.open(maimaidir / f'UI_TTR_Rank_{rate}.png').resize((102, 46))
                             im.alpha_composite(rank, (x - 1, y + 15))
-                        lv[n + 1] += 1
+                        lv[n].add(play.song_id)
                         f.append(n)
                     for n in f:
                         im.alpha_composite(finished_bg[n], (x + 5 + 25 * n, y + 67))
@@ -562,7 +561,7 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
                             im.alpha_composite(complete_bg, (x, y))
                             ap = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fcl[play.fc]}.png').resize((75, 75))
                             im.alpha_composite(ap, (x + 13, y + 3))
-                        lv[n + 1] += 1
+                        lv[n].add(play.song_id)
                         f.append(n)
                     for n in f:
                         im.alpha_composite(finished_bg[n], (x + 5 + 25 * n, y + 67))
@@ -585,18 +584,21 @@ async def draw_plate_table(qqid: int, version: str, plan: str) -> Union[MessageS
                             im.alpha_composite(complete_bg, (x, y))
                             fsd = Image.open(maimaidir / f'UI_CHR_PlayBonus_{fsl[play.fs]}.png').resize((75, 75))
                             im.alpha_composite(fsd, (x + 13, y + 3))
-                        lv[n + 1] += 1
+                        lv[n].add(play.song_id)
                         f.append(n)
                     for n in f:
                         im.alpha_composite(finished_bg[n], (x + 5 + 25 * n, y + 67))
         
         color = ScoreBaseImage.id_color.copy()
         color.insert(0, (124, 129, 255, 255))
-        for num, _v in enumerate(lv):
+        for num in range(len(lv) + 1):
             if num == 0:
-                _v = f'{min(lv)}/{plate_total_num}'
+                v = set.intersection(*lv)
+                _v = f'{len(v)}/{plate_total_num}'
+            else:
+                _v = len(lv[num - 1])
             if _v == plate_total_num:
-                mr.draw(390 + 200 * num, 270, 40, '完成', color[num], 'rm')
+                mr.draw(390 + 200 * num, 270, 35, '完成', color[num], 'rm', 4, (255, 255, 255, 255))
             else:
                 tr.draw(390 + 200 * num, 270, 40, _v, color[num], 'rm', 4, (255, 255, 255, 255))
         
