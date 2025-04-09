@@ -401,7 +401,7 @@ mai = MaiMusic()
 
 class Guess:
     
-    Group: Dict[str, Union[GuessDefaultData, GuessPicData]] = {}
+    Group: Dict[int, Union[GuessDefaultData, GuessPicData]] = {}
     switch: GuessSwitch
 
     def __init__(self) -> None:
