@@ -21,4 +21,5 @@ async def _():
     await mai.get_plate_json()
     log.info('正在获取maimai所有曲目别名信息')
     await mai.get_music_alias()
+    mai.guess()
     log.info('maimai数据获取完成')
