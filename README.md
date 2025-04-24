@@ -30,7 +30,7 @@
 
    - [私人云盘](https://cloud.yuzuchan.moe/f/1bUn/Resource.7z)
    - [AList网盘](https://share.yuzuchan.moe/p/Resource.7z?sign=EvCwaGwJrneyD1Olq00NG3HXNK7fQKpx_sa3Ck9Uzjs=:0)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzuchan_yuzuai_onmicrosoft_com/EdGUKRSo-VpHjT2noa_9EroBVO27iYMSQO3oFnZjpYTbqA?e=FE4KXY)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/EdGUKRSo-VpHjT2noa_9EroBdFZci-tqWjVZzKZRTEeZkw?e=a1TM40)
 
 3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
 
