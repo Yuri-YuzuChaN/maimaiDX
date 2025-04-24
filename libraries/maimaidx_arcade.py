@@ -120,10 +120,12 @@ class ArcadeData:
     total: Optional[ArcadeList]
     
     def __init__(self) -> None: 
-        self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
+        self.arcades = []
+        if arcades_json.exists():
+            self.arcades: List[Dict] = json.load(open(arcades_json, 'r', encoding='utf-8'))
         self.idList = []
 
-    def get_by_id(self, id: int) -> Union[None, Dict]:
+    def get_by_id(self, id: int) -> Optional[Dict]:
         id_list = [c_a['id'] for c_a in self.arcades]
         if id in id_list:
             return self.arcades[id_list.index(id)]
@@ -163,7 +165,7 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                         'by': '',
                         'time': ''
                     }
-                    arcadelist.append(Arcade(**arcade_dict))
+                    arcadelist.append(Arcade.model_validate(arcade_dict))
             else:
                 for num in range(len(data)):
                     _arc = data[num]
@@ -190,13 +192,13 @@ async def download_arcade_info(save: bool = True) -> ArcadeList:
                             'time': ''
                         }
                         arcade.arcades.insert(num, arcade_dict)
-                    arcadelist.append(Arcade(**arcade_dict))
+                    arcadelist.append(Arcade.model_validate(arcade_dict))
             for n in arcade.arcades:
                 if int(n['id']) >= 10000:
-                    arcadelist.append(Arcade(**n))
+                    arcadelist.append(Arcade.model_validate(n))
         else:
             for _a in arcade.arcades:
-                arcadelist.append(Arcade(**_a))
+                arcadelist.append(Arcade.model_validate(_a))
         if save:
             await writefile(arcades_json, [_.model_dump() for _ in arcadelist])
         return arcadelist
