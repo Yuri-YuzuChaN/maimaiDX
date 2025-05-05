@@ -35,7 +35,7 @@
 3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
 
    1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
-   2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `ture`，别名库同理
+   2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
    ``` json
    {
       "maimaidxtoken": "maimaidxtoken",
