@@ -16,6 +16,14 @@ sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=S
 
 public_addr = 'https://www.yuzuchan.moe/vote'
 
+
+# echartsjs
+SNAPSHOT_JS = (
+    "echarts.getInstanceByDom(document.querySelector('div[_echarts_instance_]'))."
+    "getDataURL({type: 'PNG', pixelRatio: 2, excludeComponents: ['toolbox']})"
+)
+
+
 # 文件路径
 Root: Path = Path(__file__).parent
 static: Path = Root / 'static'
@@ -28,6 +36,7 @@ music_file: Path = static / 'music_data.json'                   # 曲目暂存�
 chart_file: Path = static / 'music_chart.json'                  # 谱面数据暂存文件
 guess_file: Path = static / 'group_guess_switch.json'           # 猜歌开关群文件
 group_alias_file: Path = static / 'group_alias_switch.json'     # 别名推送开关群文件
+pie_html_file: Path = static / 'temp_pie.html'                  # 饼图html文件
 
 
 # 静态资源路径

@@ -36,22 +36,26 @@
 
    1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
    2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
+   3. 可选，是否将部分图片在保存在内存中，不需要请在 `.env` 文件中配置 `SAVEINMEM` 为 `false`
    ``` json
    {
       "maimaidxtoken": "maimaidxtoken",
       "maimaidxproberproxy": true,
-      "maimaidxaliasproxy": false
+      "maimaidxaliasproxy": false,
+      "saveinmem": false
    }
    ```
 
 4. 安装插件所需模块：`pip install -r requirements.txt`
-5. 安装 `PhantomJS`，在 https://phantomjs.org/download.html 下载对应操作平台PhantomJS支持，`windows` 平台需要添加环境目录
-6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
+5. 安装 `chromium`，**相关依赖已安装，请直接使用该指令执行**
+   
+   ``` shell
+   playwright install --with-deps chromium
+   ```
+
+6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
 7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 8. 重启HoshinoBot
-
-> [!WARNING]
-> 未配置 `PhantomJS` 支持的Bot，在使用 `ginfo` 指令时会被强制关闭 Bot 进程
 
 ## 更新说明
 

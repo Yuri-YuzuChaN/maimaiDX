@@ -1,6 +1,7 @@
 from nonebot import on_startup
 
 from .command import *
+from .libraries.maimai_best_50 import ScoreBaseImage
 from .libraries.maimaidx_api_data import maiApi
 from .libraries.maimaidx_music import mai
 
@@ -23,3 +24,24 @@ async def _():
     await mai.get_music_alias()
     mai.guess()
     log.info('maimai数据获取完成')
+    
+    if maiApi.config.saveinmem:
+        ScoreBaseImage._load_image()
+        log.info('已将图片保存在内存中')
+    
+    if not list(ratingdir.iterdir()):
+        log.warning(
+            '<y>注意！注意！</y>检测到定数表文件夹为空！'
+            '可能导致「定数表」「完成表」指令无法使用，'
+            '请及时私聊BOT使用指令「更新定数表」进行生成。'
+        )
+    plate_list = [name for name in list(plate_to_version.keys())[1:]]
+    platedir_list = [f.name.split('.')[0] for f in platedir.iterdir()]
+    notin = set(plate_list) - set(platedir_list)
+    if notin:
+        anyname = '，'.join(notin)
+        log.warning(
+            f'<y>注意！注意！</y>未检测到牌子文件夹中的牌子：<y>{anyname}</y>，'
+            '可能导致这些牌子的「完成表」指令无法使用，'
+            '请及时私聊BOT使用指令「更新完成表」进行生成。'
+        )

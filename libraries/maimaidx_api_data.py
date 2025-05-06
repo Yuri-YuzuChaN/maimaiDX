@@ -3,9 +3,9 @@ from typing import Any, Dict
 
 from aiohttp import ClientSession, ClientTimeout
 
+from .. import config_json
 from .maimaidx_error import *
 from .maimaidx_model import *
-from .. import config_json
 
 
 class MaiConfig(BaseModel):
@@ -13,6 +13,7 @@ class MaiConfig(BaseModel):
     maimaidxtoken: Optional[str] = None
     maimaidxproberproxy: bool = False
     maimaidxaliasproxy: bool = False
+    saveinmem: Optional[bool] = True
 
 
 class MaimaiAPI:

@@ -5,9 +5,6 @@ from typing import Callable
 
 import pyecharts.options as opts
 from pyecharts.charts import Pie
-from pyecharts.render import make_snapshot
-from quart.utils import run_sync
-from snapshot_phantomjs import snapshot
 
 from hoshino.typing import MessageSegment
 
@@ -17,6 +14,7 @@ from .maimai_best_50 import ScoreBaseImage, changeColumnWidth, coloumWidth, comp
 from .maimaidx_api_data import *
 from .maimaidx_model import PlanInfo, PlayInfoDefault, PlayInfoDev, RaMusic
 from .maimaidx_music import Music, mai
+from .tool import run_chrome_to_base64
 
 Filter = Tuple[
     List[PlayInfoDefault],
@@ -87,11 +85,10 @@ async def music_global_data(music: Music, level_index: int) -> MessageSegment:
     pie.add('达成率等级', acc_data_pair, radius=['50%', '70%'], is_clockwise=True, label_opts=labelopts)
     pie.set_global_opts(title_opts=titleopts, legend_opts=legendopts)
     pie.set_series_opts(tooltip_opts=opts.TooltipOpts(trigger='item', formatter='{a} <br/>{b}: {c} ({d}%)'))
-    pie.render(str(static / 'temp_pie.html'))
-    await run_sync(make_snapshot)(snapshot, str(static / 'temp_pie.html'), str(static / 'temp_pie.png'), is_remove_html=False)
+    pie.render(str(pie_html_file))
+    base64 = await run_chrome_to_base64()
 
-    im = Image.open(static / 'temp_pie.png')
-    return MessageSegment.image(image_to_base64(im))
+    return MessageSegment.image(base64)
 
 
 class DrawScore(ScoreBaseImage):

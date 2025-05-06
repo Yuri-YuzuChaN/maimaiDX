@@ -17,20 +17,6 @@ from .maimaidx_music import mai
 
 class ScoreBaseImage:
     
-    _diff = [
-        Image.open(maimaidir / 'b50_score_basic.png'), 
-        Image.open(maimaidir / 'b50_score_advanced.png'), 
-        Image.open(maimaidir / 'b50_score_expert.png'), 
-        Image.open(maimaidir / 'b50_score_master.png'), 
-        Image.open(maimaidir / 'b50_score_remaster.png')
-    ]
-    _rise = [
-        Image.open(maimaidir / 'rise_score_basic.png'),
-        Image.open(maimaidir / 'rise_score_advanced.png'),
-        Image.open(maimaidir / 'rise_score_expert.png'),
-        Image.open(maimaidir / 'rise_score_master.png'),
-        Image.open(maimaidir / 'rise_score_remaster.png')
-    ]
     text_color = (124, 129, 255, 255)
     t_color = [
         (255, 255, 255, 255), 
@@ -55,16 +41,46 @@ class ScoreBaseImage:
     ]
     id_diff = [Image.new('RGBA', (55, 10), color) for color in bg_color]
     
-    title_bg = Image.open(maimaidir / 'title.png')
-    title_lengthen_bg = Image.open(maimaidir / 'title-lengthen.png')
-    design_bg = Image.open(maimaidir / 'design.png')
-    aurora_bg = Image.open(maimaidir / 'aurora.png').convert('RGBA').resize((1400, 220))
-    shines_bg = Image.open(maimaidir / 'bg_shines.png').convert('RGBA')
-    pattern_bg = Image.open(maimaidir / 'pattern.png')
-    rainbow_bg = Image.open(maimaidir / 'rainbow.png').convert('RGBA')
-    rainbow_bottom_bg = Image.open(maimaidir / 'rainbow_bottom.png').convert('RGBA').resize((1200, 200))
+    _diff = []
+    _rise = []
+    title_bg = None
+    title_lengthen_bg = None
+    design_bg = None
+    aurora_bg = None
+    shines_bg = None
+    pattern_bg = None
+    rainbow_bg = None
+    rainbow_bottom_bg = None
+
+    @classmethod
+    def _load_image(cls):
+        cls._diff = [
+            Image.open(maimaidir / 'b50_score_basic.png'), 
+            Image.open(maimaidir / 'b50_score_advanced.png'), 
+            Image.open(maimaidir / 'b50_score_expert.png'), 
+            Image.open(maimaidir / 'b50_score_master.png'), 
+            Image.open(maimaidir / 'b50_score_remaster.png')
+        ]
+        cls._rise = [
+            Image.open(maimaidir / 'rise_score_basic.png'),
+            Image.open(maimaidir / 'rise_score_advanced.png'),
+            Image.open(maimaidir / 'rise_score_expert.png'),
+            Image.open(maimaidir / 'rise_score_master.png'),
+            Image.open(maimaidir / 'rise_score_remaster.png')
+        ]
+        cls.title_bg = Image.open(maimaidir / 'title.png')
+        cls.title_lengthen_bg = Image.open(maimaidir / 'title-lengthen.png')
+        cls.design_bg = Image.open(maimaidir / 'design.png')
+        cls.aurora_bg = Image.open(maimaidir / 'aurora.png').convert('RGBA').resize((1400, 220))
+        cls.shines_bg = Image.open(maimaidir / 'bg_shines.png').convert('RGBA')
+        cls.pattern_bg = Image.open(maimaidir / 'pattern.png')
+        cls.rainbow_bg = Image.open(maimaidir / 'rainbow.png').convert('RGBA')
+        cls.rainbow_bottom_bg = Image.open(maimaidir / 'rainbow_bottom.png').convert('RGBA').resize((1200, 200))
+    
     
     def __init__(self, image: Image.Image = None) -> None:
+        if not maiApi.config.saveinmem:
+            self._load_image()
         self._im = image
         dr = ImageDraw.Draw(self._im)
         self._sy = DrawText(dr, SIYUAN)
