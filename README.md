@@ -36,7 +36,7 @@
 
    1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
    2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
-   3. 可选，是否将部分图片在保存在内存中，不需要请在 `.env` 文件中配置 `SAVEINMEM` 为 `false`
+   3. 可选，是否将部分图片在保存在内存中，不需要请在设置 `SAVEINMEM` 为 `false`
    ``` json
    {
       "maimaidxtoken": "maimaidxtoken",
