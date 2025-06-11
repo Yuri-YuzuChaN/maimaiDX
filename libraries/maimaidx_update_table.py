@@ -14,7 +14,7 @@ async def update_rating_table() -> str:
         dx = Image.open(maimaidir / 'DX.png').convert('RGBA').resize((44, 16))
         diff = [Image.new('RGBA', (75, 16), color) for color in ScoreBaseImage.bg_color]
         atime = 0
-        for lv in levelList[5:]:
+        for lv in levelList[6:]:
             _otime = time.time()
             picname = ratingdir / f'{lv}.png'
             lvlist = mai.total_level_data[lv]
@@ -109,7 +109,7 @@ async def update_rating_table() -> str:
 async def update_plate_table() -> str:
     """更新完成表"""
     try:
-        version = list(_ for _ in plate_to_version.keys())[1:]
+        version = list(_ for _ in plate_to_dx_version.keys())[1:]
         # version.append('霸')
         # version.append('舞')
         id_bg = Image.new('RGBA', (100, 20), (124, 129, 255, 255))

@@ -10,13 +10,10 @@
 
 ## 重要更新
 
-**2025-03-28**
+**2025-06-11**
 
-> [!WARNING]
-> 对于这个版本之前的插件和修改版的插件请注意，预更新版本别名库将全部更换成新的 `API` 地址，返回的数据结构均更改，目前旧版 `API` 将再运行一段时间，预计正式更新 `舞萌DX2025` 时将会关闭
-
-1. 预更新 `舞萌DX2025` UI，资源全部更换，更新部分依赖和文件，**请重新进行使用方法**
-2. 修改所有 `BOT管理员` 私聊指令为群聊指令：`更新别名库`、`更新maimai数据`、`更新定数表`、`更新完成表`
+1. 更新 `舞萌DX2025` ，资源全部更换，更新部分依赖和文件，**请重新进行使用方法**
+2. 请修改 `static/group_alias_switch.json` 文件中的 `global` 字段为 `global_switch`，如果没有该文件或字段本身就为 `global_switch` 的请无视
 
 ## 使用方法
 
@@ -29,7 +26,6 @@
 2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static`
 
    - [私人云盘](https://cloud.yuzuchan.moe/f/1bUn/Resource.7z)
-   - [AList网盘](https://share.yuzuchan.moe/p/Resource.7z?sign=EvCwaGwJrneyD1Olq00NG3HXNK7fQKpx_sa3Ck9Uzjs=:0)
    - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/EdGUKRSo-VpHjT2noa_9EroBdFZci-tqWjVZzKZRTEeZkw?e=a1TM40)
 
 3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
@@ -58,6 +54,10 @@
 8. 重启HoshinoBot
 
 ## 更新说明
+
+**2025-06-11**
+
+1. 1. 更新 `舞萌DX2025` ，资源全部更换，更新部分依赖和文件
 
 **2025-03-28**
 

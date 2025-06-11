@@ -61,6 +61,13 @@ class RaMusic(BaseModel):
     type: str
 
 
+##### API
+class APIResult(BaseModel):
+    
+    code: int = 0
+    content: Union[dict, list, str]
+
+
 ##### Aliases
 class Alias(BaseModel):
     
@@ -69,16 +76,39 @@ class Alias(BaseModel):
     Alias: List[str]
 
 
-class AliasStatus(BaseModel):
+class Approved(BaseModel):
     
+    ApplyUID: int
     Tag: str
     SongID: int
+    Name: str
     ApplyAlias: str
-    IsNew: bool
-    IsEnd: bool
+    GroupID: int
+    WSUUID: str
+
+
+class AliasStatus(BaseModel):
+    
+    ApplyUID: int
+    Tag: str
+    SongID: int
+    Name: str
+    ApplyAlias: str
     Time: str
-    AgreeVotes: int
+    AgreeVotes: Optional[int] = 0
     Votes: int
+
+class Reviewed(BaseModel):
+
+    SongID: int
+    ApplyUID: int
+    ApplyAlias: str
+
+
+class PushAliasStatus(BaseModel):
+    
+    Type: str
+    Status: Union[AliasStatus, Approved, Reviewed]
 
 
 ##### Guess
@@ -110,7 +140,7 @@ class GuessSwitch(Switch): ...
 ##### AliasesPush
 class AliasesPush(Switch):
     
-    global_switch: bool = Field(True, alias='global')
+    global_switch: bool = True
 
 
 ##### Best50

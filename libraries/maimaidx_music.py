@@ -2,7 +2,7 @@ import asyncio
 import json
 import random
 import traceback
-from collections import Counter
+from collections import Counter, defaultdict
 from copy import deepcopy
 from typing import Tuple
 
@@ -81,54 +81,53 @@ class MusicList(List[Music]):
                 return music
         return None
     
-    def by_plan(self, level: str) -> Dict[str, Union[PlanInfo, RaMusic, Dict[int, Union[PlanInfo, RaMusic]]]]:
-        lv = {}
+    def by_plan(
+        self, 
+        level: str
+    ) -> Dict[str, Union[PlanInfo, RaMusic, Dict[int, Union[PlanInfo, RaMusic]]]]:
+        lv = defaultdict(dict)
+        
+        def create_ra_music(music: Music, index: int) -> RaMusic:
+            return RaMusic(
+                id=music.id, 
+                ds=music.ds[index], 
+                lv=str(index), 
+                lvp=music.level[index], 
+                type=music.type
+            )
+        
         for music in self:
             if level not in music.level:
                 continue
-            count = Counter(music.level)
-            if count.get(level) > 1: # 同曲有相同等级
+            if music.level.count(level) > 1: # 同曲有相同等级
                 lv[music.id] = { 
-                    index: RaMusic(
-                        id=music.id, 
-                        ds=music.ds[index], 
-                        lv=str(index), 
-                        lvp=music.level[index], 
-                        type=music.type
-                    ) 
+                    index: create_ra_music(music, index)
                     for index, _lv in enumerate(music.level) 
                     if _lv == level 
                 }
             else:
                 index = music.level.index(level)
-                lv[music.id] = RaMusic(
-                    id=music.id, 
-                    ds=music.ds[index], 
-                    lv=str(index), 
-                    lvp=music.level[index], 
-                    type=music.type
-                )
-        return lv
+                lv[music.id] = create_ra_music(music, index)
+        return dict(lv)
     
     def by_level_list(self) -> Dict[str, Dict[str, List[RaMusic]]]:
-        levellist = None
-        _level: Dict[str, Dict[str, List[RaMusic]]] = {}
-        for lv in levelList[5:]:
+        
+        def level_range(lv: str) -> range:
             if lv == '15':
-                r = range(1)
-            elif lv in levelList[:6]:
-                r = range(9, -1, -1)
-            elif '+' in lv:
-                r = range(9, 6, -1)
-            else:
-                r = range(6, -1, -1)
-            levellist = {f'{lv if "+" not in lv else lv[:-1]}.{_}': [] for _ in r}
-            _level[lv] = levellist
+                return range(1)
+            if lv.endswith('+'):
+                return range(9, 5, -1)
+            return range(9, -1, -1) if int(lv) <= 5 else range(5, -1, -1)
+        
+        _level = {
+            lv: {f"{lv.rstrip('+')}.{i}": [] for i in level_range(lv)} for lv in levelList
+        }
         for music in self:
             if int(music.id) >= 100000:
                 continue
             for index, ds in enumerate(music.ds):
-                if ds < 6: continue
+                if ds < 7:
+                    continue
                 ra = RaMusic(
                     id=music.id,
                     ds=ds,
@@ -244,15 +243,6 @@ async def get_music_list() -> MusicList:
             music_data = await maiApi.music_data()
             await writefile(music_file, music_data)
         except asyncio.exceptions.TimeoutError:
-            log.error('从diving-fish获取maimaiDX曲库数据超时，正在使用yuzuapi中转获取曲库数据')
-            try:
-                music_data = await maiApi.transfer_music()
-                await writefile(music_file, music_data)
-            except ServerError:
-                log.error('从yuzuapi获取maimaiDX曲库数据失败，请检查网络环境。已切换至本地暂存文件')
-                music_data = await openfile(music_file)
-        except Exception:
-            log.error(f'Error: {traceback.format_exc()}')
             log.error('maimaiDX曲库数据获取失败，请检查网络环境。已切换至本地暂存文件')
             music_data = await openfile(music_file)
     except FileNotFoundError:
@@ -265,15 +255,6 @@ async def get_music_list() -> MusicList:
             chart_stats = await maiApi.chart_stats()
             await writefile(chart_file, chart_stats)
         except asyncio.exceptions.TimeoutError:
-            log.error('从diving-fish获取maimaiDX数据获取超时，正在使用yuzuapi中转获取单曲数据')
-            try:
-                chart_stats = await maiApi.transfer_chart()
-                await writefile(chart_file, chart_stats)
-            except ServerError:
-                log.error('从yuzuapi获取maimaiDX单曲数据获取错误，已切换至本地暂存文件')
-                chart_stats = await openfile(chart_file)
-        except Exception:
-            log.error(f'Error: {traceback.format_exc()}')
             log.error('maimaiDX数据获取错误，请检查网络环境，已切换至本地暂存文件')
             chart_stats = await openfile(chart_file)
     except FileNotFoundError:
@@ -290,10 +271,6 @@ async def get_music_list() -> MusicList:
             chart_stats['charts'][music['id']]
         else:
             _stats = None
-        for lv in ['5+', '6+']:
-            if lv in music['level']:
-                errorlv = music['level'].index(lv)
-                music['level'][errorlv] = lv[:-1]
         total_list.append(Music(stats=_stats, **music))
 
     return total_list
@@ -329,7 +306,7 @@ async def get_music_alias_list() -> AliasList:
     for _a in filter(lambda x: mai.total_list.by_id(x['SongID']), alias_data):
         if (song_id := str(_a['SongID'])) in local_alias_data:
             _a['Alias'].extend(local_alias_data[song_id])
-        total_alias_list.append(Alias(**_a))
+        total_alias_list.append(Alias.model_validate(_a))
 
     return total_alias_list
 
@@ -548,7 +525,7 @@ class GroupAlias:
             self.push.enable.append(gid)
         if gid in self.push.disable:
             self.push.disable.remove(gid)
-        await writefile(group_alias_file, self.push.model_dump(by_alias=True))
+        await writefile(group_alias_file, self.push.model_dump())
         return '群别名推送功能已开启'
 
     async def off(self, gid: int) -> str:
@@ -557,13 +534,13 @@ class GroupAlias:
             self.push.disable.append(gid)
         if gid in self.push.enable:
             self.push.enable.remove(gid)
-        await writefile(group_alias_file, self.push.model_dump(by_alias=True))
+        await writefile(group_alias_file, self.push.model_dump())
         return '群别名推送功能已关闭'
 
     async def alias_global_change(self, set: bool):
         """修改全局开关"""
         self.push.global_switch = set
-        await writefile(group_alias_file, self.push.model_dump(by_alias=True))
+        await writefile(group_alias_file, self.push.model_dump())
 
 
 alias = GroupAlias()

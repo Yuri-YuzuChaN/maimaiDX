@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 from typing import Dict, List
 
@@ -16,6 +17,9 @@ sv = Service('maimaiDX', manage_priv=priv.ADMIN, enable_on_default=True, help_=S
 
 public_addr = 'https://www.yuzuchan.moe/vote'
 
+
+# ws
+UUID = uuid.uuid1()
 
 # echartsjs
 SNAPSHOT_JS = (
@@ -78,12 +82,36 @@ syncRank: List[str] = ['fs', 'fs+', 'fdx', 'fdx+']
 sync_rank: List[str] = ['fs', 'fsp', 'fsd', 'fsdp']
 sync_rank_p: List[str] = ['fs', 'fsp', 'fdx', 'fdxp']
 diffs: List[str] = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master']
-levelList: List[str] = ['1', '2', '3', '4', '5', '6', '7', '7+', '8', '8+', '9', '9+', '10', '10+', '11', '11+', '12', '12+', '13', '13+', '14', '14+', '15']
+levelList: List[str] = [
+    '1', 
+    '2', 
+    '3', 
+    '4', 
+    '5', 
+    '6', 
+    '7', 
+    '7+', 
+    '8', 
+    '8+', 
+    '9', 
+    '9+', 
+    '10', 
+    '10+', 
+    '11', 
+    '11+', 
+    '12', 
+    '12+', 
+    '13', 
+    '13+', 
+    '14', 
+    '14+', 
+    '15'
+]
 achievementList: List[float] = [50.0, 60.0, 70.0, 75.0, 80.0, 90.0, 94.0, 97.0, 98.0, 99.0, 99.5, 100.0, 100.5]
 BaseRaSpp: List[float] = [7.0, 8.0, 9.6, 11.2, 12.0, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4]
 fcl: Dict[str, str] = {'fc': 'FC', 'fcp': 'FCp', 'ap': 'AP', 'app': 'APp'}
 fsl: Dict[str, str] = {'fs': 'FS', 'fsp': 'FSp', 'fsd': 'FSD', 'fdx': 'FSD', 'fsdp': 'FSDp', 'fdxp': 'FSDp', 'sync': 'Sync'}
-plate_to_version: Dict[str, str] = {
+plate_to_sd_version: Dict[str, str] = {
     '初': 'maimai',
     '真': 'maimai PLUS',
     '超': 'maimai GreeN',
@@ -100,7 +128,10 @@ plate_to_version: Dict[str, str] = {
     '白': 'maimai MiLK',
     '雪': 'MiLK PLUS',
     '輝': 'maimai FiNALE',
-    '辉': 'maimai FiNALE',
+    '辉': 'maimai FiNALE'
+}
+plate_to_dx_version: Dict[str, str] = {
+    **plate_to_sd_version,
     '熊': 'maimai でらっくす',
     '華': 'maimai でらっくす PLUS',
     '华': 'maimai でらっくす PLUS',
@@ -111,7 +142,36 @@ plate_to_version: Dict[str, str] = {
     '祭': 'maimai でらっくす FESTiVAL',
     '祝': 'maimai でらっくす FESTiVAL PLUS',
     '双': 'maimai でらっくす BUDDiES',
-    '宴': 'maimai でらっくす BUDDiES PLUS'
+    '宴': 'maimai でらっくす BUDDiES PLUS',
+    '镜': 'maimai でらっくす PRiSM'
+}
+version_map = {
+    '真': ([plate_to_dx_version['真'], plate_to_dx_version['初']], '真'),
+    '超': ([plate_to_sd_version['超']], '超'),
+    '檄': ([plate_to_sd_version['檄']], '檄'),
+    '橙': ([plate_to_sd_version['橙']], '橙'),
+    '暁': ([plate_to_sd_version['暁']], '暁'),
+    '桃': ([plate_to_sd_version['桃']], '桃'),
+    '櫻': ([plate_to_sd_version['櫻']], '櫻'),
+    '紫': ([plate_to_sd_version['紫']], '紫'),
+    '菫': ([plate_to_sd_version['菫']], '菫'),
+    '白': ([plate_to_sd_version['白']], '白'),
+    '雪': ([plate_to_sd_version['雪']], '雪'),
+    '輝': ([plate_to_sd_version['輝']], '輝'),
+    '霸': (list(set(plate_to_sd_version.values())), '舞'),
+    '舞': (list(set(plate_to_sd_version.values())), '舞'),
+    '熊': ([plate_to_dx_version['熊']], '熊&华'),
+    '华': ([plate_to_dx_version['熊']], '熊&华'),
+    '華': ([plate_to_dx_version['熊']], '熊&华'),
+    '爽': ([plate_to_dx_version['爽']], '爽&煌'),
+    '煌': ([plate_to_dx_version['爽']], '爽&煌'),
+    '宙': ([plate_to_dx_version['宙']], '宙&星'),
+    '星': ([plate_to_dx_version['宙']], '宙&星'),
+    '祭': ([plate_to_dx_version['祭']], '祭&祝'),
+    '祝': ([plate_to_dx_version['祭']], '祭&祝'),
+    '双': ([plate_to_dx_version['双']], '双&宴'),
+    '宴': ([plate_to_dx_version['双']], '双&宴'),
+    '镜': ([plate_to_dx_version['镜']], '镜')
 }
 platecn = {
     '晓': '暁',

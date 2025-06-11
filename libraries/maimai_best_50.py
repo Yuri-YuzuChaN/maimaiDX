@@ -81,6 +81,7 @@ class ScoreBaseImage:
     def __init__(self, image: Image.Image = None) -> None:
         if not maiApi.config.saveinmem:
             self._load_image()
+        
         self._im = image
         dr = ImageDraw.Draw(self._im)
         self._sy = DrawText(dr, SIYUAN)

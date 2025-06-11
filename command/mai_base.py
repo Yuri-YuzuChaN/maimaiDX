@@ -38,17 +38,39 @@ async def _(bot: NoneBot, ev: CQEvent):
 
 @maimaidxhelp
 async def _(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, MessageSegment.image(image_to_base64(Image.open((Root / 'maimaidxhelp.png')))), at_sender=True)
+    await bot.send(
+        ev, 
+        MessageSegment.image(
+            image_to_base64(Image.open((Root / 'maimaidxhelp.png')))
+        ), 
+        at_sender=True
+    )
 
 
 @maimaidxrepo
 async def _(bot: NoneBot, ev: CQEvent):
-    await bot.send(ev, f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', at_sender=True)
+    await bot.send(
+        ev, 
+        f'项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX\n求star，求宣传~', 
+        at_sender=True
+    )
 
     
 @mai_today
 async def _(bot: NoneBot, ev: CQEvent):
-    wm_list = ['拼机', '推分', '越级', '下埋', '夜勤', '练底力', '练手法', '打旧框', '干饭', '抓绝赞', '收歌']
+    wm_list = [
+        '拼机', 
+        '推分', 
+        '越级', 
+        '下埋', 
+        '夜勤', 
+        '练底力', 
+        '练手法', 
+        '打旧框', 
+        '干饭', 
+        '抓绝赞', 
+        '收歌'
+    ]
     uid = ev.user_id
     h = qqhash(uid)
     rp = h % 100

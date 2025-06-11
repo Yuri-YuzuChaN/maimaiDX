@@ -324,6 +324,8 @@ def get_rise_score_list(
         `Tuple[List[RiseScore], int]`
     """
     ignore = [m.song_id for m in info if m.achievements >= 100.5]
+    if not info:
+        return [], 0
     ra = info[-1].ra
     music: List[RiseScore] = []
     if score is None:
@@ -332,7 +334,7 @@ def get_rise_score_list(
         ss_ds = round((ra + score) / 20.8, 1)
     sssp_ds = round(ra / 22.4, 1)
     ds = (sssp_ds + 0.1, ss_ds + 0.1)
-    version = list(plate_to_version.values())[-2] if type == 'DX' else list(plate_to_version.values())[:-2]
+    version = list(plate_to_dx_version.values())[-1] if type == 'DX' else list(plate_to_dx_version.values())[:-1]
     musiclist = mai.total_list.filter(level=level, ds=ds, version=version)
     for _m in musiclist:
         if (song_id := int(_m.id)) in ignore:
@@ -402,7 +404,7 @@ async def rise_score_data(
     """
     try:
         user = await maiApi.query_user_b50(qqid=qqid, username=username)
-        records = await maiApi.query_user_plate(qqid=qqid, username=username, version=list(plate_to_version.values()))
+        records = await maiApi.query_user_plate(qqid=qqid, username=username, version=list(plate_to_dx_version.values()))
         old_records: Dict[int, Dict[str, Union[int, float]]] = {
             m.song_id: {
                 'level_index': m.level_index,
@@ -465,7 +467,12 @@ def plate_message(
     return result
 
 
-async def player_plate_data(qqid: int, username: str, version: str, plan: str) -> Union[MessageSegment, str]:
+async def player_plate_data(
+    qqid: int, 
+    username: str, 
+    version: str, 
+    plan: str
+) -> Union[MessageSegment, str]:
     """
     查看牌子进度
     
@@ -479,30 +486,7 @@ async def player_plate_data(qqid: int, username: str, version: str, plan: str) -
     """
     if version in platecn:
         version = platecn[version]
-    if version == '真':
-        ver = [plate_to_version['真']] + [plate_to_version['初']]
-        _ver = version
-    elif version in ['霸', '舞']:
-        ver = list(set(_v for _v in list(plate_to_version.values())[:-9]))
-        _ver = '舞'
-    elif version in ['熊', '华', '華']:
-        ver = [plate_to_version['熊']]
-        _ver = '熊&华'
-    elif version in ['爽', '煌']:
-        ver = [plate_to_version['爽']]
-        _ver = '爽&煌'
-    elif version in ['宙', '星']:
-        ver = [plate_to_version['宙']]
-        _ver = '宙&星'
-    elif version in ['祭', '祝']:
-        ver = [plate_to_version['祭']]
-        _ver = '祭&祝'
-    elif version in ['双', '宴']:
-        ver = [plate_to_version['双']]
-        _ver = '双&宴'
-    else:
-        ver = [plate_to_version[version]]
-        _ver = version
+    ver, _ver = version_map.get(version, ([plate_to_dx_version.get(version)], version))
     
     try:
         verlist = await maiApi.query_user_plate(qqid=qqid, username=username, version=ver)
@@ -601,18 +585,6 @@ async def player_plate_data(qqid: int, username: str, version: str, plan: str) -
     return result
 
 
-def calc(data: dict) -> Union[PlayInfoDefault, PlayInfoDev]:
-    if not maiApi.token:
-        _m = mai.total_list.by_id(data['id'])
-        ds: float = _m.ds[data['level_index']]
-        a: float = data['achievements']
-        ra, rate = computeRa(ds, a, israte=True)
-        info = PlayInfoDefault(**data, ds=ds, ra=ra, rate=rate)
-    else:
-        info = PlayInfoDev(**data)
-    return info
-
-
 async def level_process_data(
     qqid: int, 
     username: Optional[str], 
@@ -637,7 +609,7 @@ async def level_process_data(
             devobj = await maiApi.query_user_get_dev(qqid=qqid, username=username)
             obj = devobj.records
         else:
-            version = list(set(_v for _v in list(plate_to_version.values())))
+            version = list(set(_v for _v in list(plate_to_dx_version.values())))
             obj = await maiApi.query_user_plate(qqid=qqid, username=username, version=version)
         music = mai.total_list.by_plan(level)
 
@@ -655,6 +627,20 @@ async def level_process_data(
         else:
             raise
         
+        plan_value = planlist[plannum]
+        
+        def is_completed(plannum: int, _d: Union[PlayInfoDefault, PlayInfoDev]) -> bool:
+            if plannum == 0:
+                return _d.achievements >= plan_value
+            elif plannum == 1:
+                return bool(_d.fc and combo_rank.index(_d.fc) >= plan_value)
+            elif plannum == 2:
+                return bool(_d.fs and (
+                    sync_rank.index(_d.fs) >= plan_value 
+                    if _d.fs in sync_rank else sync_rank_p.index(_d.fs) >= plan_value
+                ))
+            return False
+        
         for _d in obj:
             if isinstance(_d, PlayInfoDefault):
                 _m = mai.total_list.by_id(_d.song_id)
@@ -671,9 +657,7 @@ async def level_process_data(
                     music[song_id] = PlanInfo()
                     _p = music[song_id]
                 
-                if (plannum == 0 and _d.achievements >= planlist[plannum]) or \
-                    (plannum == 1 and _d.fc and combo_rank.index(_d.fc) >= planlist[plannum]) or \
-                    (plannum == 2 and _d.fs and (sync_rank.index(_d.fs) >= planlist[plannum] if _d.fs and _d.fs in sync_rank else sync_rank_p.index(_d.fs) >= planlist[plannum])):
+                if is_completed(plannum, _d):
                     _p.completed = _d
                 else:
                     _p.unfinished = _d
@@ -764,7 +748,7 @@ async def level_achievement_list_data(
             obj = await maiApi.query_user_get_dev(qqid=qqid, username=username)
             data = obj.records
         else:
-            version = list(set(_v for _v in list(plate_to_version.values())))
+            version = list(set(_v for _v in list(plate_to_dx_version.values())))
             obj = await maiApi.query_user_plate(qqid=qqid, username=username, version=version)
             for _d in obj:
                 music = mai.total_list.by_id(_d.song_id)

@@ -16,6 +16,7 @@ async def _():
     if maiApi.config.maimaidxaliasproxy:
         log.info('正在使用代理服务器访问别名服务器')
     maiApi.load_token_proxy()
+    asyncio.ensure_future(ws_alias_server())
     log.info('正在获取maimai所有曲目信息')
     await mai.get_music()
     log.info('正在获取maimai牌子数据')
@@ -35,9 +36,10 @@ async def _():
             '可能导致「定数表」「完成表」指令无法使用，'
             '请及时私聊BOT使用指令「更新定数表」进行生成。'
         )
-    plate_list = [name for name in list(plate_to_version.keys())[1:]]
+    plate_list = [name for name in list(plate_to_dx_version.keys())[1:]]
     platedir_list = [f.name.split('.')[0] for f in platedir.iterdir()]
-    notin = set(plate_list) - set(platedir_list)
+    cn_list = [name for name in list(platecn.keys())]
+    notin = set(plate_list) - set(platedir_list) - set(cn_list)
     if notin:
         anyname = '，'.join(notin)
         log.warning(

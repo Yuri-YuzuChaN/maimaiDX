@@ -94,11 +94,11 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, '该等级没有统计信息', at_sender=True)
     stats = music.stats[level_index]
     info = dedent(f'''\
-            游玩次数：{round(stats.cnt)}
-            拟合难度：{stats.fit_diff:.2f}
-            平均达成率：{stats.avg:.2f}%
-            平均 DX 分数：{stats.avg_dx:.1f}
-            谱面成绩标准差：{stats.std_dev:.2f}''')
+        游玩次数：{round(stats.cnt)}
+        拟合难度：{stats.fit_diff:.2f}
+        平均达成率：{stats.avg:.2f}%
+        平均 DX 分数：{stats.avg_dx:.1f}
+        谱面成绩标准差：{stats.std_dev:.2f}''')
     await bot.send(ev, await music_global_data(music, level_index) + info, at_sender=True)
     
     
@@ -109,16 +109,18 @@ async def _(bot: NoneBot, ev: CQEvent):
     if len(pro) == 1 and pro[0] == '帮助':
         msg = dedent('''\
             此功能为查找某首歌分数线设计。
-            命令格式：分数线 <难度+歌曲id> <分数线>
+            命令格式：分数线「难度+歌曲id」「分数线」
             例如：分数线 紫799 100
-            命令将返回分数线允许的 TAP GREAT 容错以及 BREAK 50落等价的 TAP GREAT 数。
-            以下为 TAP GREAT 的对应表：
-            GREAT/GOOD/MISS
-            TAP   1/2.5/5
-            HOLD  2/5/10
-            SLIDE 3/7.5/15
-            TOUCH 1/2.5/5
-            BREAK 5/12.5/25(外加200落)''')
+            命令将返回分数线允许的「TAP」「GREAT」容错，
+            以及「BREAK」50落等价的「TAP」「GREAT」数。
+            以下为「TAP」「GREAT」的对应表：
+                    GREAT / GOOD / MISS
+            TAP         1 / 2.5  / 5
+            HOLD        2 / 5    / 10
+            SLIDE       3 / 7.5  / 15
+            TOUCH       1 / 2.5  / 5
+            BREAK       5 / 12.5 / 25 (外加200落)
+        ''').strip()
         await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(msg))), at_sender=True)
     else:
         try:
@@ -141,9 +143,14 @@ async def _(bot: NoneBot, ev: CQEvent):
             reduce = 101 - line
             if reduce <= 0 or reduce >= 101:
                 raise ValueError
-            msg = dedent(f'''{music.title} {level_labels2[level_index]}
-                分数线 {line}% 允许的最多 TAP GREAT 数量为 {(total_score * reduce / 10000):.2f}(每个-{10000 / total_score:.4f}%),
-                BREAK 50落(一共{brk}个)等价于 {(break_50_reduce / 100):.3f} 个 TAP GREAT(-{break_50_reduce / total_score * 100:.4f}%)''')
+            msg = dedent(f'''\
+                {music.title}「{level_labels2[level_index]}」
+                分数线「{line}%」
+                允许的最多「TAP」「GREAT」数量为 
+                「{(total_score * reduce / 10000):.2f}」(每个-{10000 / total_score:.4f}%),
+                「BREAK」50落(一共「{brk}」个)
+                等价于「{(break_50_reduce / 100):.3f}」个「TAP」「GREAT」(-{break_50_reduce / total_score * 100:.4f}%)
+            ''').strip()
             await bot.send(ev, msg, at_sender=True)
         except (AttributeError, ValueError) as e:
             log.exception(e)

@@ -24,7 +24,7 @@ update_plate            = sv.on_fullmatch('更新完成表')
 rating_table            = sv.on_suffix('定数表')
 table_pfm               = sv.on_suffix('完成表')
 rise_score              = sv.on_rex(r'^我要在?([0-9]+\+?)?[上加\+]([0-9]+)?分\s?(.+)?')
-plate_process           = sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌宙星祭祝双宴])([極极将舞神者]舞?)进度\s?(.+)?')
+plate_process           = sv.on_rex(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌星宙祭祝双宴镜])([極极将舞神者]舞?)进度\s?(.+)?')
 level_process           = sv.on_rex(r'^([0-9]+\+?)\s?([abcdsfxp\+]+)\s?([\u4e00-\u9fa5]+)?进度\s?([0-9]+)?\s?(.+)?')
 level_achievement_list  = sv.on_rex(r'^([0-9]+\.?[0-9]?\+?)分数列表\s?([0-9]+)?\s?(.+)?')
 
@@ -46,9 +46,9 @@ async def _(bot: NoneBot, ev: CQEvent):
 @rating_table
 async def _(bot: NoneBot, ev: CQEvent):
     args: str = ev.message.extract_plain_text().strip()
-    if args in levelList[:5]:
-        await bot.send(ev, '只支持查询lv6-15的定数表', at_sender=True)
-    elif args in levelList[5:]:
+    if args in levelList[:6]:
+        await bot.send(ev, '只支持查询lv7-15的定数表', at_sender=True)
+    elif args in levelList[6:]:
         path = ratingdir / f'{args}.png'
         pic = draw_rating(args, path)
         await bot.send(ev, pic)
@@ -61,7 +61,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     qqid = ev.user_id
     args: str = ev.message.extract_plain_text().strip()
     rating = re.search(r'^([0-9]+\+?)(app|fcp|ap|fc)?', args, re.IGNORECASE)
-    plate = re.search(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽煌舞霸宙星祭祝双宴])([極极将舞神者]舞?)$', args)
+    plate = re.search(r'^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉熊華华爽煌舞霸宙星祭祝双宴镜])([極极将舞神者]舞?)$', args)
     if rating:
         ra = rating.group(1)
         plan = rating.group(2)

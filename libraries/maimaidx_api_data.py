@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 from aiohttp import ClientSession, ClientTimeout
 
-from .. import config_json
+from .. import UUID, config_json
 from .maimaidx_error import *
 from .maimaidx_model import *
 
@@ -44,7 +44,7 @@ class MaimaiAPI:
             self.headers = {'developer-token': self.token}
     
     
-    async def _requestalias(self, method: str, endpoint: str, **kwargs) -> Any:
+    async def _requestalias(self, method: str, endpoint: str, **kwargs) -> APIResult:
         """
         别名库通用请求
 
@@ -53,27 +53,24 @@ class MaimaiAPI:
             `endpoint`: 请求接口
             `kwargs`: 其它参数
         Returns:
-            `Dict[str, Any]` 返回结果
+            `APIResult` 返回结果
         """
         async with ClientSession(timeout=ClientTimeout(total=30)) as session:
             async with session.request(method, self.MaiAliasProxyAPI + endpoint, **kwargs) as res:
                 if res.status == 200:
-                    data = (await res.json())['content']
-                    if data == {} or data == []:
-                        raise AliasesNotFoundError
-                    if isinstance(data, str):
-                        return data
-                elif res.status == 201:
                     data = await res.json()
-                elif res.status == 400:
-                    raise EnterError
+                    return APIResult.model_validate(data)
                 elif res.status == 500:
                     raise ServerError
                 else:
                     raise UnknownError
-        return data
 
-    async def _requestmai(self, method: str, endpoint: str, **kwargs) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    async def _requestmai(
+        self, 
+        method: str, 
+        endpoint: str, 
+        **kwargs
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         查分器通用请求
 
@@ -85,7 +82,12 @@ class MaimaiAPI:
             `Dict[str, Any]` 返回结果
         """
         async with ClientSession(timeout=ClientTimeout(total=30)) as session:
-            async with session.request(method, self.MaiProberProxyAPI + endpoint, headers=self.headers, **kwargs) as res:
+            async with session.request(
+                method, 
+                self.MaiProberProxyAPI + endpoint, 
+                headers=self.headers, 
+                **kwargs
+            ) as res:
                 if res.status == 200:
                     data = await res.json()
                 elif res.status == 400:
@@ -120,7 +122,12 @@ class MaimaiAPI:
         """获取单曲数据"""
         return await self._requestmai('GET', '/chart_stats')
 
-    async def query_user_b50(self, *, qqid: Optional[int] = None, username: Optional[str] = None) -> UserInfo:
+    async def query_user_b50(
+        self, 
+        *, 
+        qqid: Optional[int] = None, 
+        username: Optional[str] = None
+    ) -> UserInfo:
         """
         获取玩家B50
         
@@ -164,12 +171,14 @@ class MaimaiAPI:
         if version:
             json['version'] = version
         result = await self._requestmai('POST', '/query/plate', json=json)
-        if not result['verlist']:
-            raise MusicNotPlayError
-
         return [PlayInfoDefault.model_validate(d) for d in result['verlist']]
 
-    async def query_user_get_dev(self, *, qqid: Optional[int] = None, username: Optional[str] = None) -> UserInfoDev:
+    async def query_user_get_dev(
+        self, 
+        *, 
+        qqid: Optional[int] = None, 
+        username: Optional[str] = None
+    ) -> UserInfoDev:
         """
         使用开发者接口获取用户数据，请确保拥有和输入了开发者 `token`
 
@@ -232,17 +241,23 @@ class MaimaiAPI:
 
     async def get_plate_json(self) -> Dict[str, List[int]]:
         """获取所有版本牌子完成需求"""
-        return await self._requestalias('GET', '/maimaidxplate')
+        result = await self._requestalias('GET', '/maimaidxplate')
+        if result.code == 0:
+            return result.content
+        raise UnknownError
     
     async def get_alias(self) -> Dict[str, Union[str, int, List[str]]]:
         """获取所有别名"""
-        return await self._requestalias('GET', '/maimaidxalias')
+        result = await self._requestalias('GET', '/maimaidxalias')
+        if result.code == 0:
+            return result.content
+        raise UnknownError
 
     async def get_songs(self, name: str) -> Union[List[AliasStatus], List[Alias]]:
         """
         使用别名查询曲目。
-        状态码为 `201` 时返回值为 `List[AliasStatus]`。
-        状态码为 `200` 时返回值为 `List[Alias]`。
+        `code` 为 `0` 时返回值为 `List[Alias]`。
+        `code` 为 `3006` 时返回值为 `List[AliasStatus]`。
         
         Params:
             `name`: 别名
@@ -250,11 +265,14 @@ class MaimaiAPI:
             `Union[List[AliasStatus], List[Alias]]`
         """
         result = await self._requestalias('GET', '/getsongs', params={'name': name})
-        if 'status_code' in result:
-            r = [AliasStatus.model_validate(s) for s in result['content']]
+        if result.code == 3006:
+            return [AliasStatus.model_validate(s) for s in result.content]
+        elif result.code == 1004:
+            return []
+        elif result.code == 0:
+            return [Alias.model_validate(s) for s in result.content]
         else:
-            r = [Alias.model_validate(s) for s in result]
-        return r
+            raise UnknownError
 
     async def get_songs_alias(self, song_id: int) -> Alias:
         """
@@ -263,17 +281,33 @@ class MaimaiAPI:
         Params:
             `song_id`: 曲目 `ID`
         Returns:
-            `Alias`
+            `Alias` | `str`
         """
         result = await self._requestalias('GET', '/getsongsalias', params={'song_id': song_id})
-        return Alias.model_validate(result)
+        if result.code == 0:
+            return Alias.model_validate(result.content)
+        elif result.code == 1004:
+            return result.content
+        else:
+            raise UnknownError
 
     async def get_alias_status(self) -> List[AliasStatus]:
         """获取当前正在进行的别名投票"""
         result = await self._requestalias('GET', '/getaliasstatus')
-        return [AliasStatus.model_validate(s) for s in result]
+        if result.code == 0:
+            return [AliasStatus.model_validate(s) for s in result.content]
+        elif result.code == 1004:
+            return []
+        else:
+            raise UnknownError
 
-    async def post_alias(self, song_id: int, aliasname: str, user_id: int) -> AliasStatus:
+    async def post_alias(
+        self, 
+        song_id: int, 
+        aliasname: str, 
+        user_id: int,
+        group_id: int
+    ) -> Union[AliasStatus, str]:
         """
         提交别名申请
 
@@ -287,10 +321,13 @@ class MaimaiAPI:
         json = {
             'SongID': song_id,
             'ApplyAlias': aliasname,
-            'ApplyUID': user_id
+            'ApplyUID': user_id,
+            'GroupID': group_id,
+            'WSUUID': str(UUID)
         }
-        return AliasStatus.model_validate(await self._requestalias('POST', '/applyalias', json=json))
-
+        result = await self._requestalias('POST', '/applyalias', json=json)
+        return result.content
+    
     async def post_agree_user(self, tag: str, user_id: int) -> str:
         """
         提交同意投票
@@ -305,15 +342,8 @@ class MaimaiAPI:
             'Tag': tag,
             'AgreeUser': user_id
         }
-        return await self._requestalias('POST', '/agreeuser', json=json)
-
-    async def transfer_music(self):
-        """中转查分器曲目数据"""
-        return await self._requestalias('GET', '/maimaidxmusic')
-
-    async def transfer_chart(self):
-        """中转查分器单曲数据"""
-        return await self._requestalias('GET', '/maimaidxchartstats')
+        result = await self._requestalias('POST', '/agreeuser', json=json)
+        return result.content
 
     async def qqlogo(self, qqid: int = None, icon: str = None) -> Optional[bytes]:
         """获取QQ头像"""

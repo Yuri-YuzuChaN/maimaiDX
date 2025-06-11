@@ -51,7 +51,11 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, '请输入关键词', at_sender=True)
     result = mai.total_list.filter(title_search=name)
     if len(result) == 0:
-        await bot.finish(ev, '没有找到这样的乐曲。\n※ 如果是别名请使用「xxx是什么歌」指令来查询哦。', at_sender=True)
+        await bot.finish(
+            ev, 
+            '没有找到这样的乐曲。\n※ 如果是别名请使用「xxx是什么歌」指令来查询哦。', 
+            at_sender=True
+        )
     if len(result) == 1:
         await bot.finish(ev, await draw_music_info(result.random(), ev.user_id))
         
@@ -60,15 +64,29 @@ async def _(bot: NoneBot, ev: CQEvent):
     for i, music in enumerate(result):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             search_result += f'{f"「{music.id}」":<7} {music.title}\n'
-    search_result += f'第「{page}」页，共「{len(result) // SONGS_PER_PAGE + 1}」页。请使用「id xxxxx」查询指定曲目。'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(search_result))), at_sender=True)
+    search_result += (
+        f'第「{page}」页，'
+        f'共「{len(result) // SONGS_PER_PAGE + 1}」页。'
+        '请使用「id xxxxx」查询指定曲目。'
+    )
+    await bot.send(
+        ev, 
+        MessageSegment.image(image_to_base64(text_to_image(search_result))), 
+        at_sender=True
+    )
 
 
 @search_base
 async def _(bot: NoneBot, ev: CQEvent):
     args: List[str] = ev.message.extract_plain_text().strip().split()
     if len(args) > 3 or len(args) == 0:
-        await bot.finish(ev, '命令格式为\n定数查歌 「定数」「页数」\n定数查歌 「定数下限」「定数上限」「页数」', at_sender=True)
+        await bot.finish(ev, dedent('''
+                命令格式：
+                定数查歌 「定数」「页数」
+                定数查歌 「定数下限」「定数上限」「页数」
+            '''), 
+            at_sender=True
+        )
     page = 1
     if len(args) == 1:
         ds1, ds2 = args[0], args[0]
@@ -90,8 +108,16 @@ async def _(bot: NoneBot, ev: CQEvent):
         id, title, ds, diff = _result
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             search_result += f'{f"「{id}」":<7}{f"「{diff}」":<11}{f"「{ds}」"} {title}\n'
-    search_result += f'第「{page}」页，共「{len(result) // SONGS_PER_PAGE + 1}」页。请使用「id xxxxx」查询指定曲目。'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(search_result))), at_sender=True)
+    search_result += (
+        f'第「{page}」页，'
+        f'共「{len(result) // SONGS_PER_PAGE + 1}」页。'
+        '请使用「id xxxxx」查询指定曲目。'
+    )
+    await bot.send(
+        ev, 
+        MessageSegment.image(image_to_base64(text_to_image(search_result))), 
+        at_sender=True
+    )
 
 
 @search_bpm
@@ -112,7 +138,11 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
         result = mai.total_list.filter(bpm=(int(args[0]), int(args[1])))
         page = int(args[2])
     else:
-        await bot.finish(ev, '命令格式：\nbpm查歌 「bpm」\nbpm查歌 「bpm下限」「bpm上限」「页数」', at_sender=True)
+        await bot.finish(
+            ev, 
+            '命令格式：\nbpm查歌 「bpm」\nbpm查歌 「bpm下限」「bpm上限」「页数」', 
+            at_sender=True
+        )
     if not result:
         await bot.finish(ev, f'没有找到这样的乐曲。', at_sender=True)
     
@@ -123,8 +153,16 @@ async def search_dx_song_bpm(bot: NoneBot, ev: CQEvent):
     for i, m in enumerate(result):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             search_result += f'{f"「{m.id}」":<7}{f"「BPM {m.basic_info.bpm}」":<9} {m.title} \n'
-    search_result += f'第「{page}」页，共「{len(result) // SONGS_PER_PAGE + 1}」页。请使用「id xxxxx」查询指定曲目。'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(search_result))), at_sender=True)
+    search_result += (
+        f'第「{page}」页，'
+        f'共「{len(result) // SONGS_PER_PAGE + 1}」页。'
+        '请使用「id xxxxx」查询指定曲目。'
+    )
+    await bot.send(
+        ev, 
+        MessageSegment.image(image_to_base64(text_to_image(search_result))), 
+        at_sender=True
+    )
 
 
 @search_artist
@@ -153,8 +191,16 @@ async def search_dx_song_artist(bot: NoneBot, ev: CQEvent):
     for i, m in enumerate(result):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             search_result += f'{f"「{m.id}」":<7}{f"「{m.basic_info.artist}」"} - {m.title}\n'
-    search_result += f'第「{page}」页，共「{len(result) // SONGS_PER_PAGE + 1}」页。请使用「id xxxxx」查询指定曲目。'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(search_result))), at_sender=True)
+    search_result += (
+        f'第「{page}」页，'
+        f'共「{len(result) // SONGS_PER_PAGE + 1}」页。'
+        '请使用「id xxxxx」查询指定曲目。'
+    )
+    await bot.send(
+        ev, 
+        MessageSegment.image(image_to_base64(text_to_image(search_result))), 
+        at_sender=True
+    )
 
 
 @search_charter
@@ -183,15 +229,33 @@ async def search_dx_song_charter(bot: NoneBot, ev: CQEvent):
     for i, m in enumerate(result):
         if (page - 1) * SONGS_PER_PAGE <= i < page * SONGS_PER_PAGE:
             diff_charter = zip([diffs[d] for d in m.diff], [m.charts[d].charter for d in m.diff])
-            search_result += f'''{f"「{m.id}」":<7}{" ".join([f"{f'「{d}」':<9}{f'「{c}」'}" for d, c in diff_charter])} {m.title}\n'''
-    search_result += f'第「{page}」页，共「{len(result) // SONGS_PER_PAGE + 1}」页。请使用「id xxxxx」查询指定曲目。'
-    await bot.send(ev, MessageSegment.image(image_to_base64(text_to_image(search_result))), at_sender=True)
+            diff_parts = [
+                f"{f'「{d}」':<9}{f'「{c}」'}"
+                for d, c in diff_charter
+            ]
+            diff_str = " ".join(diff_parts)
+            line = f"{f'「{m.id}」':<7}{diff_str} {m.title}\n"
+            search_result += line
+    search_result += (
+        f'第「{page}」页，'
+        f'共「{len(result) // SONGS_PER_PAGE + 1}」页。'
+        '请使用「id xxxxx」查询指定曲目。'
+    )
+    await bot.send(
+        ev, 
+        MessageSegment.image(image_to_base64(text_to_image(search_result))), 
+        at_sender=True
+    )
 
 
 @search_alias_song
 async def _(bot: NoneBot, ev: CQEvent):
     name: str = ev.message.extract_plain_text().strip().lower()
-    error_msg = f'未找到别名为「{name}」的歌曲\n※ 可以使用「添加别名」指令给该乐曲添加别名\n※ 如果是歌名的一部分，请使用「查歌」指令查询哦。'
+    error_msg = (
+        f'未找到别名为「{name}」的歌曲\n'
+        '※ 可以使用「添加别名」指令给该乐曲添加别名\n'
+        '※ 如果是歌名的一部分，请使用「查歌」指令查询哦。'
+    )
     # 别名
     alias_data = mai.total_alias_list.by_alias(name)
     if not alias_data:
@@ -225,10 +289,18 @@ async def _(bot: NoneBot, ev: CQEvent):
     
     # id
     if name.isdigit() and (music := mai.total_list.by_id(name)):
-        await bot.finish(ev, '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), at_sender=True)
+        await bot.finish(
+            ev, 
+            '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), 
+            at_sender=True
+        )
     if search_id := re.search(r'^id([0-9]*)$', name, re.IGNORECASE):
         music = mai.total_list.by_id(search_id.group(1))
-        await bot.finish(ev, '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), at_sender=True)
+        await bot.finish(
+            ev, 
+            '您要找的是不是：' + (await draw_music_info(music, ev.user_id)), 
+            at_sender=True
+        )
     
     # 标题
     result = mai.total_list.filter(title_search=name)
@@ -236,7 +308,11 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(ev, error_msg, at_sender=True)
     elif len(result) == 1:
         msg = await draw_music_info(result.random(), ev.user_id)
-        await bot.finish(ev, '您要找的是不是：' + await draw_music_info(result.random(), ev.user_id), at_sender=True)
+        await bot.finish(
+            ev, 
+            '您要找的是不是：' + await draw_music_info(result.random(), ev.user_id), 
+            at_sender=True
+        )
     elif len(result) < 50:
         msg = f'未找到别名为「{name}」的歌曲，但找到「{len(result)}」个相似标题的曲目：\n'
         for music in sorted(result, key=lambda x: int(x.id)):
