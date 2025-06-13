@@ -29,11 +29,11 @@ async def update_rating_table() -> str:
                 lines += r
 
             if '+' in lv:
-                f = 3
+                f = 4
             elif lv == '6':
                 f = 10
             else:
-                f = 7
+                f = 8
 
             linesheight = 85 * lines
             """
@@ -119,18 +119,7 @@ async def update_plate_table() -> str:
         for _v in version:
             if _v in platecn:
                 _v = platecn[_v]
-            if _v in ['熊', '华', '華']:
-                _ver = '熊&华'
-            elif _v in ['爽', '煌']:
-                _ver = '爽&煌'
-            elif _v in ['宙', '星']:
-                _ver = '宙&星'
-            elif _v in ['祭', '祝']:
-                _ver = '祭&祝'
-            elif _v in ['双', '宴']:
-                _ver = '双&宴'
-            else:
-                _ver = _v
+            ver, _ver = version_map.get(_v, ([plate_to_dx_version.get(_v)], _v))
             
             music_id_list = mai.total_plate_id_list[_ver]
             music = mai.total_list.by_id_list(music_id_list)

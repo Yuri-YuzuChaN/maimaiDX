@@ -39,7 +39,7 @@ async def draw_music_info(
                 player = await maiApi.query_user_b50(qqid=qqid)
             else:
                 player = user
-            if music.basic_info.version in list(plate_to_dx_version.values())[-2]:
+            if music.basic_info.version in list(plate_to_dx_version.values())[-1]:
                 bestlist = player.charts.dx
                 isfull = bool(len(bestlist) == 15)
             else:

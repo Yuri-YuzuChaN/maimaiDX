@@ -99,6 +99,8 @@ class MusicList(List[Music]):
         for music in self:
             if level not in music.level:
                 continue
+            if int(music.id) >= 100000:
+                continue
             if music.level.count(level) > 1: # 同曲有相同等级
                 lv[music.id] = { 
                     index: create_ra_music(music, index)
