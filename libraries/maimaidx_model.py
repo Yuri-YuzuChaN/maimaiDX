@@ -83,6 +83,14 @@ class StatusBase(BaseModel):
     ApplyAlias: str
 
 
+class Approved(StatusBase):
+    
+    Tag: str
+    Name: str
+    GroupID: int | None = None
+    WSUUID: str | None = None
+
+
 class AliasStatus(StatusBase):
     
     Tag: str
@@ -93,13 +101,14 @@ class AliasStatus(StatusBase):
 
 class Reviewed(StatusBase):
 
-    ...
+    Tag: str
+    Name: str
 
 
 class PushAliasStatus(BaseModel):
     
     Type: str
-    Status: Union[AliasStatus, Reviewed]
+    Status: Union[AliasStatus, Approved, Reviewed]
 
 
 ##### Guess

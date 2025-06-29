@@ -29,7 +29,6 @@ alias_agree         = sv.on_prefix(['同意别名', '同意别称'])
 alias_status        = sv.on_prefix(['当前投票', '当前别名投票', '当前别称投票'])
 alias_switch        = sv.on_suffix(['别名推送', '别称推送'])
 alias_song          = sv.on_rex(re.compile(r'^(id)?\s?(.+)\s?有什么别[名称]$', re.IGNORECASE))
-alias_apply_status  = sv.scheduled_job('interval', minutes=5)
 
 
 @update_alias
@@ -227,7 +226,7 @@ async def push_alias(push: PushAliasStatus):
     music = mai.total_list.by_id(song_id)
     
     if push.Type == 'Approved':
-        message = MessageSegment.at(push.Status.ApplyUID) + dedent(f'''\
+        message = MessageSegment.at(push.Status.ApplyUID) + '\n' + dedent(f'''\
             您申请的别名已通过审核
             =================
             {push.Status.Tag}：
@@ -236,6 +235,16 @@ async def push_alias(push: PushAliasStatus):
             别名：{alias_name}
             =================
             请使用指令「同意别名 {push.Status.Tag}」进行投票
+        ''').strip() + await draw_music_info(music)
+        await bot.send_group_msg(group_id=push.Status.GroupID, message=message)
+        return
+    if push.Type == 'Reject':
+        message = MessageSegment.at(push.Status.ApplyUID) + '\n' + dedent(f'''\
+            您申请的别名被拒绝
+            =================
+            ID：{song_id}
+            标题：{music.title}
+            别名：{alias_name}
         ''').strip() + await draw_music_info(music)
         await bot.send_group_msg(group_id=push.Status.GroupID, message=message)
         return
