@@ -87,8 +87,8 @@ class Approved(StatusBase):
     
     Tag: str
     Name: str
-    GroupID: int | None = None
-    WSUUID: str | None = None
+    GroupID: Optional[int] = None
+    WSUUID: Optional[int] = None
 
 
 class AliasStatus(StatusBase):
