@@ -90,11 +90,14 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     try:
         args: List[str] = ev.message.extract_plain_text().strip().split()
-        if len(args) != 2:
+        if len(args) < 2:
             await bot.finish(ev, '参数错误', at_sender=True)
-        song_id, alias_name = args
-        if not (music := mai.total_list.by_id(song_id)):
-            await bot.finish(ev, f'未找到ID为「{song_id}」的曲目')
+        song_id = args[0]
+        if not song_id.isdigit():
+            await bot.finish(ev, f'请输入正确的ID', at_sender=True)
+        alias_name = ' '.join(args[1:])
+        if not mai.total_list.by_id(song_id):
+            await bot.finish(ev, f'未找到ID为「{song_id}」的曲目', at_sender=True)
         
         isexist = await maiApi.get_songs_alias(song_id)
         if isinstance(isexist, Alias) and alias_name.lower() in isexist.Alias:
