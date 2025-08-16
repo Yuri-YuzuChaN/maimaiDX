@@ -539,9 +539,16 @@ class GroupAlias:
         await writefile(group_alias_file, self.push.model_dump())
         return '群别名推送功能已关闭'
 
-    async def alias_global_change(self, set: bool):
+    async def alias_global_change(self, switch: bool, group_list: List[int]):
         """修改全局开关"""
-        self.push.global_switch = set
+        if switch:
+            self.push.disable.clear()
+            self.push.enable.clear()
+            self.push.enable.extend(group_list)
+        else:
+            self.push.enable.clear()
+            self.push.disable.clear()
+            self.push.disable.extend(group_list)
         await writefile(group_alias_file, self.push.model_dump())
 
 

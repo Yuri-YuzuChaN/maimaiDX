@@ -13,6 +13,7 @@ class MaiConfig(BaseModel):
     maimaidxtoken: Optional[str] = None
     maimaidxproberproxy: bool = False
     maimaidxaliasproxy: bool = False
+    maimaidxaliaspush: bool = True
     saveinmem: Optional[bool] = True
 
 

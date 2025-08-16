@@ -16,7 +16,11 @@ async def _():
     if maiApi.config.maimaidxaliasproxy:
         log.info('正在使用代理服务器访问别名服务器')
     maiApi.load_token_proxy()
-    asyncio.ensure_future(ws_alias_server())
+    if maiApi.config.maimaidxaliaspush:
+        log.info('别名推送为「开启」状态')
+        asyncio.ensure_future(ws_alias_server())
+    else:
+        log.info('别名推送为「关闭」状态')
     log.info('正在获取maimai所有曲目信息')
     await mai.get_music()
     log.info('正在获取maimai牌子数据')
@@ -32,7 +36,7 @@ async def _():
     
     if not list(ratingdir.iterdir()):
         log.warning(
-            '<y>注意！注意！</y>检测到定数表文件夹为空！'
+            '注意！注意！检测到定数表文件夹为空！'
             '可能导致「定数表」「完成表」指令无法使用，'
             '请及时私聊BOT使用指令「更新定数表」进行生成。'
         )
@@ -43,7 +47,7 @@ async def _():
     if notin:
         anyname = '，'.join(notin)
         log.warning(
-            f'<y>注意！注意！</y>未检测到牌子文件夹中的牌子：<y>{anyname}</y>，'
+            f'注意！注意！未检测到牌子文件夹中的牌子：{anyname}，'
             '可能导致这些牌子的「完成表」指令无法使用，'
             '请及时私聊BOT使用指令「更新完成表」进行生成。'
         )
