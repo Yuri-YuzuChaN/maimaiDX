@@ -10,10 +10,6 @@
 
 ## 重要更新
 
-**2025-06-11**
-
-1. 更新 `舞萌DX2025` ，资源全部更换，更新部分依赖和文件，**请重新进行使用方法**
-2. 请修改 `static/group_alias_switch.json` 文件中的 `global` 字段为 `global_switch`，如果没有该文件或字段本身就为 `global_switch` 的请无视
 
 ## 使用方法
 

@@ -18,7 +18,7 @@ class MaiConfig(BaseModel):
 
 class MaimaiAPI:
     
-    MaiProxyAPI = 'https://proxy.yuzuchan.xyz'
+    MaiProxyAPI = 'https://proxy.yuzuchan.site'
     
     MaiProberAPI = 'https://www.diving-fish.com/api/maimaidxprober'
     MaiCover = 'https://www.diving-fish.com/covers'
