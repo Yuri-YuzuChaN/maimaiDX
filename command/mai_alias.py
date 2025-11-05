@@ -49,11 +49,15 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     if not priv.check_priv(ev, priv.SUPERUSER):
         return
+    
+    await bot.get_group_list()
+    group = await bot.get_group_list()
+    group_id = [g['group_id'] for g in group]
     if ev.raw_message == '全局关闭别名推送':
-        await alias.alias_global_change(False)
+        await alias.alias_global_change(False, group_id)
         await bot.send(ev, '已全局关闭maimai别名推送')
     elif ev.raw_message == '全局开启别名推送':
-        await alias.alias_global_change(True)
+        await alias.alias_global_change(True, group_id)
         await bot.send(ev, '已全局开启maimai别名推送')
 
 
@@ -90,11 +94,14 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     try:
         args: List[str] = ev.message.extract_plain_text().strip().split()
-        if len(args) != 2:
+        if len(args) < 2:
             await bot.finish(ev, '参数错误', at_sender=True)
-        song_id, alias_name = args
-        if not (music := mai.total_list.by_id(song_id)):
-            await bot.finish(ev, f'未找到ID为「{song_id}」的曲目')
+        song_id = args[0]
+        if not song_id.isdigit():
+            await bot.finish(ev, f'请输入正确的ID', at_sender=True)
+        alias_name = ' '.join(args[1:])
+        if not mai.total_list.by_id(song_id):
+            await bot.finish(ev, f'未找到ID为「{song_id}」的曲目', at_sender=True)
         
         isexist = await maiApi.get_songs_alias(song_id)
         if isinstance(isexist, Alias) and alias_name.lower() in isexist.Alias:
@@ -249,7 +256,7 @@ async def push_alias(push: PushAliasStatus):
         await bot.send_group_msg(group_id=push.Status.GroupID, message=message)
         return
     
-    if not alias.push.global_switch:
+    if not maiApi.config.maimaidxaliaspush:
         await mai.get_music_alias()
         return
     group_list = await bot.get_group_list()
@@ -287,10 +294,14 @@ async def push_alias(push: PushAliasStatus):
 
 async def ws_alias_server():
     log.info('正在连接别名推送服务器')
+    if maiApi.config.maimaidxaliasproxy:
+        wsapi = 'proxy.yuzuchan.xyz/maimaidxaliases'
+    else:
+        wsapi = 'www.yuzuchan.moe/api/maimaidx'
     while True:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.ws_connect(f'wss://www.yuzuchan.moe/api/maimaidx/ws/{UUID}') as ws:
+                async with session.ws_connect(f'wss://{wsapi}/ws/{UUID}') as ws:
                     try:
                         log.info('别名推送服务器连接成功')
                         while True:

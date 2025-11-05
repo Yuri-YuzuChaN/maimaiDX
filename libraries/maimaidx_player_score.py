@@ -380,7 +380,7 @@ def get_rise_score_list(
                 break
     if not music:
         return music, 0
-    new = random.sample(music, musiclen if 0 < (musiclen := len(musiclist)) < 5 else 5)
+    new = random.sample(music, min(len(music), 5))
     new.sort(key=lambda x: x.song_id, reverse=True)
     return new, ra
 

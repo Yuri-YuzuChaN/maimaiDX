@@ -87,8 +87,8 @@ class Approved(StatusBase):
     
     Tag: str
     Name: str
-    GroupID: int | None = None
-    WSUUID: str | None = None
+    GroupID: Optional[int] = None
+    WSUUID: Optional[str] = None
 
 
 class AliasStatus(StatusBase):
@@ -138,9 +138,7 @@ class GuessSwitch(Switch): ...
 
 
 ##### AliasesPush
-class AliasesPush(Switch):
-    
-    global_switch: bool = True
+class AliasesPush(Switch): ...
 
 
 ##### Best50

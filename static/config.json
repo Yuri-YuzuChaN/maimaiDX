@@ -2,5 +2,6 @@
     "maimaidxtoken": "",
     "maimaidxproberproxy": false,
     "maimaidxaliasproxy": false,
+    "maimaidxaliaspush": true,
     "saveinmem": true
 }

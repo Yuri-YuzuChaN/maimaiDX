@@ -10,6 +10,13 @@
 
 ## 重要更新
 
+## 温馨提示
+
+**首次使用请务必看完 `README.MD` 所有内容**
+
+- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
+- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
+- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
 
 ## 使用方法
 
@@ -28,12 +35,14 @@
 
    1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
    2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
-   3. 可选，是否将部分图片在保存在内存中，不需要请在设置 `SAVEINMEM` 为 `false`
+   3. 可选，是否将部分图片在保存在内存中，不需要请在设置 `saveinmem` 为 `false`
+   4. 可选，是否开启别名推送，不需要请设置 `maimaidxaliaspush` 为 `false`，**注意，该配置为 `false` 时，将不会实时更新别名库，仅会在别名查歌或者跨日更新数据的时候才会更新别名库。如果群组的推送为开启状态，也不再进行推送，推送指令也一并失效**
    ``` json
    {
       "maimaidxtoken": "maimaidxtoken",
       "maimaidxproberproxy": true,
       "maimaidxaliasproxy": false,
+      "maimaidxaliaspush": true,
       "saveinmem": false
    }
    ```
@@ -50,6 +59,26 @@
 8. 重启HoshinoBot
 
 ## 更新说明
+
+**2025-08-16**
+
+1. 修改别名推送机制，请各开发者进行取舍
+   
+   - 更新别名推送设置与指令，新增了 `maimaidxaliaspush` 配置项，该设置将替代原先 `group_alias_switch.json` 文件的 `global_switch` 配置项
+   - 当设置为`false` 时，不再连接别名推送服务器，如果群组的推送为开启状态，也不再进行推送，**与原先一致**。**申请的别名通过审核了也不再推送**
+
+    ``` ujson
+    {
+        "enable": [],
+        "disable": [88888888],
+        "global_switch": false      // 该配置项将被代替并删除
+    }
+    ```
+
+   - 不会接收到别名申请以及别名通过的消息，**如果服务器新增新的别名时无法实时获取最新的别名，仅能手动更新别名库**。
+
+2. 指令 `全局开启/关闭别名推送` 的功能将修改为开关全部群组的推送开关。
+3. 新增别名推送服务器代理地址，修改 `maimaiDX/static/config.json` 文件的 `maimaidxaliaspush` 配置项即可，~~其实是忘记添加代理地址~~
 
 **2025-06-11**
 
