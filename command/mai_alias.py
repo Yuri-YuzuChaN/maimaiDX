@@ -302,26 +302,22 @@ async def ws_alias_server():
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(f'wss://{wsapi}/ws/{UUID}') as ws:
-                    try:
-                        log.info('别名推送服务器连接成功')
-                        while True:
-                            data = await ws.receive_str()
-                            if data == 'Hello':
-                                log.info('别名推送服务器正常运行')
-                            try:
-                                newdata = json.loads(data)
-                                status = PushAliasStatus.model_validate(newdata)
-                                await asyncio.create_task(push_alias(status))
-                            except:
-                                continue
-                    except aiohttp.WSServerHandshakeError:
-                        log.warning('别名推送服务器已断开连接，将在1分钟后重新尝试连接')
-                        await asyncio.sleep(60)
-                    except aiohttp.WebSocketError:
-                        log.error('别名推送服务器连接失败，将在1分钟后重试')
-                        await asyncio.sleep(60)
-                        log.info('正在尝试重新连接别名推送服务器')
-        except:
-            log.error('别名推送服务器连接失败，将在1分钟后重试')
+                    log.info('别名推送服务器连接成功')
+                    while True:
+                        data = await ws.receive_str()
+                        if data == 'Hello':
+                            log.info('别名推送服务器正常运行')
+                        try:
+                            newdata = json.loads(data)
+                            status = PushAliasStatus.model_validate(newdata)
+                            await push_alias(status)
+                        except:
+                            continue
+        except (aiohttp.WSServerHandshakeError, aiohttp.WebSocketError) as e:
+            log.warning(f'连接断开或异常: {e}，将在 60 秒后重连')
             await asyncio.sleep(60)
-            log.info('正在尝试重新连接别名推送服务器')
+            continue
+        except Exception as e:
+            log.error(f'别名推送服务器连接失败: {e}，将在 60 秒后重试')
+            await asyncio.sleep(60)
+            continue
