@@ -295,7 +295,7 @@ async def push_alias(push: PushAliasStatus):
 async def ws_alias_server():
     log.info('正在连接别名推送服务器')
     if maiApi.config.maimaidxaliasproxy:
-        wsapi = 'proxy.yuzuchan.xyz/maimaidxaliases'
+        wsapi = 'proxy.yuzuchan.site/maimaidxaliases'
     else:
         wsapi = 'www.yuzuchan.moe/api/maimaidx'
     while True:
