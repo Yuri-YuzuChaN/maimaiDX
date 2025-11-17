@@ -260,6 +260,7 @@ async def push_alias(push: PushAliasStatus):
         await mai.get_music_alias()
         return
     group_list = await bot.get_group_list()
+    group_ids = list({g['group_id'] for g in group_list})
     message = ''
     if push.Type == 'Apply':
         message = dedent(f'''\
@@ -281,8 +282,7 @@ async def push_alias(push: PushAliasStatus):
         ''').strip() + await draw_music_info(music)
     
     
-    for group in group_list:
-        gid: int = group['group_id']
+    for gid in group_ids:
         if gid in alias.push.disable:
             continue
         try:
