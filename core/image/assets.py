@@ -78,10 +78,8 @@ class AssetsImage:
 
     def __init__(self) -> None:
         """静态资源类"""
-        if maiconfig.save_in_memory:
+        if not maiconfig.save_in_memory:
             self._load_image()
-        else:
-            self.load_image()
 
     @staticmethod
     def _open_image(path: Path) -> Image.Image:
@@ -170,16 +168,11 @@ class AssetsImage:
     @classmethod
     def _load_image(cls) -> None:
         """将图片缓存在内存"""
-        if AssetsImage._images_loaded:
+        if cls._images_loaded:
             return
         for name, image in cls._create_images().items():
-            setattr(AssetsImage, name, image)
-        AssetsImage._images_loaded = True
-
-    def load_image(self) -> None:
-        """不将图片缓存在内存，在需要用的时候加载"""
-        for name, image in self._create_images().items():
-            setattr(self, name, image)
+            setattr(cls, name, image)
+        cls._images_loaded = True
 
     def _themed_image(self, theme: Theme, name: str) -> Image.Image:
         """
@@ -193,9 +186,9 @@ class AssetsImage:
         """
         key = (theme, name)
         if maiconfig.save_in_memory:
-            image = AssetsImage._themed_images.get(key)
+            image = self._themed_images.get(key)
             if image is None:
                 image = self._open_image(pic_dir / theme.value / name)
-                AssetsImage._themed_images[key] = image
+                self._themed_images[key] = image
             return image
         return self._open_image(pic_dir / theme.value / name)

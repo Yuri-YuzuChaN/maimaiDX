@@ -2,9 +2,10 @@ import re
 from re import Match
 
 from nonebot import NoneBot
+from PIL import Image
 
 from hoshino import priv
-from hoshino.typing import CQEvent
+from hoshino.typing import CQEvent, MessageSegment
 
 from ..config import sv
 from ..constants import COMBO_PLUS, LEVEL_LIST, PLATE_CN, RANK_PLUS, SYNC_PLUS
@@ -16,8 +17,10 @@ from ..core.handler import (
     draw_rating_table,
     draw_rating_table_text,
 )
+from ..core.image.tools import image_to_base64
 from ..core.image.update_table import UpdateTable
 from ..core.merge.models import Category
+from ..resources import pic_dir
 from .depend import GetUserAndAuth
 
 RATING_PATTERN = r"^([0-9]+\+?)((s+|ap|fc|fs|fdx)\+?)?\s?完成表$"
@@ -44,6 +47,7 @@ update_table = sv.on_fullmatch("更新定数表")
 update_plate = sv.on_fullmatch("更新完成表")
 rating_table = sv.on_rex(r"([0-9]+\+?)定数表")
 rating_table_pfm = sv.on_rex(re.compile(RATING_PATTERN, re.IGNORECASE))
+plate_table_condition = sv.on_fullmatch("牌子条件")
 plate_table_pfm = sv.on_rex(PLATE_TABLE_RE)
 plate_progress = sv.on_rex(PLATE_PROGRESS_RE)
 level_progress = sv.on_rex(re.compile(LEVEL_PATTERN, re.IGNORECASE))
@@ -99,6 +103,16 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.send(ev, pic, at_sender=True)
     else:
         await bot.send(ev, "无法识别的表格。", at_sender=True)
+
+
+@plate_table_condition
+async def _(bot: NoneBot, ev: CQEvent):
+    await bot.send(
+        ev, 
+        MessageSegment.image(
+            image_to_base64(Image.open(pic_dir / "table_condition.jpg"))
+        )
+    )
 
 
 @plate_table_pfm

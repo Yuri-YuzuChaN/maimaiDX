@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from ...config import log, lxnsconfig
-from ...resources import group_alias_file, guess_file
+from ...resources import group_alias_file, guess_file, local_alias_file
 from ..image.tools import image_to_base64, song_chart
 from ..merge import merge_alias_data, merge_music_data
 from ..merge.alias_list import AliasList
@@ -18,7 +18,7 @@ from ..merge.models import (
     Song,
 )
 from ..merge.music_list import MusicList
-from ..tool import writefile
+from ..tool import openfile, writefile
 from .diving_fish import get_music_list
 from .lxns import get_music_aliases, get_music_data
 from .yuzuchan import get_music_alias_list, get_plate_data
@@ -72,7 +72,10 @@ class MaiMusic:
             log.opt(colors=True).warning(
                 "<r>未配置落雪开发者Token，跳过获取「落雪」别名数据源</r>"
             )
-
+            
+        local_alias_data = {}
+        if local_alias_file.exists():
+            local_alias_data = await openfile(local_alias_file)
         log.info("正在合并别名数据")
         self.total_alias_list = await merge_alias_data(yuzu_data, lxns_data)
         log.success("别名数据合并完成")

@@ -13,14 +13,18 @@ else:
 # 静态资源路径
 font_dir = static / "font"
 data_dir = static / "data"
-pic_dir = static / "mai" / "pic"
-cover_dir = static / "mai" / "cover"
-plate_dir = static / "mai" / "plate"
-shougou_dir = static / "mai" / "shougou"
-plate_version_dir = static / "mai" / "plate_version"
-plate_table_dir = static / "mai" / "plate_table"
-rating_table_dir = static / "mai" / "rating_table"
+mai_dir = static / "mai"
+pic_dir = mai_dir / "pic"
+cover_dir = mai_dir / "cover"
+plate_dir = mai_dir / "plate"
+shougou_dir = mai_dir / "shougou"
+plate_version_dir = mai_dir / "plate_version"
+plate_table_dir = mai_dir / "plate_table"
+rating_table_dir = mai_dir / "rating_table"
 
+data_dir.mkdir(parents=True, exist_ok=True)
+plate_table_dir.mkdir(parents=True, exist_ok=True)
+rating_table_dir.mkdir(parents=True, exist_ok=True)
 
 # 路径文件
 pie_html_file = static / "temp_pie.html"  # 饼图html文件

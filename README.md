@@ -33,6 +33,7 @@
    - 新增切换查分器功能
    - 新增 `ap50` 指令（仅限落雪查分器）
    - 新增 `lxbind`，`授权码`，`主题`，`数据源` 指令
+   - 新增 `牌子条件` 指令
 4. 新版本使用独立的 `log`
 5. 新版本使用 `.env` 文件进行配置
 6. 修改了别名推送的发送方式，防止刷屏
@@ -51,7 +52,7 @@
     git clone https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
    
-2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到随意一个文件夹进行存放。对于先前使用过的开发者，请将原先 `static` 文件夹内的所有 `json` 文件放置到 `static\data` 文件夹，字体文件放置到 `static\font` 文件夹
+2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到随意一个文件夹进行存放。对于先前使用过的开发者，请将原先 `static` 文件夹内的所有 `json` 文件放置到 `static/data` 文件夹，字体文件放置到 `static/font` 文件夹
 
    ## 对于美术的声明，请勿将绘图设计署名进行删除
 
@@ -62,21 +63,21 @@
 3. 配置可选项，请复制 `.env.example` 文件并修改为 `.env`，根据要求填写
 
    ```
-   # maimaidx                                       # 基本配置
-   MAIMAIDX_PATH=                                   # 静态文件夹路径，必须为绝对路径到 `\static`，例如：E:\SakuraBOT\nbstatic\maimaidx\static
-   MAIMAIDX_ALIAS_PROXY=false                       # 是否使用中转访问柚子别名服务器，适用于境内服务器
-   SAVE_IN_MEM=true                                 # 是否将部分图片保存在内存
-   ASSETS_ONLINE=true                               # 对于有 `icon` 和 `plate` 资源的可将此项改为 `false`，如果没有请默认，否则使用落雪查分器时无法使用
+   # maimaidx                           # 基本配置
+   MAIMAIDX_PATH=                       # 必填项，静态文件夹路径，必须为绝对路径到 `/static`，例如：e:/SakuraBOT/nbstatic/maimaidx/static
+   MAIMAIDX_ALIAS_PROXY=false           # 是否使用中转访问柚子别名服务器，适用于境内服务器
+   SAVE_IN_MEMORY=true                  # 是否将部分图片保存在内存
+   ASSETS_ONLINE=true                   # 对于有 `icon` 和 `plate` 资源的可将此项改为 `false`，如果没有请默认，否则使用落雪查分器时无法使用
 
-   # diving-fish                                    # 水鱼查分器配置
-   DIVINGFISH_TOKEN=                                # 开发者 token，由于水鱼查分器修改了请求鉴权，未填写的仅可使用 `b50` 指令
-   DIVINGFISH_PROBER_PROXY=false                    # 是否使用中转访问水鱼查分器，适用于境外服务器
+   # diving-fish                        # 水鱼查分器配置
+   DIVINGFISH_TOKEN=                    # 开发者 token，由于水鱼查分器修改了请求鉴权，未填写的仅可使用 `b50` 指令
+   DIVINGFISH_PROBER_PROXY=false        # 是否使用中转访问水鱼查分器，适用于境外服务器
 
-   # lxns                                           # 落雪查分器配置，均未填写将无法使用落雪查分器
-   LXNS_DEV_TOKEN=                                  # 开发者 token
-   LX_CLIENT_ID=                                    # OAuth 应用ID
-   LX_CLIENT_SECRET=                                # OAuth 应用秘钥
-   REDIRECT_URI=                                    # OAuth 回调地址
+   # lxns                               # 落雪查分器配置，均未填写将无法使用落雪查分器
+   LXNS_DEV_TOKEN=                      # 开发者 token
+   LX_CLIENT_ID=                        # OAuth 应用ID
+   LX_CLIENT_SECRET=                    # OAuth 应用秘钥
+   REDIRECT_URI=                        # OAuth 回调地址
    ```
 
 4. 安装插件所需模块：`pip install -r requirements.txt`
@@ -99,16 +100,21 @@
 
 **2026-06-09**
 
-1. 更新支持 `舞萌DX2026`
+1. 更新支持 `舞萌DX2026`，应该是最后一次大改了
 2. 新支持了 `落雪查分器`
 3. 新功能：
-   - 新增 `舞`，`霸者` 牌子绘图，
+   - 新增 `舞`，`霸者` 牌子绘图
    - 新增进度绘图
    - 新增查询曲目过多时的绘图
    - 新增切换主题功能
    - 新增切换查分器功能
    - 新增 `ap50` 指令（仅限落雪查分器）
    - 新增 `lxbind`，`授权码`，`主题`，`数据源` 指令
+   - 新增 `牌子条件` 指令
+4. 新版本使用独立的 `log`
+5. 新版本使用 `.env` 文件进行配置
+6. 修改了别名推送的发送方式，防止刷屏
+7. 修复了非常多的 `BUG`
 </details>
 
 <details>
@@ -348,6 +354,8 @@
 </details>
 
 ## 鸣谢
+
+感谢 [蓝色彗星](#) 提供的 `牌子条件` 指令图片
 
 感谢 [zhanbao2000](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
 

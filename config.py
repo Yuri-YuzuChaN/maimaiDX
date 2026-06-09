@@ -25,12 +25,11 @@ class Settings(BaseSettings):
 
 
 class BaseConfig(Settings):
-    priority_data_source: Literal["Lxns-Network", "Diving-Fish"]
     maimaidx_path: str
     maimaidx_alias_proxy: bool = False
     maimaidx_alias_push: bool = True
     save_in_memory: bool | None = True
-    assets_online: bool | None = False
+    assets_online: bool | None = True
     bot_name: str = NICKNAME if isinstance(NICKNAME, str) else list(NICKNAME)[0]
 
 
