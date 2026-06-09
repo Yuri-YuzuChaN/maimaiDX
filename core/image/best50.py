@@ -82,8 +82,8 @@ class PlayerBest50(ScoreBaseImage):
         idx = bisect_right(thresholds, self.player.rating) - 1
         return f"UI_CMN_DXRating_Star_0{num_map[idx]}.png"
 
-    async def _fetch_image(self, type: str, file_name: str) -> BytesIO | Path | None:
-        file = f"UI_{type.capitalize()}_{file_name.zfill(6)}.png"
+    async def _fetch_image(self, type: str, file_name: int) -> BytesIO | Path | None:
+        file = f"UI_{type.capitalize()}_{str(file_name).zfill(6)}.png"
         if not maiconfig.assets_online:
             return static / "mai" / type / file
         return await online_assets(f"/{type}/{file}")
