@@ -196,7 +196,7 @@ async def merge_music_data(
         for _raw in lxns_list.songs:
             song_id = _raw.id
 
-            if song_id < 1000:
+            if song_id < 10000:
                 if _raw.difficulties.standard:
                     set_version(_raw, "SD", song_id, _raw.difficulties.standard)
 
@@ -205,7 +205,7 @@ async def merge_music_data(
 
             elif song_id < 100000:
                 if _raw.difficulties.dx:
-                    set_version(_raw, "DX", song_id + 10000, _raw.difficulties.dx)
+                    set_version(_raw, "DX", song_id, _raw.difficulties.dx)
 
                 if _raw.difficulties.standard:
                     set_version(_raw, "SD", song_id - 10000, _raw.difficulties.standard)
