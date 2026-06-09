@@ -72,12 +72,17 @@ class MaiMusic:
             log.opt(colors=True).warning(
                 "<r>未配置落雪开发者Token，跳过获取「落雪」别名数据源</r>"
             )
-            
+
         local_alias_data = {}
         if local_alias_file.exists():
             local_alias_data = await openfile(local_alias_file)
+        if not local_alias_data:
+            local_alias_data = None
+
         log.info("正在合并别名数据")
-        self.total_alias_list = await merge_alias_data(yuzu_data, lxns_data)
+        self.total_alias_list = await merge_alias_data(
+            yuzu_data, lxns_data, local_alias_data
+        )
         log.success("别名数据合并完成")
 
     async def get_plate_json(self) -> None:
@@ -87,7 +92,6 @@ class MaiMusic:
 
     async def update(self) -> None:
         """更新数据"""
-        log.info("开始日常数据更新")
         await self.get_music()
         await self.get_music_alias()
         await self.get_plate_json()
@@ -285,3 +289,25 @@ class Guess:
 
 
 guess = Guess()
+
+
+async def update_local_alias(song_id: int, alias_name: str) -> bool:
+    try:
+        song_id_key = str(song_id)
+        alias = alias_name.lower()
+
+        local_alias_data: dict[str, list[str]] = {}
+        if local_alias_file.exists():
+            local_alias_data = await openfile(local_alias_file)
+
+        if song_id not in local_alias_data:
+            local_alias_data[song_id_key] = []
+
+        local_alias_data[song_id_key].append(alias)
+        mai.total_alias_list.by_id(song_id)[0].alias.append(alias)
+
+        await writefile(local_alias_file, local_alias_data)
+        return True
+    except Exception as e:
+        log.error(f"添加本地别名失败: {e}")
+        return False

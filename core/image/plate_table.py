@@ -330,7 +330,7 @@ class DrawPlateTable(PlateTable):
 
     def _get_plate_icon(self, play: PlayedResult, plan: str) -> Image.Image:
         """获取完成表中已达成谱面的图标。"""
-        if plan == "将":
+        if plan in ["将", "者"]:
             rate = compute_rating(play.level_value, play.achievements, onlyrate=True)
             return self._open_image(
                 pic_dir / Theme.PRISM_PLUS.value / f"UI_TTR_Rank_{rate}.png"
@@ -370,7 +370,7 @@ class DrawPlateTable(PlateTable):
                     play = song.results[index]
                     im.alpha_composite(self._plate_complete_bg, (x + 1, y + 1))
                     icon = self._get_plate_icon(play, self.plan)
-                    dest = (x, y + 22) if self.plan == "将" else (x + 10, y + 12)
+                    dest = (x, y + 22) if self.plan in ["将", "者"] else (x + 10, y + 12)
                     im.alpha_composite(icon, dest)
 
                 for s_idx in song.qualified_slots:

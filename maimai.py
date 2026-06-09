@@ -68,7 +68,7 @@ async def _():
 
     if not list(plate_table_dir.iterdir()):
         log.opt(colors=True).warning(
-            "<y>注意！注意！</y>未检测到牌子文件夹为空！"
+            "<y>注意！注意！</y>检测到牌子文件夹为空！"
             "可能导致「完成表」指令无法使用，"
             "请及时私聊BOT使用指令「更新完成表」进行生成。"
         )

@@ -1,14 +1,17 @@
 from collections import defaultdict
 
+from ...constants import DX_CN_VERSION
 from ...resources import merge_alias_file, merge_music_file
 from ..clients.divingfish.models import Music, Notes1, Notes2, Stats
 from ..clients.lxns.models import (
     Aliases,
+    BuddyNotes,
     Notes,
     SongDifficulty,
     SongDifficultyUtage,
     Songs,
 )
+from ..clients.lxns.models import Song as LXSong
 from ..clients.yuzuchan.models import Alias as YuzuAlias
 from ..tool import writefile
 from .alias_list import AliasList
@@ -30,6 +33,40 @@ def chart_notes_to_domain(notes: Notes1 | Notes2) -> Notes:
         touch=touch,
         brk=brk,
         total=tap + hold + slide + touch + brk,
+    )
+
+
+def build_difficulty(
+    level_index: int,
+    level: str,
+    level_value: float,
+    note_designer: str,
+    notes: Notes,
+) -> Difficulties:
+    return Difficulties(
+        level_index=level_index,
+        level=level,
+        level_value=level_value,
+        note_designer=note_designer,
+        notes=notes,
+        dx_score=notes.total * 3,
+        stats=None,
+    )
+
+
+def append_missing_difficulty(song: Song, diffs: list[SongDifficulty]) -> None:
+    if len(song.difficulties) == len(diffs):
+        return
+
+    diff = diffs[-1]
+    song.difficulties.append(
+        build_difficulty(
+            level_index=diff.difficulty,
+            level=diff.level,
+            level_value=diff.level_value,
+            note_designer=diff.note_designer,
+            notes=diff.notes,
+        )
     )
 
 
@@ -82,53 +119,99 @@ async def merge_music_data(
 
     # lxns
     if lxns_list is not None:
+        _version = lxns_list.versions
+        ver_map = {v.version: v.title for v in _version}
+        new_version = _version[-1].version
 
         def set_version(
-            sid: int, type_: list[SongDifficulty] | list[SongDifficultyUtage]
+            raw: LXSong,
+            ver_type: str,
+            sid: int,
+            diffs: list[SongDifficulty] | list[SongDifficultyUtage],
         ):
             song = song_map.get(sid)
-            if song is None:
+            base = diffs[0]
+            if song is not None:
+                song.version_int = base.version
+                if isinstance(base, SongDifficultyUtage):
+                    song.kanji = base.kanji
+                    song.description = base.description
+                    song.is_buddy = base.is_buddy
+                else:
+                    append_missing_difficulty(song, diffs)
                 return
 
-            base = type_[0]
-            song.version_int = base.version
+            _ver = base.version
+            diff_ver = _ver - _ver % 100
+
+            if sid > 100000:
+                if isinstance(base.notes, BuddyNotes):
+                    _notes = [base.notes.left, base.notes.right]
+                else:
+                    _notes = [base.notes]
+                difficulties = [
+                    build_difficulty(
+                        level_index=n,
+                        level=base.level,
+                        level_value=base.level_value,
+                        note_designer=base.note_designer,
+                        notes=notes,
+                    )
+                    for n, notes in enumerate(_notes)
+                ]
+            else:
+                difficulties = [
+                    build_difficulty(
+                        level_index=n,
+                        level=d.level,
+                        level_value=d.level_value,
+                        note_designer=d.note_designer,
+                        notes=d.notes,
+                    )
+                    for n, d in enumerate(diffs)
+                ]
+
+            song = Song(
+                song_id=sid,
+                song_name=raw.title,
+                artist=raw.artist,
+                genre=raw.genre,
+                bpm=raw.bpm,
+                version_str=DX_CN_VERSION.get(ver_map[diff_ver])[-1],
+                version_int=base.version,
+                type=ver_type,
+                isnew=new_version == base.version,
+                difficulties=difficulties,
+            )
+
             if isinstance(base, SongDifficultyUtage):
                 song.kanji = base.kanji
                 song.description = base.description
                 song.is_buddy = base.is_buddy
-            elif len(song.difficulties) != len(type_):
-                _s = type_[-1]
-                song.difficulties.append(
-                    Difficulties(
-                        level_index=_s.difficulty,
-                        level=_s.level,
-                        level_value=_s.level_value,
-                        note_designer=_s.note_designer,
-                        notes=_s.notes,
-                        dx_score=_s.notes.total * 3,
-                        stats=None,
-                    )
-                )
+            else:
+                append_missing_difficulty(song, diffs)
+
+            song_map[sid] = song
 
         for _raw in lxns_list.songs:
             song_id = _raw.id
 
             if song_id < 1000:
                 if _raw.difficulties.standard:
-                    set_version(song_id, _raw.difficulties.standard)
+                    set_version(_raw, "SD", song_id, _raw.difficulties.standard)
 
                 if _raw.difficulties.dx:
-                    set_version(song_id + 10000, _raw.difficulties.dx)
+                    set_version(_raw, "DX", song_id + 10000, _raw.difficulties.dx)
 
             elif song_id < 100000:
                 if _raw.difficulties.dx:
-                    set_version(song_id + 10000, _raw.difficulties.dx)
+                    set_version(_raw, "DX", song_id + 10000, _raw.difficulties.dx)
 
                 if _raw.difficulties.standard:
-                    set_version(song_id - 10000, _raw.difficulties.standard)
+                    set_version(_raw, "SD", song_id - 10000, _raw.difficulties.standard)
             else:
                 if _raw.difficulties.utage:
-                    set_version(song_id, _raw.difficulties.utage)
+                    set_version(_raw, "DX", song_id, _raw.difficulties.utage)
 
     for sid, stat_list in stats_map.items():
         song = song_map.get(int(sid))
@@ -148,7 +231,9 @@ async def merge_music_data(
 
 
 async def merge_alias_data(
-    yuzu_aliases: list[YuzuAlias], lxns_aliases: Aliases | None
+    yuzu_aliases: list[YuzuAlias],
+    lxns_aliases: Aliases | None,
+    local_alias_data: dict[str, list[str]] | None,
 ) -> AliasList:
     """
     合并 `lxns` 和 `yuzuchan` 别名数据
@@ -167,6 +252,10 @@ async def merge_alias_data(
             if song_id > 1000:
                 song_id += 10000
             alias_map.setdefault(song_id, set()).update(item.aliases)
+
+    if local_alias_data is not None:
+        for _a, aliases in local_alias_data.items():
+            alias_map.setdefault(int(_a), set()).update(aliases)
 
     result = AliasList(
         root=sorted(

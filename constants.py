@@ -1,7 +1,5 @@
 import uuid
 
-from .core.merge.models import Theme
-
 # vote
 VOTE_URL = "https://www.yuzuchan.moe/vote"
 
@@ -26,7 +24,6 @@ FORTUNE = [
     "打大歌",
     "推AP",
 ]
-THEME = {str(k): v for k, v in enumerate(Theme)}
 RANK_SP = [
     "d",
     "c",
