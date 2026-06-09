@@ -1,22 +1,47 @@
-# maimaiDX
+<div align='center'>
 
-[![python3](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
-[![QQGroup](https://img.shields.io/badge/QQGroup-Join-blue)](https://qm.qq.com/q/gDIf3fGSPe)
+<a><img src='https://raw.githubusercontent.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx/master/favicon.png' width='200px' height='200px' akt='maimaidx'></a>
+
+<h1>maimaiDX</h1>
+
+[![python3](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+</div>
+
 
 移植自[mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
 
 项目地址：https://github.com/Yuri-YuzuChaN/maimaiDX
 
+#### 欢迎加入开发群交流：[QQGroup](https://qm.qq.com/q/gDIf3fGSPe)
+
 ## 重要更新
+
+**2026-06-09**
+
+### 现仅支持 `Python 3.10+` ！！！
+
+#### 最好在更新 `舞萌DX 2026` 后再使用该版本
+
+1. 更新支持 `舞萌DX2026`，应该是最后一次大改了
+2. 新支持了 `落雪查分器`
+3. 新功能：
+   - 新增 `舞`，`霸者` 牌子绘图
+   - 新增进度绘图
+   - 新增查询曲目过多时的绘图
+   - 新增切换主题功能
+   - 新增切换查分器功能
+   - 新增 `ap50` 指令（仅限落雪查分器）
+   - 新增 `lxbind`，`授权码`，`主题`，`数据源` 指令
+4. 新版本使用独立的 `log`
+5. 新版本使用 `.env` 文件进行配置
+6. 修改了别名推送的发送方式，防止刷屏
+7. 修复了非常多的 `BUG`
+
 
 ## 温馨提示
 
-**首次使用请务必看完 `README.MD` 所有内容**
-
-- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
-- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
-- 不要再问为什么 `资源文件` 的 `plate` 和 `rating` 文件夹是空的或缺少文件
+**请务必看完 `README.MD` 所有内容**
 
 ## 使用方法
 
@@ -26,25 +51,32 @@
     git clone https://github.com/Yuri-YuzuChaN/maimaiDX
     ```
    
-2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到插件根目录并覆盖，即 `maimaiDX/static`
+2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到随意一个文件夹进行存放。对于先前使用过的开发者，请将原先 `static` 文件夹内的所有 `json` 文件放置到 `static\data` 文件夹，字体文件放置到 `static\font` 文件夹
 
-   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/nXt6/Resource.7z)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDRlCkUqPlaR409p6Gv_RK6AZ-dJaBtbgZoJMvFI4IJiYw?e=eu5f2h)
+   ## 对于美术的声明，请勿将绘图设计署名进行删除
 
-3. 配置可选项，请修改 `maimaiDX/static/config.json` 文件
+   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/34s7/Resource%20CN1.55.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQBGKHie6MAaTZy3rME7Q-ruAVKgXDCKROqz5e25KtMeeVY?e=53eC6a)
+   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.55.7z?sign=4wMRn_9n6YZiEVV2vELKCEOj9zsgxScnmgtjsEL3C6g=:0)
 
-   1. 如果您拥有查分器的开发者 `token`，请将 `token` 填入文件中的 `maimaidxtoken` 项
-   2. 如果你的服务器或主机不能顺利流畅的访问查分器和别名库的API，请配置代理。均为香港服务器代理中转，例如你的服务器访问查分器很困难，请设置 `maimaidxproberproxy` 为 `true`，别名库同理
-   3. 可选，是否将部分图片在保存在内存中，不需要请在设置 `saveinmem` 为 `false`
-   4. 可选，是否开启别名推送，不需要请设置 `maimaidxaliaspush` 为 `false`，**注意，该配置为 `false` 时，将不会实时更新别名库，仅会在别名查歌或者跨日更新数据的时候才会更新别名库。如果群组的推送为开启状态，也不再进行推送，推送指令也一并失效**
-   ``` json
-   {
-      "maimaidxtoken": "maimaidxtoken",
-      "maimaidxproberproxy": true,
-      "maimaidxaliasproxy": false,
-      "maimaidxaliaspush": true,
-      "saveinmem": false
-   }
+3. 配置可选项，请复制 `.env.example` 文件并修改为 `.env`，根据要求填写
+
+   ```
+   # maimaidx                                       # 基本配置
+   MAIMAIDX_PATH=                                   # 静态文件夹路径，必须为绝对路径到 `\static`，例如：E:\SakuraBOT\nbstatic\maimaidx\static
+   MAIMAIDX_ALIAS_PROXY=false                       # 是否使用中转访问柚子别名服务器，适用于境内服务器
+   SAVE_IN_MEM=true                                 # 是否将部分图片保存在内存
+   ASSETS_ONLINE=true                               # 对于有 `icon` 和 `plate` 资源的可将此项改为 `false`，如果没有请默认，否则使用落雪查分器时无法使用
+
+   # diving-fish                                    # 水鱼查分器配置
+   DIVINGFISH_TOKEN=                                # 开发者 token，由于水鱼查分器修改了请求鉴权，未填写的仅可使用 `b50` 指令
+   DIVINGFISH_PROBER_PROXY=false                    # 是否使用中转访问水鱼查分器，适用于境外服务器
+
+   # lxns                                           # 落雪查分器配置，均未填写将无法使用落雪查分器
+   LXNS_DEV_TOKEN=                                  # 开发者 token
+   LX_CLIENT_ID=                                    # OAuth 应用ID
+   LX_CLIENT_SECRET=                                # OAuth 应用秘钥
+   REDIRECT_URI=                                    # OAuth 回调地址
    ```
 
 4. 安装插件所需模块：`pip install -r requirements.txt`
@@ -56,9 +88,31 @@
 
 6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
 7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
-8. 重启HoshinoBot
+8. 重启 `HoshinoBot`
+9.  使用 `更新定数表`，`更新完成表` 指令完成图片生成
+10. 开始使用
 
 ## 更新说明
+
+<details>
+<summary>Version 3.0 更新日志</summary>
+
+**2026-06-09**
+
+1. 更新支持 `舞萌DX2026`
+2. 新支持了 `落雪查分器`
+3. 新功能：
+   - 新增 `舞`，`霸者` 牌子绘图，
+   - 新增进度绘图
+   - 新增查询曲目过多时的绘图
+   - 新增切换主题功能
+   - 新增切换查分器功能
+   - 新增 `ap50` 指令（仅限落雪查分器）
+   - 新增 `lxbind`，`授权码`，`主题`，`数据源` 指令
+</details>
+
+<details>
+<summary>Version 2.0 更新日志</summary>
 
 **2025-08-16**
 
@@ -88,6 +142,11 @@
 
 1. 预更新 `舞萌DX2025` UI
 2. 修改所有 `BOT管理员` 私聊指令为群聊指令：`更新别名库`、`更新maimai数据`、`更新定数表`、`更新完成表`
+
+</details>
+
+<details>
+<summary>Version 1.0 更新日志</summary>
 
 **2024-07-24**
 
@@ -285,7 +344,8 @@
 **2021-09-13** 
 
 1. 更新猜歌功能以及开关，感谢 [BlueDeer233](https://github.com/BlueDeer233) 
-
+   
+</details>
 
 ## 鸣谢
 
