@@ -151,6 +151,7 @@ class Guess:
     _group: dict[int, GuessDefaultData | GuessPicData] = {}
     switch: GuessSwitch
     hot_music_ids: list[int] = []
+    _guess_data: list[Song] = []
 
     def __init__(self) -> None:
         """猜歌类"""
@@ -170,17 +171,17 @@ class Guess:
                     count += diff.stats.cnt if diff.stats.cnt else 0
             if count > 10000:
                 self.hot_music_ids.append(song.song_id)
-        self.guess_data = list(
+        self._guess_data = list(
             filter(lambda x: x.song_id in self.hot_music_ids, mai.total_list.root)
         )
 
     def start(self, gid: int):
         """开始猜歌"""
-        self._group[gid] = self.guessData()
+        self._group[gid] = self.guess_data()
 
     def startpic(self, gid: int):
         """开始猜曲绘"""
-        self._group[gid] = self.guesspicdata()
+        self._group[gid] = self.guess_pic_data()
 
     def calculate_frequency_weights(self, image: Image.Image) -> np.ndarray:
         """
@@ -214,7 +215,7 @@ class Guess:
         top_left_x = chosen_index % valid_regions.shape[1]
         return top_left_x, top_left_y
 
-    def pic(self, song: Song) -> Image.Image:
+    def _pic(self, song: Song) -> Image.Image:
         """裁切曲绘"""
         im = Image.open(song_chart(song.song_id))
         w, h = im.size
@@ -226,19 +227,19 @@ class Guess:
         im = im.crop((x, y, x + w2, y + h2))
         return im
 
-    def guesspicdata(self) -> GuessPicData:
+    def guess_pic_data(self) -> GuessPicData:
         """猜曲绘数据"""
-        song = random.choice(self.guess_data)
-        pic = self.pic(song)
+        song = random.choice(self._guess_data)
+        pic = self._pic(song)
         answer = mai.total_alias_list.by_id(song.song_id)[0].alias
         answer.append(song.song_id)
         return GuessPicData(
             song=song, img=image_to_base64(pic), answer=answer, end=False
         )
 
-    def guessData(self) -> GuessDefaultData:
+    def guess_data(self) -> GuessDefaultData:
         """猜歌数据"""
-        song = random.choice(self.guess_data)
+        song = random.choice(self._guess_data)
         guess_options = random.sample(
             [
                 f"的 Expert 难度是 {song.difficulties[2].level}",
@@ -254,7 +255,7 @@ class Guess:
         )
         answer = mai.total_alias_list.by_id(song.song_id)[0].alias
         answer.append(song.song_id)
-        pic = self.pic(song)
+        pic = self._pic(song)
         return GuessDefaultData(
             song=song,
             img=image_to_base64(pic),

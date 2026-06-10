@@ -162,7 +162,7 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev["match"]
     findid = bool(match.group(1))
-    name = match.group(2)
+    name = match.group(2).lower()
     aliases = None
     if findid and name.isdigit():
         alias_id = mai.total_alias_list.by_id(name)
