@@ -2,7 +2,6 @@ import re
 import traceback
 from re import Match
 from textwrap import dedent
-from typing import list
 
 from nonebot import NoneBot
 
