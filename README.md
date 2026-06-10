@@ -65,6 +65,7 @@
    ```
    # maimaidx                           # 基本配置
    MAIMAIDX_PATH=                       # 必填项，静态文件夹路径，必须为绝对路径到 `/static`，例如：e:/SakuraBOT/nbstatic/maimaidx/static
+   MAIMAIDX_ALIAS_PUSH=true             # 是否开启别名推送
    MAIMAIDX_ALIAS_PROXY=false           # 是否使用中转访问柚子别名服务器，适用于境内服务器
    SAVE_IN_MEMORY=true                  # 是否将部分图片保存在内存
    ASSETS_ONLINE=true                   # 对于有 `icon` 和 `plate` 资源的可将此项改为 `false`，如果没有请默认，否则使用落雪查分器时无法使用
@@ -75,7 +76,7 @@
 
    # lxns                               # 落雪查分器配置，均未填写将无法使用落雪查分器
    LXNS_DEV_TOKEN=                      # 开发者 token
-   LX_CLIENT_ID=                        # OAuth 应用ID
+   LX_CLIENT_ID=                        # OAuth 应用ID，OAuth权限范围请选择前三项，不包括「读取个人API秘钥」
    LX_CLIENT_SECRET=                    # OAuth 应用秘钥
    REDIRECT_URI=                        # OAuth 回调地址
    ```
