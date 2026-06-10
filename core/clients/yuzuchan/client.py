@@ -147,7 +147,6 @@ class YuzuChaNAPI(ApiClient):
             "POST",
             self.aliases_endpoint + "/votes",
             accept_message=True,
-            params={"action": "agree"},
             json=json,
         )
         return MessageResult.model_validate(result)

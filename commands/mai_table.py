@@ -29,7 +29,7 @@ TABLE_PATTERN = (
     r"([極极将舞神者]舞?){}表?\s?([0-9]+)?$"
 )
 LEVEL_PATTERN = (
-    r"^([0-9]+\+?)\s?((a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
+    r"^([0-9]+\+?)\s?((?:a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
 )
 LEVEL_LIST_PATTERN = r"([0-9]+\.?[0-9]?\+?)\s?分数列表\s?([0-9]+)?$"
 CATEGORY_ALIAS = {
