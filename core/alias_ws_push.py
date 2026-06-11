@@ -73,6 +73,8 @@ async def push_alias(push: PushAliasStatus):
         song_id = _s.song_id
         alias_name = _s.apply_alias
         song = mai.total_list.by_id(song_id)
+        if song is None:
+            continue
         if push.type == "Apply":
             message.append(
                 dedent(f"""\
@@ -123,11 +125,13 @@ async def ws_alias_server():
                         data = await ws.receive_text()
                         if data == "Hello":
                             log.info("别名推送服务器正常运行")
+                            continue
                         try:
                             newdata = json.loads(data)
                             status = PushAliasStatus.model_validate(newdata)
                             await push_alias(status)
-                        except Exception:
+                        except Exception as e:
+                            log.error(f"处理别名推送失败: {e}")
                             continue
         except (WebSocketDisconnect, httpx.LocalProtocolError) as e:
             log.warning(f"连接断开或异常: {e}，将在 60 秒后重连")

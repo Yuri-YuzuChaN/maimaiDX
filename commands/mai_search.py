@@ -27,7 +27,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(
             ev,
             "没有找到这样的乐曲。\n※ 如果是别名请使用「XXX是什么歌」指令进行查询哦。",
-            reply_message=True,
+            at_sender=True,
         )
 
     if len(songs) == 1:
@@ -39,7 +39,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         image = MessageSegment.text(r)
     else:
         image = await draw_song_list(songs, page)
-    await bot.send(ev, image, reply_message=True)
+    await bot.send(ev, image, at_sender=True)
 
 
 @search_alias_song
@@ -65,7 +65,7 @@ async def _(bot: NoneBot, ev: CQEvent):
             msg += "※ 可以使用指令「同意别名 XXXXX」进行投票"
             await bot.finish(ev, msg.strip(), at_sender=True)
         else:
-            alias_data = yuzu_alias_to_alias(obj)
+            alias_data = yuzu_alias_to_alias(obj.data)
     if alias_data:
         if len(alias_data) != 1:
             msg = f"找到{len(alias_data)}个相同别名的曲目：\n"
@@ -86,8 +86,12 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(
             ev, "您要找的是不是：" + (await draw_chart_info(song, user)), at_sender=True
         )
-    if search_id := re.search(r"^id([0-9]*)$", name, re.IGNORECASE):
+    if search_id := re.search(r"^id([0-9]+)$", name, re.IGNORECASE):
         song = mai.total_list.by_id(int(search_id.group(1)))
+        if not song:
+            await bot.finish(
+                ev, f"未找到ID为「{search_id.group(1)}」的乐曲", at_sender=True
+            )
         await bot.finish(
             ev, "您要找的是不是：" + (await draw_chart_info(song, user)), at_sender=True
         )
@@ -121,7 +125,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     _id = match.group(1)
     song = mai.total_list.by_id(int(_id))
     if not song:
-        msg = f"未找到ID为「{id}」的乐曲"
+        msg = f"未找到ID为「{_id}」的乐曲"
     else:
         msg = await draw_chart_info(song, user)
     await bot.send(ev, msg)

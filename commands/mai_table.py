@@ -31,7 +31,7 @@ TABLE_PATTERN = (
 LEVEL_PATTERN = (
     r"^([0-9]+\+?)\s?((?:a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
 )
-LEVEL_LIST_PATTERN = r"([0-9]+\.?[0-9]?\+?)\s?分数列表\s?([0-9]+)?$"
+LEVEL_LIST_PATTERN = r"^([0-9]+(?:\.[0-9]+)?\+?)\s?分数列表\s?([0-9]+)?$"
 CATEGORY_ALIAS = {
     "已完成": Category.COMPLETED,
     "未完成": Category.UNFINISHED,
@@ -97,6 +97,12 @@ async def _(bot: NoneBot, ev: CQEvent):
     if ra in LEVEL_LIST[:6]:
         await bot.finish(ev, "只支持查询lv7-15的完成表。", at_sender=True)
     elif ra in LEVEL_LIST[6:]:
+        if plan and plan.lower() not in COMBO_PLUS:
+            await bot.finish(
+                ev,
+                "完成表目前仅支持「fc」「ap」计划，例如「13fc完成表」「13ap完成表」。",
+                at_sender=True,
+            )
         pic = await draw_rating_table(
             user, ra, True if plan and plan.lower() in COMBO_PLUS else False
         )
@@ -159,7 +165,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         if target_category:
             category = target_category
         else:
-            await bot.finish(ev, f"无法指定查询「{category}」", at_sender=True)
+            await bot.finish(ev, f"无法指定查询「{category_}」", at_sender=True)
     else:
         category = Category.DEFAULT
 
@@ -172,18 +178,17 @@ async def _(bot: NoneBot, ev: CQEvent):
     user = await GetUserAndAuth(bot, ev)
     match: Match[str] = ev["match"]
     if not match:
-        await bot.finish("输入错误，请重新输入指定等级。", at_sender=True)
+        await bot.finish(ev, "输入错误，请重新输入指定等级。", at_sender=True)
 
     rating = match.group(1)
     page = match.group(2) or 1
-    try:
-        if "." in rating:
-            rating = round(float(rating), 1)
-        elif rating not in LEVEL_LIST:
-            await bot.finish(ev, "无此等级", at_sender=True)
-    except ValueError:
-        if rating not in LEVEL_LIST:
-            await bot.finish(ev, "无此等级", at_sender=True)
+    if "." in rating:
+        # 定数仅有一位小数，多位小数视为输入有误
+        if not re.fullmatch(r"[0-9]+\.[0-9]", rating):
+            await bot.finish(ev, "输入有误，定数仅有一位小数。", at_sender=True)
+        rating = round(float(rating), 1)
+    elif rating not in LEVEL_LIST:
+        await bot.finish(ev, "无此等级", at_sender=True)
 
     result = await draw_level_score_list(user, rating, int(page))
     await bot.send(ev, result, at_sender=True)

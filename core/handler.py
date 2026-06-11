@@ -282,7 +282,7 @@ def get_rise_score_list(
                     level_value=diff.level_value,
                     old_rating=old_result.rating,
                     old_achievements=old_result.achievements,
-                    old_rate=old_result.rate.value,
+                    old_rate=old_result.rate.value if old_result.rate else "D",
                 )
                 rise_result.append(rise)
                 break
@@ -418,9 +418,9 @@ async def get_mai_what(user: User) -> Song | None:
     if _ra != 0:
         ds = round(_ra / 22.4, 1)
         music_list = mai.total_list.filter(level_value=(ds, ds + 1))
-        for _m in music_list:
-            if int(_m.song_id) in ignore:
-                music_list.remove(_m)
+        music_list = [m for m in music_list if int(m.song_id) not in ignore]
+        if not music_list:
+            return None
         return random.choice(music_list)
     return None
 
@@ -630,8 +630,11 @@ async def draw_level_progress(
         if plan_type == 2:  # Sync
             if not res.fs:
                 return False
-            sync_list = SYNC_D_SP if res.fs in SYNC_D_SP else SYNC_SP
-            return sync_list.index(res.fs) >= plan_value
+            if res.fs in SYNC_D_SP:
+                return SYNC_D_SP.index(res.fs) >= plan_value
+            if res.fs in SYNC_SP:
+                return SYNC_SP.index(res.fs) >= plan_value
+            return False
         return False
 
     completed: list[PlayedResult] = []
@@ -657,8 +660,14 @@ async def draw_level_progress(
                 )
 
     sort_key = {0: "achievements", 1: "fc", 2: "fs"}.get(plan_type, "achievements")
-    completed.sort(key=lambda x: getattr(x, sort_key) or "", reverse=True)
-    unfinished.sort(key=lambda x: getattr(x, sort_key) or "", reverse=True)
+    sort_default = 0 if plan_type == 0 else ""
+
+    def _sort_value(res: PlayedResult):
+        value = getattr(res, sort_key)
+        return value if value is not None else sort_default
+
+    completed.sort(key=_sort_value, reverse=True)
+    unfinished.sort(key=_sort_value, reverse=True)
     notplayed.sort(key=lambda x: x.level_value, reverse=True)
 
     if category == Category.DEFAULT:
@@ -678,9 +687,8 @@ async def draw_level_progress(
     elif category in [Category.COMPLETED, Category.UNFINISHED]:
         data = completed if category == Category.COMPLETED else unfinished
         per_page = 80
-        total_page = (len(data) - 1) // per_page + 1
-        if page > total_page:
-            page = total_page
+        total_page = max(1, (len(data) - 1) // per_page + 1)
+        page = max(1, min(page, total_page))
 
         display_data = data[(page - 1) * per_page : page * per_page]
         y_size = get_rows(len(display_data), 5) * 109
@@ -729,9 +737,8 @@ async def draw_level_score_list(
     )
 
     result_sum = len(new_play_result)
-    end_page = (result_sum + 79) // 80
-    if page > end_page:
-        page = end_page
+    end_page = max(1, (result_sum + 79) // 80)
+    page = max(1, min(page, end_page))
 
     to_page = 80 if page < end_page else (result_sum % 80 or 80)
     line = (to_page + 4) // 5
