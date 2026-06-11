@@ -74,7 +74,7 @@ GetUserAndAuthOrNone = GetUserModel(auto_create=True, check_auth=True, check_ski
 
 
 
-def _isfloat(value: str) -> bool:
+def is_float(value: str) -> bool:
     try:
         float(value)
         return True
@@ -111,12 +111,12 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
             result = mai.total_list.filter(title=title)
         case "定数":
             match a_list:
-                case [ds] if _isfloat(ds):
+                case [ds] if is_float(ds):
                     ds1 = ds2 = float(ds)
-                case [ds1_raw, ds2_raw] if _isfloat(ds1_raw) and _isfloat(ds2_raw):
+                case [ds1_raw, ds2_raw] if is_float(ds1_raw) and is_float(ds2_raw):
                     ds1, ds2 = float(ds1_raw), float(ds2_raw)
                 case [ds1_raw, ds2_raw, p_raw] if (
-                    _isfloat(ds1_raw) and _isfloat(ds2_raw) and p_raw.isdigit()
+                    is_float(ds1_raw) and is_float(ds2_raw) and p_raw.isdigit()
                 ):
                     ds1, ds2, page = float(ds1_raw), float(ds2_raw), int(p_raw)
                 case _:
@@ -132,16 +132,16 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
             result = mai.total_list.filter(level_value=(ds1, ds2))
         case "bpm":
             match a_list:
-                case [bpm_raw] if _isfloat(bpm_raw):
+                case [bpm_raw] if is_float(bpm_raw):
                     result = mai.total_list.filter(bpm=float(bpm_raw))
-                case [b1, b2] if _isfloat(b1) and _isfloat(b2):
+                case [b1, b2] if is_float(b1) and is_float(b2):
                     if float(b1) > float(b2):
                         page = int(float(b2))
                         result = mai.total_list.filter(bpm=float(b1))
                     else:
                         result = mai.total_list.filter(bpm=(float(b1), float(b2)))
                 case [b1, b2, p_raw] if (
-                    _isfloat(b1) and _isfloat(b2) and p_raw.isdigit()
+                    is_float(b1) and is_float(b2) and p_raw.isdigit()
                 ):
                     result = mai.total_list.filter(bpm=(float(b1), float(b2)))
                     page = int(p_raw)
