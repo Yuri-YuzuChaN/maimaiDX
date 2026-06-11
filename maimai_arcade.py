@@ -128,12 +128,12 @@ async def _(bot: NoneBot, ev: CQEvent):
     args: list[str] = ev.message.extract_plain_text().strip().split()
     if not priv.check_priv(ev, priv.ADMIN):
         msg = "仅允许管理员修改机厅信息"
+    elif len(args) != 3 or args[1] != "数量" or not args[2].isdigit():
+        msg = "格式错误：修改机厅 <店名/ID> 数量 <数量>"
     elif not args[0].isdigit() and len(_arc := arcade.total.search_fullname(args[0])) > 1:
         msg = "找到多个相同店名的机厅，请使用店铺ID修改机厅\n" + "\n".join([ f"{_.id}：{_.name}" for _ in _arc ])
-    elif args[1] == "数量" and len(args) == 3 and args[2].isdigit():
-        msg = await updata_arcade(args[0], args[2])
     else:
-        msg = "格式错误：修改机厅 <店名> [数量] <数量>"
+        msg = await updata_arcade(args[0], args[2])
     
     await bot.send(ev, msg, at_sender=True)
 
@@ -204,7 +204,8 @@ async def _(bot: NoneBot, ev: CQEvent):
         if not arcade_list:
             await bot.finish(ev, "该群未订阅机厅，无法更改机厅人数", at_sender=True)
         value = match.group(2)
-        person = int(match.group(3))
+        _amount = match.group(3)
+        person = 1 if _amount in ["＋", "+", "－", "-"] else int(_amount)
         if match.group(1):
             if "人数" in match.group(1) or "卡" in match.group(1):
                 arcadeName = match.group(1)[:-2] if "人数" in match.group(1) else match.group(1)[:-1]

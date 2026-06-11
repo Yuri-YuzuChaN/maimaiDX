@@ -10,6 +10,7 @@ from ..image.tools import image_to_base64, song_chart
 from ..merge import merge_alias_data, merge_music_data
 from ..merge.alias_list import AliasList
 from ..merge.models import (
+    Alias,
     AliasesPush,
     GuessDefaultData,
     GuessPicData,
@@ -231,8 +232,9 @@ class Guess:
         """猜曲绘数据"""
         song = random.choice(self._guess_data)
         pic = self._pic(song)
-        answer = mai.total_alias_list.by_id(song.song_id)[0].alias
-        answer.append(song.song_id)
+        _alias = mai.total_alias_list.by_id(song.song_id)
+        answer = [a.lower() for a in _alias[0].alias] if _alias else []
+        answer.append(str(song.song_id))
         return GuessPicData(
             song=song, img=image_to_base64(pic), answer=answer, end=False
         )
@@ -253,8 +255,9 @@ class Guess:
             ],
             6,
         )
-        answer = mai.total_alias_list.by_id(song.song_id)[0].alias
-        answer.append(song.song_id)
+        _alias = mai.total_alias_list.by_id(song.song_id)
+        answer = [a.lower() for a in _alias[0].alias] if _alias else []
+        answer.append(str(song.song_id))
         pic = self._pic(song)
         return GuessDefaultData(
             song=song,
@@ -266,7 +269,7 @@ class Guess:
 
     def end(self, gid: int):
         """结束猜歌"""
-        del self._group[gid]
+        self._group.pop(gid, None)
 
     async def on(self, gid: int) -> str:
         """开启猜歌"""
@@ -301,11 +304,24 @@ async def update_local_alias(song_id: int, alias_name: str) -> bool:
         if local_alias_file.exists():
             local_alias_data = await openfile(local_alias_file)
 
-        if song_id not in local_alias_data:
+        if song_id_key not in local_alias_data:
             local_alias_data[song_id_key] = []
+        if alias not in local_alias_data[song_id_key]:
+            local_alias_data[song_id_key].append(alias)
 
-        local_alias_data[song_id_key].append(alias)
-        mai.total_alias_list.by_id(song_id)[0].alias.append(alias)
+        entries = mai.total_alias_list.by_id(song_id)
+        if entries:
+            if alias not in entries[0].alias:
+                entries[0].alias.append(alias)
+        else:
+            _song = mai.total_list.by_id(song_id)
+            mai.total_alias_list.root.append(
+                Alias(
+                    song_id=song_id,
+                    song_name=_song.song_name if _song else "",
+                    alias=[alias],
+                )
+            )
 
         await writefile(local_alias_file, local_alias_data)
         return True
