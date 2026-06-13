@@ -13,7 +13,7 @@ from ..constants import SONGS_PER_PAGE
 from ..core.clients.exceptions import ServerError
 from ..core.clients.yuzuchan.client import YuzuChaNAPI
 from ..core.clients.yuzuchan.models import Alias
-from ..core.image.tools import text_to_bytes_io
+from ..core.image.tools import text_to_base64
 from ..core.service import alias, mai, update_local_alias
 
 update_alias = sv.on_fullmatch("更新别名库")
@@ -156,7 +156,7 @@ async def _(bot: NoneBot, ev: CQEvent):
                     """)
                 )
         result.append(f"第「{page}」页，共「{total_pages}」页")
-        msg = MessageSegment.image(text_to_bytes_io("\n".join(result)))
+        msg = MessageSegment.image(text_to_base64("\n".join(result)))
     except (ServerError, ValueError) as e:
         log.error(traceback.format_exc())
         msg = str(e)

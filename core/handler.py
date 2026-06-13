@@ -35,7 +35,7 @@ from .image import (
     song_global_data,
     song_list,
     song_play_data,
-    text_to_bytes_io,
+    text_to_base64,
     tricolor_gradient_prism_plus,
 )
 from .merge.models import (
@@ -806,4 +806,4 @@ async def draw_rating_ranking(name: str, page: int) -> MessageSegment:
     footer = f"\n第「{page} / {total_pages}」页，共「{user_rows}」名玩家"
 
     full_msg = header + "\n".join(lines) + footer
-    return MessageSegment.image(text_to_bytes_io(full_msg))
+    return MessageSegment.image(text_to_base64(full_msg))
