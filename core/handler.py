@@ -321,7 +321,7 @@ def draw_rating_table_text(rating: str) -> MessageSegment:
     return MessageSegment.image(image)
 
 
-async def draw_song_list(songs: list[Song], page: int) -> MessageSegment:
+def draw_song_list(songs: list[Song], page: int) -> MessageSegment:
     """
     绘制曲目列表
 

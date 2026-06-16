@@ -53,7 +53,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         await alias.alias_global_change(False, group_id)
         await bot.send(ev, "已全局关闭maimai别名推送")
     else:
-        await bot.finish(ev)
+        return
 
 
 @alias_local_apply

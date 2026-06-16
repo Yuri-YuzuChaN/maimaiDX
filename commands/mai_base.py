@@ -232,10 +232,10 @@ async def _(bot: NoneBot, ev: CQEvent):
         score = int(score)
 
     if rating and rating not in LEVEL_LIST:
-        await bot.finish(ev, "无此等级", reply_message=True)
+        await bot.finish(ev, "无此等级", at_sender=True)
 
     data = await draw_rise_score_list(user, rating, score)
-    await bot.send(ev, data, reply_message=True)
+    await bot.send(ev, data, at_sender=True)
 
 
 @rating_ranking

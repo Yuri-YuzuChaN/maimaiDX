@@ -53,7 +53,7 @@ class GetUserModel:
             ):
                 if self.check_skip:
                     return None
-                await bot.finish(ev, AUTHORIZE_ERROR, reply_message=True)
+                await bot.finish(ev, AUTHORIZE_ERROR, at_sender=True)
             is_exist = True
 
         if self.check_skip:
@@ -98,7 +98,7 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
                     await bot.finish(
                         ev, 
                         "没有找到这样的乐曲。\n※ 如果是别名请使用「XXX是什么歌」指令进行查询哦。",
-                        reply_message=True,
+                        at_sender=True,
                     )
             result = mai.total_list.filter(title=title)
         case "定数":
@@ -117,7 +117,7 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
                             "定数查歌「定数」「页数」\n"
                             "定数查歌「最小定数」「最大定数」「页数」\n"
                         ),
-                        reply_message=True,
+                        at_sender=True,
                     )
             result = mai.total_list.filter(level_value=(ds1, ds2))
         case "bpm":
@@ -141,7 +141,7 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
                             "bpm查歌「bpm」「页数」\n"
                             "bpm查歌「最小bpm」「最大bpm」「页数」\n"
                         ),
-                        reply_message=True,
+                        at_sender=True,
                     )
         case "曲师" | "谱师":
             match a_list:
@@ -156,13 +156,13 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
                             f"{cmd}查歌参数错误，请输入正确格式，页数为可选：\n"
                             f"{cmd}查歌「{cmd}」「页数」"
                         ),
-                        reply_message=True,
+                        at_sender=True,
                     )
             if cmd == "曲师":
                 result = mai.total_list.filter(artist=name)
             else:
-                result = mai.total_list.filter(charter=name)
+                result = mai.total_list.filter(charter=name, all_diff=False)
         case _:
-            await bot.finish(ev, "指令错误", reply_message=True)
+            await bot.finish(ev, "指令错误", at_sender=True)
 
     return result, page

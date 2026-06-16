@@ -27,7 +27,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         await bot.finish(
             ev,
             "没有找到这样的乐曲。\n※ 如果是别名请使用「XXX是什么歌」指令进行查询哦。",
-            reply_message=True,
+            at_sender=True,
         )
 
     if len(songs) == 1:
@@ -38,8 +38,8 @@ async def _(bot: NoneBot, ev: CQEvent):
             r += f"{f'「{song.song_id}」':<7} {song.song_name}\n"
         image = MessageSegment.text(r)
     else:
-        image = await draw_song_list(songs, page)
-    await bot.send(ev, image, reply_message=True)
+        image = draw_song_list(songs, page)
+    await bot.send(ev, image, at_sender=True)
 
 
 @search_alias_song
