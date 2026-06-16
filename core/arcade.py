@@ -34,12 +34,13 @@ class ArcadeList(list[Arcade]):
     def search_name(self, name: str) -> list[Arcade]:
         """模糊查询机厅"""
         arcade_list = []
+        name = name.lower()
         for arcade in self:
-            if name in arcade.name:
+            if name in arcade.name.lower():
                 arcade_list.append(arcade)
-            elif name in arcade.location:
+            elif name in arcade.location.lower():
                 arcade_list.append(arcade)
-            elif name in arcade.alias:
+            elif any(name in a.lower() for a in arcade.alias):
                 arcade_list.append(arcade)
 
         return arcade_list

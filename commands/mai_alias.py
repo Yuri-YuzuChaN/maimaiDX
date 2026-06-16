@@ -13,7 +13,7 @@ from ..constants import SONGS_PER_PAGE
 from ..core.clients.exceptions import ServerError
 from ..core.clients.yuzuchan.client import YuzuChaNAPI
 from ..core.clients.yuzuchan.models import Alias
-from ..core.image.tools import text_to_bytes_io
+from ..core.image.tools import text_to_base64
 from ..core.service import alias, mai, update_local_alias
 
 update_alias = sv.on_fullmatch("更新别名库")
@@ -22,8 +22,10 @@ alias_apply = sv.on_prefix(["添加别名", "增加别名", "增添别名", "添
 alias_agree = sv.on_prefix(["同意别名", "同意别称"])
 alias_status = sv.on_prefix(["当前投票", "当前别名投票", "当前别称投票"])
 alias_switch = sv.on_suffix(["别名推送", "别称推送"])
-alias_global_switch = sv.on_rex(r"^全局([开启关闭]+)别名推送$")
-alias_song = sv.on_rex(re.compile(r"^(id)?\s?(.+)\s?有什么别[名称]$", re.IGNORECASE))
+alias_global_switch = sv.on_rex(r"^全局(开启|关闭)别名推送$")
+alias_song = sv.on_rex(
+    re.compile(r"^(id(?=[\s0-9]))?\s?(.+)\s?有什么别[名称]$", re.IGNORECASE)
+)
 
 
 @update_alias
@@ -108,7 +110,7 @@ async def _(bot: NoneBot, ev: CQEvent):
                 ev, f"该曲目的别名「{alias_name}」已存在别名服务器", at_sender=True
             )
 
-        msg = await api.post_alias(song_id, alias_name, ev.user_id, ev.group_id)
+        msg = (await api.post_alias(song_id, alias_name, ev.user_id, ev.group_id)).message
     except Exception as e:
         log.error(traceback.format_exc())
         msg = str(e)
@@ -121,9 +123,11 @@ async def _(bot: NoneBot, ev: CQEvent):
         tag: str = ev.message.extract_plain_text().strip().upper()
         api = YuzuChaNAPI()
         status = await api.post_agree_user(tag, ev.user_id)
-        await bot.send(ev, status, at_sender=True)
-    except ValueError as e:
-        await bot.send(ev, str(e), at_sender=True)
+        msg = status.message
+    except Exception as e:
+        log.error(traceback.format_exc())
+        msg = str(e)
+    await bot.send(ev, msg, at_sender=True)
 
 
 @alias_status
@@ -135,7 +139,8 @@ async def _(bot: NoneBot, ev: CQEvent):
         if not status:
             await bot.finish(ev, "未查询到正在进行的别名投票", at_sender=True)
 
-        page = max(min(int(args), len(status) // SONGS_PER_PAGE + 1), 1) if args else 1
+        total_pages = (len(status) + SONGS_PER_PAGE - 1) // SONGS_PER_PAGE
+        page = max(min(int(args), total_pages), 1) if args.isdigit() else 1
         result = []
         for num, _s in enumerate(status):
             if (page - 1) * SONGS_PER_PAGE <= num < page * SONGS_PER_PAGE:
@@ -150,8 +155,8 @@ async def _(bot: NoneBot, ev: CQEvent):
                         - 票数：{_s.agree_votes}/{_s.votes}
                     """)
                 )
-        result.append(f"第「{page}」页，共「{len(status) // SONGS_PER_PAGE + 1}」页")
-        msg = MessageSegment.image(text_to_bytes_io("\n".join(result)))
+        result.append(f"第「{page}」页，共「{total_pages}」页")
+        msg = MessageSegment.image(text_to_base64("\n".join(result)))
     except (ServerError, ValueError) as e:
         log.error(traceback.format_exc())
         msg = str(e)
@@ -165,7 +170,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     name = match.group(2).lower()
     aliases = None
     if findid and name.isdigit():
-        alias_id = mai.total_alias_list.by_id(name)
+        alias_id = mai.total_alias_list.by_id(int(name))
         if not alias_id:
             await bot.finish(
                 ev,
@@ -178,7 +183,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         aliases = mai.total_alias_list.by_alias(name)
         if not aliases:
             if name.isdigit():
-                alias_id = mai.total_alias_list.by_id(name)
+                alias_id = mai.total_alias_list.by_id(int(name))
                 if not alias_id:
                     await bot.finish(
                         ev,
@@ -204,11 +209,14 @@ async def _(bot: NoneBot, ev: CQEvent):
             at_sender=True,
         )
 
-    if len(aliases[0].alias) == 1:
+    real_aliases = [
+        a for a in aliases[0].alias if a.lower() != aliases[0].song_name.lower()
+    ]
+    if not real_aliases:
         await bot.finish(ev, "该曲目没有别名", at_sender=True)
 
     msg = f"该曲目有以下别名：\nID：{aliases[0].song_id}\n"
-    msg += "\n".join(aliases[0].alias)
+    msg += "\n".join(real_aliases)
     await bot.send(ev, msg, at_sender=True)
 
 
@@ -220,6 +228,6 @@ async def _(bot: NoneBot, ev: CQEvent):
     elif args == "关闭":
         msg = await alias.off(ev.group_id)
     else:
-        raise ValueError("matcher type error")
+        return
 
     await bot.send(ev, msg, at_sender=True)

@@ -109,7 +109,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     user = await GetOrCreateUser(bot, ev)
     code = ev.message.extract_plain_text().strip()
     if not CODE_PATTERN.fullmatch(code):
-        await bot.finish("授权码格式错误，请重新发送。", at_sender=True)
+        await bot.finish(ev, "授权码格式错误，请重新发送。", at_sender=True)
     result = await bind_lxns(user, code)
     await bot.send(ev, result, at_sender=True)
 
@@ -145,7 +145,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip()
     theme_ = Theme.get_by_index(args)
     if theme_ is None:
-        await bot.finish(f"未找到该主题：\n{Theme.get_help()}", at_sender=True)
+        await bot.finish(ev, f"未找到该主题：\n{Theme.get_help()}", at_sender=True)
 
     await update_user(user.qqid, theme=theme_)
     await bot.send(ev, f"主题已切换为：「{theme_.value}」", at_sender=True)
@@ -207,10 +207,15 @@ async def _(bot: NoneBot, ev: CQEvent):
     else:
         type_ = ["SD", "DX"]
     level = match.group(3)
-    if match.group(2) == "":
-        songs = mai.total_list.filter(level=level, type=type_)
-    else:
-        songs = mai.total_list.filter(level=level, type=type_)
+    color = match.group(2)
+    songs = mai.total_list.filter(level=level, type=type_)
+    if color:
+        ci = "绿黄红紫白".index(color)
+        songs = [
+            s
+            for s in songs
+            if len(s.difficulties) > ci and s.difficulties[ci].level == level
+        ]
     if len(songs) == 0:
         result = "没有这样的乐曲哦。"
     else:
@@ -261,3 +266,4 @@ async def _(bot: NoneBot, ev: CQEvent):
         if rank.username == info.username:
             result = f"您的Rating为「{rank.ra}」，排名第「{num + 1}」名"
             await bot.finish(ev, result, at_sender=True)
+    await bot.finish(ev, "未在查分器排行榜中找到您的记录。", at_sender=True)

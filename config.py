@@ -30,7 +30,11 @@ class BaseConfig(Settings):
     maimaidx_alias_push: bool = True
     save_in_memory: bool | None = True
     assets_online: bool | None = True
-    bot_name: str = NICKNAME if isinstance(NICKNAME, str) else list(NICKNAME)[0]
+    bot_name: str = (
+        NICKNAME
+        if isinstance(NICKNAME, str)
+        else (list(NICKNAME)[0] if NICKNAME else "Sakura")
+    )
 
 
 class DivingFishConfig(Settings):

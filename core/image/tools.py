@@ -263,6 +263,11 @@ def text_to_bytes_io(text: str) -> BytesIO:
     return bio
 
 
+def text_to_base64(text: str) -> str:
+    """将文本渲染为图片并返回 base64 字符串，可直接传给 MessageSegment.image"""
+    return image_to_base64(text_to_image(text))
+
+
 def base64_to_bytesio(base64_str: str) -> BytesIO:
     if base64_str.startswith("base64://"):
         base64_str = base64_str[len("base64://") :]
