@@ -73,7 +73,6 @@ GetUserAndAuthOrNone = GetUserModel(auto_create=True, check_auth=True, check_ski
 """获取用户数据，如不存在则创建，并检查是否授权，未授权则返回`None`"""
 
 
-
 def is_float(value: str) -> bool:
     try:
         float(value)

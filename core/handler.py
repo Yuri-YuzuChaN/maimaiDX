@@ -11,7 +11,6 @@ from ..constants import (
     COMBO_SP,
     DX_CN_VERSION,
     LEVEL_INDEX_MAP,
-    LEVEL_LIST,
     RANK_PLUS,
     SYNC_D_SP,
     SYNC_PLUS,

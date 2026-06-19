@@ -20,7 +20,7 @@ from ..core.handler import (
 from ..core.image.tools import image_to_base64
 from ..core.image.update_table import UpdateTable
 from ..core.merge.models import Category
-from ..resources import pic_dir
+from ..resources import pic_dir, rating_table_dir
 from .depend import GetUserAndAuth
 
 RATING_PATTERN = r"^([0-9]+\+?)((s+|ap|fc|fs|fdx)\+?)?\s?完成表$"
@@ -28,9 +28,7 @@ TABLE_PATTERN = (
     r"^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌星宙祭祝双宴镜彩])"
     r"([極极将舞神者]舞?){}表?\s?([0-9]+)?$"
 )
-LEVEL_PATTERN = (
-    r"^([0-9]+\+?)\s?((?:a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
-)
+LEVEL_PATTERN = r"^([0-9]+\+?)\s?((?:a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
 LEVEL_LIST_PATTERN = r"^([0-9]+(?:\.[0-9]+)?\+?)\s?分数列表\s?([0-9]+)?$"
 CATEGORY_ALIAS = {
     "已完成": Category.COMPLETED,
@@ -82,7 +80,12 @@ async def _(bot: NoneBot, ev: CQEvent):
     if rating in LEVEL_LIST[:6]:
         result = "只支持查询lv7-15的定数表。"
     elif rating in LEVEL_LIST[6:]:
-        result = draw_rating_table_text(rating)
+        if rating == "15":
+            result = MessageSegment.image(
+                image_to_base64(Image.open(rating_table_dir / "15.png"))
+            )
+        else:
+            result = draw_rating_table_text(rating)
     else:
         result = "无法识别的定数。"
     await bot.send(ev, result, at_sender=True)
@@ -114,10 +117,10 @@ async def _(bot: NoneBot, ev: CQEvent):
 @plate_table_condition
 async def _(bot: NoneBot, ev: CQEvent):
     await bot.send(
-        ev, 
+        ev,
         MessageSegment.image(
             image_to_base64(Image.open(pic_dir / "table_condition.jpg"))
-        )
+        ),
     )
 
 

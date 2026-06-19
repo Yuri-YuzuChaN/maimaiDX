@@ -110,7 +110,9 @@ async def _(bot: NoneBot, ev: CQEvent):
                 ev, f"该曲目的别名「{alias_name}」已存在别名服务器", at_sender=True
             )
 
-        msg = (await api.post_alias(song_id, alias_name, ev.user_id, ev.group_id)).message
+        msg = (
+            await api.post_alias(song_id, alias_name, ev.user_id, ev.group_id)
+        ).message
     except Exception as e:
         log.error(traceback.format_exc())
         msg = str(e)
