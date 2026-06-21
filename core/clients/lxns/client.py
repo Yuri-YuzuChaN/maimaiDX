@@ -49,7 +49,7 @@ class OAuth2(ApiClient):
             "redirect_uri": self.redirect_uri,
         }
         result = await self._request_data("POST", "/api/v0/oauth/token", json=json)
-        self.token = OAuth2Token.model_validate(result.data)
+        self.token = OAuth2Token.model_validate(result)
         return self.token
 
     async def refresh_token(self) -> OAuth2Token:
@@ -63,12 +63,11 @@ class OAuth2(ApiClient):
             "refresh_token": self.token.refresh_token,
         }
         result = await self._request_data("POST", "/api/v0/oauth/token", json=json)
-        self.token = OAuth2Token.model_validate(result.data)
+        self.token = OAuth2Token.model_validate(result)
         return self.token
 
-    async def _request_data(self, method: str, endpoint: str, **kwargs) -> APIResult:
-        data = await self._request(method, endpoint, **kwargs)
-        return APIResult.model_validate(data)
+    async def _request_data(self, method: str, endpoint: str, **kwargs) -> dict:
+        return await self._request(method, endpoint, **kwargs)
 
     def _handle_error(self, resp: Response) -> None:
         if resp.status_code == 200:
