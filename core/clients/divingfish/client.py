@@ -1,7 +1,7 @@
 from httpx import Response
 
 from ....config import dfconfig
-from ..exceptions import UnknownError
+from ..exceptions import UnknownError, UserNotExistsError
 from ..http import ApiClient
 from .exceptions import (
     DivingFishTokenDisableError,
@@ -29,6 +29,7 @@ class DivingFishAPI(ApiClient):
             self.json["qq"] = qqid
         if username:
             self.json["username"] = username
+            del self.json["qq"]
 
     def _handle_error(self, resp: Response):
         if resp.status_code == 200:
@@ -48,7 +49,7 @@ class DivingFishAPI(ApiClient):
                 case "no such user":
                     raise DivingFishUserNotFoundError
                 case "user not exists":
-                    raise DivingFishUserDisabledQueryError
+                    raise UserNotExistsError
                 case "开发者token有误":
                     raise DivingFishTokenError
                 case "开发者token被禁用":

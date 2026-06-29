@@ -17,6 +17,20 @@
 
 ## 重要更新
 
+**2026-06-30**
+
+1. 替换 `rating` 数字新素材，直接覆盖 `mai/pic` 目录，增量包：
+
+   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/Jvhl/Resource%20CN1.56%20UPDATE.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDS_RzM66klSqvHtUhfFPTfAfpJcbGlIbL-7Q6eSPxM4CA?e=xRPo7b)
+   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.56%20UPDATE.7z?sign=p6h2Q9f3u87vRO8yU6ZSvCoagq0BE-xnX4wlhM55s_U=:0)
+
+2. 恢复查询TA人成绩的功能
+3. 修复15完成表绘图偏移的问题
+4. 修复进度表完成时文字重叠的问题
+5. 优化部分绘图
+6. 修复部分bug
+
 **2026-06-09**
 
 ### 现仅支持 `Python 3.10+` ！！！

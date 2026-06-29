@@ -7,7 +7,7 @@ from hoshino.typing import CQEvent, MessageSegment
 
 from ..config import log, sv
 from ..core.handler import draw_best50, draw_play_data, draw_song_galobal_data
-from ..core.image.tools import text_to_base64
+from ..core.image.tools import image_to_base64, text_to_image
 from ..core.merge.models import ServiceName
 from ..core.service import mai
 from .depend import GetUserAndAuth
@@ -27,7 +27,7 @@ async def _(bot: NoneBot, ev: CQEvent):
     username: str = ev.message.extract_plain_text().strip()
 
     if (is_ap := ev.prefix.strip() in ap50) and user.service == ServiceName.DIVINGFISH:
-        await bot.finish(ev, "AP50仅支持落雪查分器", at_sender=True)
+        await bot.finish(ev, "仅落雪查分器支持AP50指令", at_sender=True)
     result = await draw_best50(user, username=username, all_perfect=is_ap)
     await bot.send(ev, result, at_sender=True)
 
@@ -126,7 +126,11 @@ async def _(bot: NoneBot, ev: CQEvent):
             TOUCH       1 / 2.5  / 5
             BREAK       5 / 12.5 / 25 (外加200落)
         """).strip()
-        await bot.send(ev, MessageSegment.image(text_to_base64(msg)), at_sender=True)
+        await bot.send(
+            ev,
+            MessageSegment.image(image_to_base64(text_to_image(msg))),
+            at_sender=True,
+        )
     else:
         try:
             result = re.search(r"([绿黄红紫白])\s?([0-9]+)", _args)

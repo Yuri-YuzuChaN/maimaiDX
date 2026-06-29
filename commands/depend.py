@@ -39,6 +39,11 @@ class GetUserModel:
         user_id = ev.user_id
         user = None
         is_exist = False
+
+        for item in ev.message:
+            if item.type == "at" and item.data["qq"] != "all":
+                user_id = int(item.data["qq"])
+
         try:
             user = await get_user(user_id)
         except UserNotBindError:

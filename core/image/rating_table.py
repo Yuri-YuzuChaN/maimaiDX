@@ -49,6 +49,8 @@ class RatingGridConfig:
 
 
 class DrawRatingTable(AssetsImage):
+    _font_color = (114, 188, 254, 255)
+
     def __init__(
         self,
         rating: str,
@@ -89,6 +91,13 @@ class DrawRatingTable(AssetsImage):
             path = pic_dir / f"UI_MSS_MBase_Icon_{COMBO_MAP[fc]}.png"
             if path.exists():
                 self._fc_cache[fc] = self._open_image(path).resize((50, 50))
+        return self._fc_cache.get(fc)
+
+    def _get_big_fc_icon(self, fc: str) -> Image.Image:
+        if fc not in self._fc_cache:
+            path = pic_dir / f"UI_CHR_PlayBonus_{COMBO_MAP[fc]}.png"
+            if path.exists():
+                self._fc_cache[fc] = self._open_image(path).resize((200, 200))
         return self._fc_cache.get(fc)
 
     def _calc_achievements_fc(
@@ -153,17 +162,28 @@ class DrawRatingTable(AssetsImage):
         tb = DrawText(dr, TBFONT)
         fot = DrawText(dr, FOTNEWRODIN)
 
-        font_color = (114, 188, 254, 255)
-
         if self.level_text:
-            fot.draw(495, 220, 70, "Level.", font_color, "ld", 8, (255, 255, 255, 255))
             fot.draw(
-                750, 220, 100, self.rating, font_color, "ld", 8, (255, 255, 255, 255)
+                495, 220, 70, "Level.", self._font_color, "ld", 8, (255, 255, 255, 255)
+            )
+            fot.draw(
+                750,
+                220,
+                100,
+                self.rating,
+                self._font_color,
+                "ld",
+                8,
+                (255, 255, 255, 255),
             )
             return image_to_base64(im)
 
-        fot.draw(495, 160, 70, "Level.", font_color, "ld", 8, (255, 255, 255, 255))
-        fot.draw(750, 160, 100, self.rating, font_color, "ld", 8, (255, 255, 255, 255))
+        fot.draw(
+            495, 160, 70, "Level.", self._font_color, "ld", 8, (255, 255, 255, 255)
+        )
+        fot.draw(
+            750, 160, 100, self.rating, self._font_color, "ld", 8, (255, 255, 255, 255)
+        )
 
         statistics, played_map = self._process_rating_table_data()
 
@@ -204,12 +224,11 @@ class DrawRatingTable(AssetsImage):
                 (255, 255, 255, 255),
             )
 
-        current_y = RatingGridConfig.start_y
-        for ra, songs in lv_data.items():
-            for num, song in enumerate(lv_data[ra]):
-                row, col = divmod(num, RatingGridConfig.row_count)
-                x = RatingGridConfig.start_x + col * RatingGridConfig.gap
-                y = current_y + row * RatingGridConfig.gap
+        if self.rating == "15":
+            for num, song in enumerate(lv_data["15.0"]):
+                row, col = divmod(num, 3)
+                x = 100 + col * 425
+                y = 500 + row * 450
 
                 _record = played_map.get(song.song_id)
                 if _record is None:
@@ -221,30 +240,65 @@ class DrawRatingTable(AssetsImage):
 
                 if not self.plan:
                     achievements_or_fc_list.append(record.achievements)
-                    bg = (
-                        self._rating_complete_bg
-                        if record.achievements >= 100
-                        else self._rating_unfinished_bg
-                    )
-                    im.alpha_composite(bg, (x + 1, y + 1))
 
                     rate = compute_rating(
                         song.difficulties.level_value,
                         record.achievements,
                         onlyrate=True,
                     )
-                    im.alpha_composite(
-                        self._get_rank_icon(rate).resize((78, 35)), (x, y + 20)
-                    )
+                    im.alpha_composite(self._get_rank_icon(rate), (x + 55, y + 115))
                     continue
 
                 if record.fc:
                     achievements_or_fc_list.append(COMBO_SP.index(record.fc))
-                    im.alpha_composite(self._rating_complete_bg, (x + 1, y + 1))
-                    im.alpha_composite(self._get_fc_icon(record.fc), (x + 15, y + 13))
+                    im.alpha_composite(
+                        self._get_big_fc_icon(record.fc), (x + 75, y + 80)
+                    )
 
-            group_rows = (len(songs) - 1) // RatingGridConfig.row_count + 1
-            current_y += group_rows * RatingGridConfig.gap + 30
+        else:
+            current_y = RatingGridConfig.start_y
+            for ra, songs in lv_data.items():
+                for num, song in enumerate(lv_data[ra]):
+                    row, col = divmod(num, RatingGridConfig.row_count)
+                    x = RatingGridConfig.start_x + col * RatingGridConfig.gap
+                    y = current_y + row * RatingGridConfig.gap
+
+                    _record = played_map.get(song.song_id)
+                    if _record is None:
+                        continue
+
+                    record = _record.get(song.difficulties.level_index)
+                    if record is None:
+                        continue
+
+                    if not self.plan:
+                        achievements_or_fc_list.append(record.achievements)
+                        bg = (
+                            self._rating_complete_bg
+                            if record.achievements >= 100
+                            else self._rating_unfinished_bg
+                        )
+                        im.alpha_composite(bg, (x + 1, y + 1))
+
+                        rate = compute_rating(
+                            song.difficulties.level_value,
+                            record.achievements,
+                            onlyrate=True,
+                        )
+                        im.alpha_composite(
+                            self._get_rank_icon(rate).resize((78, 35)), (x, y + 20)
+                        )
+                        continue
+
+                    if record.fc:
+                        achievements_or_fc_list.append(COMBO_SP.index(record.fc))
+                        im.alpha_composite(self._rating_complete_bg, (x + 1, y + 1))
+                        im.alpha_composite(
+                            self._get_fc_icon(record.fc), (x + 15, y + 13)
+                        )
+
+                group_rows = (len(songs) - 1) // RatingGridConfig.row_count + 1
+                current_y += group_rows * RatingGridConfig.gap + 30
 
         if len(achievements_or_fc_list) == total_songs_count:
             r = self._calc_achievements_fc(achievements_or_fc_list, total_songs_count)

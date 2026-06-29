@@ -43,9 +43,7 @@ def song_list(songs: list[Song], page: int) -> str:
     pattern = assets._pattern_bg.resize((1000, 256))
     for h in range((height // 256) + 1):
         _im.alpha_composite(pattern, (0, (256 + 6) * h))
-    _im.alpha_composite(
-        assets._rainbow_bg.resize((550, 288)), (225, height - 435)
-    )
+    _im.alpha_composite(assets._rainbow_bg.resize((550, 288)), (225, height - 435))
     _im.alpha_composite(
         assets._rainbow_bottom_bg.resize((786, 164)),
         (107, height - 260),
@@ -86,9 +84,7 @@ def song_list(songs: list[Song], page: int) -> str:
         im.alpha_composite(cover, (x + 10, y + 10))
         im.alpha_composite(version, (x + 315, y - 30))
         im.alpha_composite(
-            assets._sl_diff_utg
-            if song.song_id > 100000
-            else assets._sl_diff_bg,
+            assets._sl_diff_utg if song.song_id > 100000 else assets._sl_diff_bg,
             (x + 100, y + 95),
         )
         im.alpha_composite(type_, (x + 50, y + 75))
@@ -99,8 +95,8 @@ def song_list(songs: list[Song], page: int) -> str:
             title = change_column_width(title, 19) + "..."
         fot.draw(x + 100, y + 25, 20, title, text_color, "lm")
         artist = song.artist
-        if coloum_width(artist) > 34:
-            artist = change_column_width(artist, 33) + "..."
+        if coloum_width(artist) > 26:
+            artist = change_column_width(artist, 25) + "..."
         fot.draw(x + 100, y + 50, 12, artist, text_color, "lm")
         fot.draw(x + 100, y + 80, 15, f"BPM: {song.bpm}", text_color, "lm")
         sy.draw(x + 230, y + 80, 12, song.genre, text_color, "lm")
