@@ -202,7 +202,6 @@ async def merge_music_data(
 
                 if _raw.difficulties.dx:
                     set_version(_raw, "DX", song_id + 10000, _raw.difficulties.dx)
-
             elif song_id < 100000:
                 if _raw.difficulties.dx:
                     set_version(_raw, "DX", song_id, _raw.difficulties.dx)
@@ -238,11 +237,14 @@ async def merge_alias_data(
     """
     合并 `lxns` 和 `yuzuchan` 别名数据
     """
-    alias_map: dict[int, set[str]] = {}
+    alias_map: dict[int, dict[str, None]] = {}
     song_name_map: dict[int, str] = {}
 
+    def add_aliases(song_id: int, aliases: list[str]) -> None:
+        alias_map.setdefault(song_id, {}).update(dict.fromkeys(aliases))
+
     for item in yuzu_aliases:
-        alias_map.setdefault(item.song_id, set()).update(item.alias)
+        add_aliases(item.song_id, item.alias)
         if item.name:
             song_name_map.setdefault(item.song_id, item.name)
 
@@ -251,11 +253,11 @@ async def merge_alias_data(
             song_id = item.song_id
             if song_id > 1000:
                 song_id += 10000
-            alias_map.setdefault(song_id, set()).update(item.aliases)
+            add_aliases(song_id, item.aliases)
 
     if local_alias_data is not None:
         for _a, aliases in local_alias_data.items():
-            alias_map.setdefault(int(_a), set()).update(aliases)
+            add_aliases(int(_a), aliases)
 
     result = AliasList(
         root=sorted(
@@ -263,7 +265,7 @@ async def merge_alias_data(
                 Alias(
                     song_id=_song_id,
                     song_name=song_name_map.get(_song_id, ""),
-                    alias=sorted(aliases),
+                    alias=list(aliases),
                 )
                 for _song_id, aliases in alias_map.items()
                 if aliases

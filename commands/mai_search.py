@@ -56,9 +56,12 @@ async def _(bot: NoneBot, ev: CQEvent):
     )
     # 别名
     alias_data = mai.total_alias_list.by_alias(name)
-    api = YuzuChaNAPI()
     if not alias_data:
-        obj = await api.get_songs(name)
+        api = YuzuChaNAPI()
+        try:
+            obj = await api.get_songs(name)
+        except Exception:
+            obj = None
         if isinstance(obj, Songs):
             if obj.type == StatusEnum.ONGOING and isinstance(obj.data[0], AliasStatus):
                 msg = f"未找到别名为「{name}」的歌曲，但找到与此相同别名的投票：\n"
@@ -68,6 +71,7 @@ async def _(bot: NoneBot, ev: CQEvent):
                 await bot.finish(ev, msg.strip(), at_sender=True)
             else:
                 alias_data = yuzu_alias_to_alias(obj.data)
+
     if alias_data:
         if len(alias_data) != 1:
             msg = f"找到{len(alias_data)}个相同别名的曲目：\n"
