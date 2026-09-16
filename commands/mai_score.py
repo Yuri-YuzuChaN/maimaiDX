@@ -6,7 +6,7 @@ from nonebot import NoneBot
 from hoshino.typing import CQEvent, MessageSegment
 
 from ..config import log, sv
-from ..core.handler import draw_best50, draw_play_data, draw_song_galobal_data
+from ..core.handler import draw_best50, draw_play_data, draw_song_global_data
 from ..core.image.tools import image_to_base64, text_to_image
 from ..core.merge.models import ServiceName
 from ..core.service import mai
@@ -103,7 +103,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         平均 DX 分数：{stats.avg_dx:.1f}
         谱面成绩标准差：{stats.std_dev:.2f}""")
     await bot.send(
-        ev, await draw_song_galobal_data(song, level_index) + info, at_sender=True
+        ev, await draw_song_global_data(song, level_index) + info, at_sender=True
     )
 
 

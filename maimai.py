@@ -5,14 +5,12 @@ from nonebot import on_startup
 
 from . import commands as commands
 from .config import dfconfig, log, lxnsconfig, maiconfig
-from .core.alias_ws_push import ws_alias_server
+from .core.alias_sse_push import sse_alias_server
 from .core.clients.divingfish.client import DivingFishAPI
-
 from .core.database.qq import create_database
 from .core.image.assets import AssetsImage
 from .core.service import guess, mai
 from .resources import plate_table_dir, rating_table_dir
-
 
 scheduler = AsyncIOScheduler()
 scheduler.add_job(mai.update, "cron", hour=4)
@@ -32,7 +30,7 @@ async def _():
 
     if maiconfig.maimaidx_alias_push:
         log.opt(colors=True).info("别名推送为「<g>开启</g>」状态")
-        asyncio.ensure_future(ws_alias_server())
+        asyncio.ensure_future(sse_alias_server())
     else:
         log.opt(colors=True).info("别名推送为「<r>关闭</r>」状态")
 
@@ -46,9 +44,22 @@ async def _():
     log.success("猜歌数据初始化完成")
     log.success("maimai数据获取完成")
 
-    if dfconfig.divingfish_token is None:
+    if dfconfig.oauth_enabled:
+        log.opt(colors=True).info(
+            "水鱼查分器已启用「<g>OAuth 授权</g>」，用户需使用「绑定水鱼」指令授权"
+        )
+        if dfconfig.divingfish_token:
+            log.opt(colors=True).warning(
+                "<y>已配置水鱼开发者Token，OAuth 授权优先，该配置项可以移除</y>"
+            )
+    elif dfconfig.divingfish_token:
         log.opt(colors=True).warning(
-            "<r>未配置水鱼查分器开发者Token，查分模块只能使用「b50」指令</r>"
+            "<y>水鱼开发者Token 已弃用，将在过渡期后停止工作，"
+            "请配置 DIVINGFISH_CLIENT_ID 与 DIVINGFISH_CLIENT_SECRET 改用 OAuth 授权</y>"
+        )
+    else:
+        log.opt(colors=True).warning(
+            "<r>未配置水鱼查分器 OAuth 应用，查分模块只能使用「b50」指令</r>"
         )
     if lxnsconfig.lxns_dev_token is None:
         log.opt(colors=True).warning(

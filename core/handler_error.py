@@ -6,9 +6,12 @@ from hoshino.typing import MessageSegment
 
 from ..config import log
 from .clients.divingfish.exceptions import (
+    DivingFishNotAuthorizedError,
+    DivingFishOAuthError,
     DivingFishTokenDisableError,
     DivingFishTokenError,
     DivingFishTokenNotFoundError,
+    DivingFishTooManyRequestsError,
     DivingFishUserDisabledQueryError,
     DivingFishUserNotFoundError,
 )
@@ -26,6 +29,11 @@ from .clients.lxns.exceptions import (
     LXNSTooManyRequestsError,
 )
 
+NOTAUTHORIZED = dedent("""
+    您尚未授权本 BOT 访问您的水鱼查分器成绩，或已取消授权。
+    请发送「绑定水鱼」，按提示完成授权后再试。
+""").strip()
+
 NOTFOUNDUSER = dedent("""
     未在水鱼查分器找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。
     如未绑定，请前往查分器官网进行绑定。
@@ -40,6 +48,13 @@ def handle_errors(func):
             return await func(*args, **kwargs)
 
         ### DivingFish
+        except DivingFishNotAuthorizedError:
+            return MessageSegment.text(NOTAUTHORIZED)
+        except DivingFishTooManyRequestsError:
+            return MessageSegment.text("水鱼查分器请求次数已达上限，请稍后再试。")
+        except DivingFishOAuthError:
+            log.error("水鱼账号服务请求失败。")
+            return MessageSegment.text("水鱼账号服务暂时不可用，请稍后再试。")
         except DivingFishUserNotFoundError:
             return MessageSegment.text(NOTFOUNDUSER)
         except UserNotExistsError:

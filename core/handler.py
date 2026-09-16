@@ -18,6 +18,16 @@ from ..constants import (
     VERSION_MAP,
 )
 from .clients.divingfish.client import DivingFishAPI
+from .clients.divingfish.exceptions import (
+    DivingFishBindingMismatchError,
+    DivingFishNotAuthorizedError,
+)
+from .clients.divingfish.models import DeviceAuthorization
+from .clients.divingfish.oauth import (
+    DivingFishOAuth,
+    get_access_token,
+    token_subject,
+)
 from .clients.exceptions import MusicNotPlayError, NotMusicRecommendationError
 from .clients.lxns.client import LxnsAPI, OAuth2
 from .clients.lxns.models import BaseToken, OAuth2Token, SongType
@@ -29,13 +39,12 @@ from .image import (
     DrawRatingTable,
     DrawScore,
     PlayerBest50,
-    image_to_base64,
     song_chart_banquet_info,
     song_chart_info,
     song_global_data,
     song_list,
     song_play_data,
-    text_to_image,
+    text_to_bytes_io,
     tricolor_gradient_prism_plus,
 )
 from .merge.models import (
@@ -121,6 +130,48 @@ async def bind_lxns(user: User, code: str) -> str:
     return result
 
 
+async def bind_divingfish(qqid: int) -> DeviceAuthorization:
+    """
+    发起水鱼查分器绑定，返回给用户点开的授权信息
+
+    Params:
+        `qqid`: 用户QQ
+    Returns:
+        `DeviceAuthorization`
+    """
+    return await DivingFishOAuth().device_authorization(qqid)
+
+
+async def complete_divingfish_binding(qqid: int, code: str) -> None:
+    """
+    用用户发回来的确认码完成水鱼绑定，并核对这次绑定确实落在这个 QQ 上
+
+    「发起绑定的人」和「把码发回来的人」是不是同一个，由三道检查合起来保证：
+
+    1. `pending_binding` 的会话——码必须由发起绑定的那个 QQ 发回来，
+       别人发的连这一步都进不来；
+    2. 兑换时把这个 QQ 的标识一并送给水鱼，由它比对发起绑定时提交的那个。
+       这道是权威的，且对不上时不会消费掉那串码；
+    3. 兑换之后再用这个 QQ 换一次票，比对账号是不是同一个。
+
+    第 3 道是兜底：水鱼若还是没有第 2 道校验的版本，它就是唯一的一道。
+    换不到票，说明这个 QQ 根本没完成过授权；换到了但账号对不上，说明这个
+    QQ 早先绑过，而这次的码属于另一个人。
+
+    Params:
+        `qqid`: 用户QQ
+        `code`: 用户发回来的确认码
+    """
+    redeemed = await DivingFishOAuth().redeem(qqid, code)
+    try:
+        access_token = await get_access_token(qqid, refresh=True)
+    except DivingFishNotAuthorizedError as error:
+        raise DivingFishBindingMismatchError from error
+
+    if redeemed.sub and token_subject(access_token) != redeemed.sub:
+        raise DivingFishBindingMismatchError
+
+
 async def get_best50(
     user: User, *, username: str | None = None, all_perfect: bool = False
 ) -> tuple[Player, Best50]:
@@ -168,11 +219,11 @@ async def get_player_result(
         `list[PlayedResult]`
     """
     if user.service == ServiceName.DIVINGFISH:
-        api = DivingFishAPI(qqid=user.qqid)
+        api = DivingFishAPI(user.qqid)
         if version is not None:
             data = await api.query_user_plate(version)
         else:
-            result = await api.query_user_get_dev()
+            result = await api.query_user_records()
             data = result.records
         play_result = df_to_playresult(data)
     elif user.service == ServiceName.LXNS:
@@ -293,7 +344,7 @@ def get_rise_score_list(
     return sampled, lowest_ra
 
 
-async def draw_song_galobal_data(song: Song, level_index: int) -> MessageSegment:
+async def draw_song_global_data(song: Song, level_index: int) -> MessageSegment:
     """
     绘制谱面数据
 
@@ -339,7 +390,6 @@ async def draw_best50(
     user: User,
     *,
     username: str | None = None,
-    icon: str | None = None,
     all_perfect: bool = False,
 ) -> MessageSegment:
     """
@@ -372,7 +422,7 @@ async def draw_play_data(user: User, song: Song) -> MessageSegment:
     """
     if user.service == ServiceName.DIVINGFISH:
         api = DivingFishAPI(qqid=user.qqid)
-        data = await api.query_user_post_dev(song_id=song.song_id)
+        data = await api.query_user_record(song_id=song.song_id)
         if not data:
             raise MusicNotPlayError
 
@@ -402,8 +452,15 @@ async def draw_play_data(user: User, song: Song) -> MessageSegment:
 
 @handle_errors
 async def get_mai_what(user: User) -> Song | None:
-    """"""
-    player, best50 = await get_best50(user)
+    """
+    随机获取曲目
+
+    Params:
+        `user`: 用户 `User` 模型
+    Returns:
+        `Song | None`
+    """
+    _player, best50 = await get_best50(user)
     r = random.randint(0, 1)
     _ra = 0
     ignore = []
@@ -577,7 +634,7 @@ async def draw_rise_score_list(
     Returns:
         `MessageSegment`
     """
-    player, best50 = await get_best50(user)
+    _player, best50 = await get_best50(user)
     play_result = await get_player_result(user)
 
     old_records = {(v.song_id, v.level_index): v for v in play_result}
@@ -705,8 +762,7 @@ async def draw_level_progress(
     else:
         y_size = get_notplayed_rows(len(notplayed)) * 65
         height = 240 + y_size + 120
-        if height < 600:
-            height = 600
+        height = max(height, 600)
         background_bg = tricolor_gradient_prism_plus(1400, height)
         ds = DrawScore(user.service, background_bg)
         image = ds.draw_category(category, notplayed)
@@ -812,4 +868,4 @@ async def draw_rating_ranking(name: str, page: int) -> MessageSegment:
     footer = f"\n第「{page} / {total_pages}」页，共「{user_rows}」名玩家"
 
     full_msg = header + "\n".join(lines) + footer
-    return MessageSegment.image(image_to_base64(text_to_image(full_msg)))
+    return MessageSegment.image(text_to_bytes_io(full_msg))

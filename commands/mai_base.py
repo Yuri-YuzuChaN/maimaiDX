@@ -1,62 +1,131 @@
 import random
 import re
 from re import Match
-from textwrap import dedent
 
+from httpx import HTTPError as HTTPXError
 from nonebot import NoneBot
 from PIL import Image
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
 
 from hoshino.service import priv
 from hoshino.typing import CQEvent, MessageSegment
 
-from ..config import Root, lxnsconfig, maiconfig, sv
+from ..config import Root, dfconfig, log, lxnsconfig, maiconfig, sv
 from ..constants import FORTUNE, LEVEL_LIST
 from ..core.clients.divingfish.client import DivingFishAPI
-from ..core.database.qq import update_user
+from ..core.clients.divingfish.exceptions import (
+    DivingFishBindingMismatchError,
+    DivingFishConfirmationCodeError,
+)
+from ..core.clients.divingfish.oauth import REVOKE_URL, binding_label
+from ..core.clients.exceptions import HTTPError, UnknownError
+from ..core.database.qq import User, update_user
+from ..core.divingfish_oauth import extract_confirmation_code
 from ..core.handler import (
+    bind_divingfish,
     bind_lxns,
+    complete_divingfish_binding,
     draw_chart_info,
     draw_rating_ranking,
     draw_rise_score_list,
     get_mai_what,
 )
 from ..core.image.tools import image_to_base64, song_chart
+from ..core.lxns_oauth import (
+    extract_authorization_code,
+)
 from ..core.merge.models import ServiceName, Theme
+from ..core.pending_binding import PendingBindingStore
 from ..core.service import mai
 from ..core.tool import qqhash
-from .depend import GetOrCreateUser, GetUserAndAuthOrNone
+from .depend import (
+    GetOrCreateSender,
+    GetOrCreateUser,
+    GetUserAndAuthOrNone,
+)
+from .oauth_message import (
+    BINDING_TEMPORARY_FAILED_MSG,
+    DIVINGFISH_AUTHORIZE_MSG,
+    DIVINGFISH_BIND_FAILED_MSG,
+    DIVINGFISH_BIND_SUCCESS_MSG,
+    DIVINGFISH_CODE_FAILED_MSG,
+    DIVINGFISH_CODE_TEMPORARY_FAILED_MSG,
+    DIVINGFISH_INVALID_CODE_MSG,
+    DIVINGFISH_MISMATCH_MSG,
+    DIVINGFISH_NO_SESSION_MSG,
+    DIVINGFISH_OAUTH_ERROR,
+    DIVINGFISH_SESSION_TTL,
+    INVALID_CODE_MSG,
+    LXNS_AUTHORIZE_MSG,
+    LXNS_ERROR,
+    OAUTH_FAILED_MSG,
+)
 
 CODE_PATTERN = re.compile(r"^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
-AUTHORIZE_URL = (
-    "https://maimai.lxns.net/oauth/authorize"
-    "?response_type=code"
-    f"&client_id={lxnsconfig.lx_client_id}"
-    f"&redirect_uri={lxnsconfig.redirect_uri}"
-    "&scope=read_player+read_user_profile+write_player"
-)
-AUTHORIZE_MSG = dedent(f"""
-    请点击以下链接进行授权
-    允许「{maiconfig.bot_name} BOT」访问您的落雪查分器数据
-    =======================
-    {AUTHORIZE_URL}
-    =======================
-    点击授权后您应收到该格式的
-    授权码：「XXXX-XXXX-XXXX」
-    请复制该授权码，并使用「授权码」指令粘贴到该窗口完成授权
-    =======================
-    请注意！！您必须在落雪查分器的
-    「账号设置 -> 常规设置」中的
-    「隐私设置」开启允许读取成绩，否
-    则BOT将无法查询您的成绩
-""").strip()
-LXNS_ERROR = "BOT管理员尚未配置落雪查分器相关信息"
+
+
+pending_bindings = PendingBindingStore()
+
+
+async def is_pending_authorization_code(
+    event: CQEvent,
+) -> bool:
+    return pending_bindings.is_active(
+        event.self_id, event.user_id, ServiceName.LXNS
+    ) and bool(extract_authorization_code(event.get_plaintext()))
+
+
+async def is_pending_confirmation_code(
+    event: CQEvent,
+) -> bool:
+    """这条消息是不是「发起水鱼绑定的那个人」发回来的确认码
+
+    两个条件缺一不可：这个 QQ 此刻确实在等水鱼的码（会话按
+    `(self_id, user_id)` 记，别人发的落不到这条记录上），且整条消息
+    就是一串确认码。剩下那一半核对在
+    `handler.complete_divingfish_binding` 里向水鱼求证。
+    """
+    return pending_bindings.is_active(
+        event.self_id, event.user_id, ServiceName.DIVINGFISH
+    ) and bool(extract_confirmation_code(event.get_plaintext()))
+
+
+async def complete_lxns_binding(user: User, code: str) -> tuple[str, bool]:
+    try:
+        result = await bind_lxns(user, code)
+    except HTTPError as error:
+        log.warning(f"落雪 OAuth 绑定失败：{type(error).__name__}")
+        return OAUTH_FAILED_MSG, False
+    except (HTTPXError, UnknownError, ValidationError, SQLAlchemyError) as error:
+        log.warning(f"落雪 OAuth 绑定暂时失败：{type(error).__name__}")
+        return BINDING_TEMPORARY_FAILED_MSG, False
+    return result, result == "授权完成。"
+
+
+async def complete_divingfish(qqid: int, code: str) -> tuple[str, bool]:
+    try:
+        await complete_divingfish_binding(qqid, code)
+    except DivingFishBindingMismatchError:
+        # 码有效，但兑出来的授权不是这个 QQ 的。多半是把别人转发来的码
+        # 当成自己的用了——照实说清楚，别让他以为是自己操作错了
+        log.warning("水鱼确认码与发起绑定的用户不一致")
+        return DIVINGFISH_MISMATCH_MSG, False
+    except DivingFishConfirmationCodeError:
+        return DIVINGFISH_CODE_FAILED_MSG, False
+    except (HTTPError, HTTPXError, UnknownError, ValidationError) as error:
+        log.warning(f"水鱼绑定暂时失败：{type(error).__name__}")
+        return DIVINGFISH_CODE_TEMPORARY_FAILED_MSG, False
+    return DIVINGFISH_BIND_SUCCESS_MSG, True
 
 
 update_data = sv.on_fullmatch("更新maimai数据")
 help = sv.on_fullmatch(["帮助maimaiDX", "帮助maimaidx"])
 maimaidxrepo = sv.on_fullmatch(["项目地址maimaiDX", "项目地址maimaidx"])
 bind = sv.on_fullmatch(["lxbind", "绑定落雪", "绑定lx"])
-authcode = sv.on_prefix(["授权码", "code"])
+dfbind = sv.on_fullmatch(["dfbind", "绑定水鱼", "绑定df"])
+authcode = sv.on_prefix(["落雪授权码", "lxcode"])
+df_authcode = sv.on_prefix(["水鱼授权码", "dfcode"])
 source = sv.on_prefix("数据源")
 theme = sv.on_prefix(["主题", "theme"])
 portune = sv.on_prefix(["今日mai", "今日舞萌", "今日运势"])
@@ -97,20 +166,104 @@ async def _(bot: NoneBot, ev: CQEvent):
 
 @bind
 async def _(bot: NoneBot, ev: CQEvent):
-    if lxnsconfig.lxns_dev_token is None and (
-        lxnsconfig.lx_client_id is None or lxnsconfig.redirect_uri is None
+    user = await GetOrCreateSender(bot, ev)
+    if not all(
+        (
+            lxnsconfig.lx_client_id,
+            lxnsconfig.lx_client_secret,
+            lxnsconfig.redirect_uri,
+        )
     ):
         await bot.finish(ev, LXNS_ERROR + "，无法进行绑定授权。", at_sender=True)
-    await bot.send(ev, AUTHORIZE_MSG, at_sender=True)
+    text = ev.message.extract_plain_text().strip()
+    if not text:
+        pending_bindings.start(ev.self_id, ev.user_id, ServiceName.LXNS)
+        await bot.send(ev, LXNS_AUTHORIZE_MSG, at_sender=True)
+
+    code = extract_authorization_code(text)
+    if code is None:
+        await bot.finish(ev, INVALID_CODE_MSG, at_sender=True)
+
+    result, succeeded = await complete_lxns_binding(user, code)
+    if succeeded:
+        pending_bindings.discard(ev.self_id, ev.user_id)
+    else:
+        pending_bindings.start(ev.self_id, ev.user_id, ServiceName.LXNS)
+    await bot.finish(ev, result, at_sender=True)
 
 
 @authcode
 async def _(bot: NoneBot, ev: CQEvent):
     user = await GetOrCreateUser(bot, ev)
-    code = ev.message.extract_plain_text().strip()
-    if not CODE_PATTERN.fullmatch(code):
-        await bot.finish(ev, "授权码格式错误，请重新发送。", at_sender=True)
-    result = await bind_lxns(user, code)
+    args = ev.message.extract_plain_text().strip()
+    code = extract_authorization_code(args)
+    if code is None or not pending_bindings.is_active(
+        ev.self_id, ev.user_id, ServiceName.LXNS
+    ):
+        return
+    result, succeeded = await complete_lxns_binding(user, code)
+    if succeeded:
+        pending_bindings.consume(ev.self_id, ev.user_id)
+    await bot.send(ev, result, at_sender=True)
+
+
+@dfbind
+async def _(bot: NoneBot, ev: CQEvent):
+    user = await GetOrCreateSender(bot, ev)
+    if not dfconfig.oauth_enabled:
+        await bot.finish(ev, DIVINGFISH_OAUTH_ERROR, at_sender=True)
+
+    text = ev.message.extract_plain_text().strip()
+    if text:
+        if not pending_bindings.is_active(
+            ev.self_id, ev.user_id, ServiceName.DIVINGFISH
+        ):
+            await bot.finish(ev, DIVINGFISH_NO_SESSION_MSG, at_sender=True)
+        code = extract_confirmation_code(text)
+        if code is None:
+            await bot.finish(ev, DIVINGFISH_INVALID_CODE_MSG, at_sender=True)
+        result, succeeded = await complete_divingfish(user.qqid, code)
+        if succeeded:
+            pending_bindings.consume(ev.self_id, ev.user_id)
+        await bot.finish(ev, result, at_sender=True)
+
+    try:
+        authorization = await bind_divingfish(user.qqid)
+    except (HTTPError, HTTPXError, UnknownError, ValidationError) as error:
+        log.warning(f"水鱼授权发起失败：{type(error).__name__}")
+        await bot.finish(ev, DIVINGFISH_BIND_FAILED_MSG, at_sender=True)
+
+    pending_bindings.start(
+        ev.self_id,
+        ev.user_id,
+        ServiceName.DIVINGFISH,
+        ttl=DIVINGFISH_SESSION_TTL,
+    )
+    await bot.finish(
+        ev,
+        DIVINGFISH_AUTHORIZE_MSG.format(
+            bot_name=maiconfig.bot_name,
+            url=authorization.verification_uri_complete,
+            label=binding_label(user.qqid),
+            minutes=max(authorization.expires_in // 60, 1),
+            revoke=dfconfig.divingfish_auth_url.rstrip("/") + REVOKE_URL,
+        ),
+        at_sender=True,
+    )
+
+
+@df_authcode
+async def _(bot: NoneBot, ev: CQEvent):
+    user = await GetOrCreateUser(bot, ev)
+    args = ev.message.extract_plain_text().strip()
+    code = extract_confirmation_code(args)
+    if code is None or not pending_bindings.is_active(
+        ev.self_id, ev.user_id, ServiceName.LXNS
+    ):
+        return
+    result, succeeded = await complete_divingfish(user.qqid, code)
+    if succeeded:
+        pending_bindings.consume(ev.self_id, ev.user_id)
     await bot.send(ev, result, at_sender=True)
 
 
@@ -121,7 +274,9 @@ async def _(bot: NoneBot, ev: CQEvent):
     source_ = ServiceName.get_by_index(args)
     if source_ is None:
         await bot.finish(
-            ev, f"未找到该数据源：\n{ServiceName.get_help()}", at_sender=True
+            ev,
+            f"未找到该数据源，请输入指定数字切换：\n{ServiceName.get_help()}",
+            at_sender=True,
         )
     if (
         source_ == ServiceName.LXNS
@@ -136,7 +291,7 @@ async def _(bot: NoneBot, ev: CQEvent):
         )
 
     await update_user(user.qqid, service=source_)
-    await bot.send(ev, f"数据源已切换为：「{source_.value}」", at_sender=True)
+    await bot.send(ev, f"已切换数据源为：「{source_.value}」", at_sender=True)
 
 
 @theme
@@ -145,10 +300,14 @@ async def _(bot: NoneBot, ev: CQEvent):
     args = ev.message.extract_plain_text().strip()
     theme_ = Theme.get_by_index(args)
     if theme_ is None:
-        await bot.finish(ev, f"未找到该主题：\n{Theme.get_help()}", at_sender=True)
+        await bot.finish(
+            ev,
+            f"未找到该主题，请输入指定数字切换：\n{Theme.get_help()}",
+            at_sender=True,
+        )
 
     await update_user(user.qqid, theme=theme_)
-    await bot.send(ev, f"主题已切换为：「{theme_.value}」", at_sender=True)
+    await bot.send(ev, f"已切换主题为：「{theme_.value}」", at_sender=True)
 
 
 @portune

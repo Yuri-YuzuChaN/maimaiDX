@@ -9,9 +9,7 @@ class RequestError(HTTPError):
     def __init__(self, response: Response):
         self.response = response
         data = self.data
-        message = (
-            data.get("message") or response.text or f"HTTP {response.status_code}"
-        )
+        message = data.get("message") or response.text or f"HTTP {response.status_code}"
         super().__init__(message)
 
     @property

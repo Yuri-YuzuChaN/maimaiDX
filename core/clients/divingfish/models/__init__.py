@@ -6,6 +6,10 @@ from .music import (
     Notes2,
     Stats,
 )
+from .oauth import (
+    AccessToken,
+    DeviceAuthorization,
+)
 from .score import (
     ChartInfo,
     Charts,
@@ -22,8 +26,10 @@ from .score import (
 )
 
 __all__ = [
+    "AccessToken",
     "BasicInfo",
     "Chart",
+    "DeviceAuthorization",
     "Music",
     "Notes1",
     "Notes2",

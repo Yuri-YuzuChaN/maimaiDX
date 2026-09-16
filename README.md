@@ -6,8 +6,8 @@
 
 [![python3](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-</div>
 
+</div>
 
 移植自[mai-bot](https://github.com/Diving-Fish/mai-bot) 开源项目，基于 [HoshinoBotV2](https://github.com/Ice-Cirno/HoshinoBot) 的街机音游 **舞萌DX** 的查询插件
 
@@ -17,10 +17,17 @@
 
 ## 重要更新
 
+**2026-08-20**
+
+1. 水鱼查分器新增 `OAuth` 认证，请根据 [配置](#配置) 示例填入相关 后续开发者Token将被废弃
+2. 新增 `dfbind` 指令
+3. 使用 `SSE` 替代 `websocket` 推送
+4. 移除了申请别名通过和拒绝的推送
+5. 修改部分绘图
+
 **2026-06-30**
 
 1. 替换 `rating` 数字新素材，直接覆盖 `mai/pic` 目录，增量包：
-
    - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/Jvhl/Resource%20CN1.56%20UPDATE.7z)
    - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDS_RzM66klSqvHtUhfFPTfAfpJcbGlIbL-7Q6eSPxM4CA?e=xRPo7b)
    - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.56%20UPDATE.7z?sign=p6h2Q9f3u87vRO8yU6ZSvCoagq0BE-xnX4wlhM55s_U=:0)
@@ -53,7 +60,6 @@
 6. 修改了别名推送的发送方式，防止刷屏
 7. 修复了非常多的 `BUG`
 
-
 ## 温馨提示
 
 **请务必看完 `README.MD` 所有内容**
@@ -61,15 +67,14 @@
 ## 使用方法
 
 1. 将该项目放在HoshinoBot插件目录 `modules` 下，或者clone本项目
-   
-    ``` git
-    git clone https://github.com/Yuri-YuzuChaN/maimaiDX
-    ```
-   
+
+   ```git
+   git clone https://github.com/Yuri-YuzuChaN/maimaiDX
+   ```
+
 2. 下载静态资源文件，将该压缩文件解压后，将 `static` 文件夹复制到随意一个文件夹进行存放。对于先前使用过的开发者，请将原先 `static` 文件夹内的所有 `json` 文件放置到 `static/data` 文件夹，字体文件放置到 `static/font` 文件夹
 
    ## 对于美术的声明，请勿将绘图设计署名进行删除
-
    - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/34s7/Resource%20CN1.55.7z)
    - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQBGKHie6MAaTZy3rME7Q-ruAVKgXDCKROqz5e25KtMeeVY?e=53eC6a)
    - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.55.7z?sign=4wMRn_9n6YZiEVV2vELKCEOj9zsgxScnmgtjsEL3C6g=:0)
@@ -85,7 +90,11 @@
    ASSETS_ONLINE=true                   # 对于有 `icon` 和 `plate` 资源的可将此项改为 `false`，如果没有请默认，否则使用落雪查分器时无法使用
 
    # diving-fish                        # 水鱼查分器配置
-   DIVINGFISH_TOKEN=                    # 开发者 token，由于水鱼查分器修改了请求鉴权，未填写的仅可使用 `b50` 指令
+   DIVINGFISH_CLIENT_ID=                # OAuth 应用ID，向水鱼申请应用后获得
+   DIVINGFISH_CLIENT_SECRET=            # OAuth 应用秘钥
+   DIVINGFISH_SCOPE=""                  # OAuth 权限，根据应用权限进行填写，多个权限用空格隔开，默认值为 `"prober.profile.read"`
+   DIVINGFISH_AUTH_URL=                 # 水鱼账号地址，一般不需要填写，默认为 `https://auth.diving-fish.com`
+   DIVINGFISH_TOKEN=                    # 开发者 token，已弃用，见下方说明
    DIVINGFISH_PROBER_PROXY=false        # 是否使用中转访问水鱼查分器，适用于境外服务器
 
    # lxns                               # 落雪查分器配置，均未填写将无法使用落雪查分器
@@ -95,17 +104,23 @@
    REDIRECT_URI=                        # OAuth 回调地址
    ```
 
+> [!NOTE]
+> 使用水鱼 OAuth 绑定时，用户发送 `dfbind`（或「绑定水鱼」），BOT 会返回一条授权链接，用户打开并确认页面上显示的绑定身份后点击「同意授权」即可，**不需要把授权码回贴给 BOT**。绑定关系与授权范围保存在水鱼服务端，BOT 只保管应用凭据，不保存任何用户令牌；用户可随时在 https://auth.diving-fish.com/apps 撤销授权。未绑定的用户仍可使用 `b50` 指令。
+
+> [!WARNING]
+> `DIVINGFISH_TOKEN`（开发者 token）已被水鱼查分器弃用：它能按 QQ 号读取任意用户的成绩，用户从未对 BOT 做过授权，也无法撤销。水鱼已停止签发新的开发者 token，并将在过渡期后关闭该鉴权方式。请改为申请 OAuth 应用并配置 `DIVINGFISH_CLIENT_ID` 与 `DIVINGFISH_CLIENT_SECRET`。两者同时配置时优先使用 OAuth 授权。
+
 4. 安装插件所需模块：`pip install -r requirements.txt`
 5. 安装 `chromium`，**相关依赖已安装，请直接使用该指令执行**
-   
-   ``` shell
+
+   ```shell
    playwright install --with-deps chromium
    ```
 
 6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
 7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
 8. 重启 `HoshinoBot`
-9.  使用 `更新定数表`，`更新完成表` 指令完成图片生成
+9. 使用 `更新定数表`，`更新完成表` 指令完成图片生成
 10. 开始使用
 
 ## 更新说明
@@ -138,17 +153,16 @@
 **2025-08-16**
 
 1. 修改别名推送机制，请各开发者进行取舍
-   
    - 更新别名推送设置与指令，新增了 `maimaidxaliaspush` 配置项，该设置将替代原先 `group_alias_switch.json` 文件的 `global_switch` 配置项
    - 当设置为`false` 时，不再连接别名推送服务器，如果群组的推送为开启状态，也不再进行推送，**与原先一致**。**申请的别名通过审核了也不再推送**
 
-    ``` ujson
-    {
-        "enable": [],
-        "disable": [88888888],
-        "global_switch": false      // 该配置项将被代替并删除
-    }
-    ```
+   ```ujson
+   {
+       "enable": [],
+       "disable": [88888888],
+       "global_switch": false      // 该配置项将被代替并删除
+   }
+   ```
 
    - 不会接收到别名申请以及别名通过的消息，**如果服务器新增新的别名时无法实时获取最新的别名，仅能手动更新别名库**。
 
@@ -181,17 +195,17 @@
 1. 更新至 `舞萌DX 2024`
 2. 更换所有图片绘制，需删除除 `json` 后缀的所有文件，**请重新进行使用方法第二步**
 3. 更改部分 `json` 文件名称，便于识别，具体文件如下，**请务必修改文件名，否则开关文件以及本地别名文件将不会被读取**
-   - `all_alias.json`    修改为 `music_alias.json`
-   - `local_alias.json`  修改为 `local_music_alias.json`
-   - `chart_stats.json`  修改为 `music_chart.json`
-   - `group_alias.json`  修改为 `group_alias_switch.json`
+   - `all_alias.json` 修改为 `music_alias.json`
+   - `local_alias.json` 修改为 `local_music_alias.json`
+   - `chart_stats.json` 修改为 `music_chart.json`
+   - `group_alias.json` 修改为 `group_alias_switch.json`
    - `guess_config.json` 修改为 `group_guess_switch.json`
 4. 新增管理员私聊指令 `更新完成表`，用于更新 `BUDDiES` 版本 `双系` 牌子
 5. 新增指令 `完成表`，可查询牌子完成表，例如：`祝极完成表`
 6. 新增指令 `猜曲绘`
 7. 查看谱面支持计算个人加分情况，指令包括 `是什么歌`，`id`
 8. 指令 `mai什么` 支持随机发送推分谱面，指令中需包含 `加分`，`上分` 字样，例如：`今日mai打什么上分`
-9.  修改指令 `分数列表` 和 `进度` 发送方式
+9. 修改指令 `分数列表` 和 `进度` 发送方式
 10. 优化所有模块
 
 **2024-03-12**
@@ -360,12 +374,12 @@
 
 **2021-09-29**
 
-1. 更新b50、乐曲推荐功能，感谢 [BlueDeer233](https://github.com/BlueDeer233) 
+1. 更新b50、乐曲推荐功能，感谢 [BlueDeer233](https://github.com/BlueDeer233)
 
-**2021-09-13** 
+**2021-09-13**
 
-1. 更新猜歌功能以及开关，感谢 [BlueDeer233](https://github.com/BlueDeer233) 
-   
+1. 更新猜歌功能以及开关，感谢 [BlueDeer233](https://github.com/BlueDeer233)
+
 </details>
 
 ## 鸣谢

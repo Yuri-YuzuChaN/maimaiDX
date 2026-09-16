@@ -22,6 +22,7 @@ class GetUserModel:
         auto_create: bool = True,
         check_auth: bool = False,
         check_skip: bool = False,
+        allow_at: bool = True,
     ):
         """
         依赖注入类
@@ -34,15 +35,17 @@ class GetUserModel:
         self.auto_create = auto_create
         self.check_auth = check_auth
         self.check_skip = check_skip
+        self.allow_at = allow_at
 
     async def __call__(self, bot: NoneBot, ev: CQEvent) -> User | None:
         user_id = ev.user_id
         user = None
         is_exist = False
 
-        for item in ev.message:
-            if item.type == "at" and item.data["qq"] != "all":
-                user_id = int(item.data["qq"])
+        if self.allow_at:
+            for item in ev.message:
+                if item.type == "at" and item.data["qq"] != "all":
+                    user_id = int(item.data["qq"])
 
         try:
             user = await get_user(user_id)
@@ -70,6 +73,8 @@ class GetUserModel:
 
 GetOrCreateUser = GetUserModel(auto_create=True)
 """获取用户数据，不检查授权，若不存在直接创建"""
+GetOrCreateSender = GetUserModel(auto_create=True, allow_at=False)
+"""获取消息发送者的数据，不受消息中 @ 用户影响"""
 GetUserOrNone = GetUserModel(auto_create=False, check_skip=True)
 """获取用户数据，如不存在则返回`None`"""
 GetUserAndAuth = GetUserModel(auto_create=True, check_auth=True)

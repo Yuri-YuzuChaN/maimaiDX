@@ -4,13 +4,16 @@ from ....config import dfconfig
 from ..exceptions import UnknownError, UserNotExistsError
 from ..http import ApiClient
 from .exceptions import (
+    DivingFishNotAuthorizedError,
     DivingFishTokenDisableError,
     DivingFishTokenError,
     DivingFishTokenNotFoundError,
+    DivingFishTooManyRequestsError,
     DivingFishUserDisabledQueryError,
     DivingFishUserNotFoundError,
 )
 from .models import PlayInfoDefault, PlayInfoDev, UserInfo, UserInfoDev, UserRanking
+from .oauth import get_access_token
 
 
 class DivingFishAPI(ApiClient):
@@ -18,26 +21,36 @@ class DivingFishAPI(ApiClient):
     base_url = "https://maimai.diving-fish.com/api/maimaidxprober"
 
     def __init__(self, qqid: int | None = None, username: str | None = None):
+        #: 授权模式下查谁由令牌决定，请求里不再携带 `qq`，也不需要开发者 token
+        self.oauth = dfconfig.oauth_enabled and qqid is not None and not username
         super().__init__(
-            base_url="https://maimai.diving-fish.com/api/maimaidxprober",
-            headers={"developer-token": dfconfig.divingfish_token}
-            if dfconfig.divingfish_token
-            else None,
+            base_url=self.base_url,
+            headers=None
+            if self.oauth or not dfconfig.divingfish_token
+            else {"developer-token": dfconfig.divingfish_token},
         )
+        self.qqid = qqid
+        self._retried = False
         self.json = {}
         if qqid:
             self.json["qq"] = qqid
         if username:
             self.json["username"] = username
-            del self.json["qq"]
+            self.json.pop("qq", None)
 
     def _handle_error(self, resp: Response):
         if resp.status_code == 200:
             return
         if resp.status_code == 400:
             self._handle_400(resp.json())
+        elif resp.status_code == 401:
+            raise DivingFishTokenError
         elif resp.status_code == 403:
+            if self.oauth:
+                raise DivingFishNotAuthorizedError
             raise DivingFishUserDisabledQueryError
+        elif resp.status_code == 429:
+            raise DivingFishTooManyRequestsError
         else:
             raise UnknownError
 
@@ -62,9 +75,24 @@ class DivingFishAPI(ApiClient):
     async def _request_data(self, method: str, endpoint: str, **kwargs) -> dict | list:
         return await self._request(method, endpoint, **kwargs)
 
+    async def _request_oauth(self, method: str, endpoint: str, **kwargs) -> dict | list:
+        """代用户请求，令牌由水鱼账号按用户的授权范围签发"""
+        self.headers["Authorization"] = f"Bearer {await get_access_token(self.qqid)}"
+        return await self._request(method, endpoint, **kwargs)
+
+    async def _on_unauthorized(self) -> bool:
+        """令牌过期，重新换取一次"""
+        if not self.oauth or self._retried:
+            return False
+        self._retried = True
+        self.headers["Authorization"] = (
+            f"Bearer {await get_access_token(self.qqid, refresh=True)}"
+        )
+        return True
+
     @classmethod
-    def set_proxy(self) -> None:
-        self.base_url = self.proxy_url + "/maimaidxprober"
+    def set_proxy(cls) -> None:
+        cls.base_url = cls.proxy_url + "/maimaidxprober"
 
     async def music_data(self) -> list:
         """获取曲目数据"""
@@ -94,40 +122,54 @@ class DivingFishAPI(ApiClient):
         Returns:
             `List[PlayInfoDefault]` 数据列表
         """
-        self.json["version"] = version
-
-        result = await self._request_data("POST", "/query/plate", json=self.json)
+        if self.oauth:
+            result = await self._request_oauth(
+                "POST", "/player/plate", json={"version": version}
+            )
+        else:
+            self.json["version"] = version
+            result = await self._request_data("POST", "/query/plate", json=self.json)
 
         return [PlayInfoDefault.model_validate(d) for d in result["verlist"]]
 
-    async def query_user_get_dev(self) -> UserInfoDev:
+    async def query_user_records(self) -> UserInfoDev:
         """
-        使用开发者接口获取用户数据，请确保拥有和输入了开发者 `token`
+        获取用户所有成绩
 
         Returns:
-            `UserInfoDev` 开发者用户信息
+            `UserInfoDev` 用户信息
         """
-        result = await self._request_data(
-            "GET", "/dev/player/records", params=self.json
-        )
+        if self.oauth:
+            result = await self._request_oauth("GET", "/player/records")
+        else:
+            result = await self._request_data(
+                "GET", "/dev/player/records", params=self.json
+            )
         return UserInfoDev.model_validate(result)
 
-    async def query_user_post_dev(
+    async def query_user_record(
         self, *, song_id: str | int | list[str | int]
     ) -> list[PlayInfoDev]:
         """
-        使用开发者接口获取用户指定曲目数据，请确保拥有和输入了开发者 `token`
+        获取用户指定曲目成绩
 
         Params:
             `song_id`: 曲目id，可以为单个ID或者列表
         Returns:
-            `List[PlayInfoDev]` 开发者成绩列表
+            `List[PlayInfoDev]` 成绩列表
         """
         if not isinstance(song_id, list):
             song_id = [song_id]
-        self.json["music_id"] = song_id
 
-        result = await self._request_data("POST", "/dev/player/record", json=self.json)
+        if self.oauth:
+            result = await self._request_oauth(
+                "POST", "/player/record", json={"music_id": song_id}
+            )
+        else:
+            self.json["music_id"] = song_id
+            result = await self._request_data(
+                "POST", "/dev/player/record", json=self.json
+            )
         if result == {}:
             return []
 
