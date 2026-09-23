@@ -112,7 +112,7 @@ async def sse_alias_server():
     if maiconfig.maimaidx_alias_proxy:
         api = "https://www.yuzuchan.cn/api/v2/events"
     else:
-        api = "http://127.0.0.1:23337/api/v2/events"
+        api = "https://www.yuzuchan.moe/api/v2/events"
 
     reconnect_delay = SSE_RECONNECT_DELAY
     last_event_id: str | None = None

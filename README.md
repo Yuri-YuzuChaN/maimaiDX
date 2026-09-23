@@ -386,7 +386,7 @@
 
 感谢 [蓝色彗星](#) 提供的 `牌子条件` 指令图片
 
-感谢 [zhanbao2000](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
+感谢 [秋葉亜里沙](https://github.com/zhanbao2000) 提供的 `nonebot2` 分支
 
 感谢 [CrazyKid](https://github.com/CrazyKidCN) 提供的源码支持
 
