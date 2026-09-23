@@ -74,16 +74,16 @@ async def push_alias(push: PushAliasStatus):
         return
     group_list = await bot.get_group_list()
     group_ids: set[int] = set({g["group_id"] for g in group_list})
-    message = []
-    for num, item in enumerate(push.status):
+    message = [
+        MessageSegment.text(
+            "检测到新的别名申请，可使用同意别名指令进行投票，点击下方链接查看详情："
+            f"「{VOTE_URL}」\n如果不需要接收推送消息，请使用「关闭别名推送」指令关闭推送"
+        )
+    ]
+    for item in push.status:
         song_id = item.song_id
         alias_name = item.apply_alias
         song = mai.total_list.by_id(song_id)
-        if num == 0 and push.type == "Apply":
-            message.append(
-                "检测到新的别名申请，可使用同意别名指令进行投票，点击下方链接查看详情："
-                f"「{VOTE_URL}」\n如果不需要接收推送消息，请使用「关闭别名推送」指令关闭推送"
-            )
         if push.type == "Apply":
             message.append(
                 dedent(f"""\
@@ -94,8 +94,6 @@ async def push_alias(push: PushAliasStatus):
             """).strip()
                 + await draw_chart_info(song)
             )
-    if not message:
-        return
     forward = [MessageSegment.node_custom(bot.self_id, "Bot", msg) for msg in message]
     for gid in group_ids:
         if gid in alias.push.disable:
@@ -104,7 +102,7 @@ async def push_alias(push: PushAliasStatus):
             await bot.send_group_forward_msg(group_id=gid, message=forward)
             await asyncio.sleep(5)
         except Exception:
-            continue
+            log.exception(f"群：「{gid}」推送消息失败")
 
 
 async def sse_alias_server():

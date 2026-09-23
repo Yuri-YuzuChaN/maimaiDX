@@ -34,15 +34,15 @@ def dx_score(dx: int) -> int:
     Returns:
         `int` 返回星星数量
     """
-    if dx <= 85:
+    if dx < 85:
         result = 0
-    elif dx <= 90:
+    elif dx < 90:
         result = 1
-    elif dx <= 93:
+    elif dx < 93:
         result = 2
-    elif dx <= 95:
+    elif dx < 95:
         result = 3
-    elif dx <= 97:
+    elif dx < 97:
         result = 4
     else:
         result = 5
