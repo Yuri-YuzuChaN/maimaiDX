@@ -217,11 +217,8 @@ async def merge_music_data(
         if song is None:
             continue
 
-        for s in stat_list:
-            for diff in song.difficulties:
-                if diff.level == s.diff:
-                    diff.stats = s
-                    break
+        for diff, stat in zip(song.difficulties, stat_list):
+            diff.stats = stat
 
     result = MusicList(root=song_map.values())
     await writefile(merge_music_file, result.model_dump())
@@ -239,6 +236,7 @@ async def merge_alias_data(
     """
     alias_map: dict[int, dict[str, None]] = {}
     song_name_map: dict[int, str] = {}
+    yuzu_song_ids = {item.song_id for item in yuzu_aliases}
 
     def add_aliases(song_id: int, aliases: list[str]) -> None:
         alias_map.setdefault(song_id, {}).update(dict.fromkeys(aliases))
@@ -251,9 +249,11 @@ async def merge_alias_data(
     if lxns_aliases is not None:
         for item in lxns_aliases.aliases:
             song_id = item.song_id
-            if song_id > 1000:
-                song_id += 10000
-            add_aliases(song_id, item.aliases)
+            if song_id in yuzu_song_ids:
+                add_aliases(song_id, item.aliases)
+            # 落雪的基础 ID 可对应标准和 DX 谱面，以 Yuzu 实际存在的 ID 为准。
+            if song_id < 10000 and song_id + 10000 in yuzu_song_ids:
+                add_aliases(song_id + 10000, item.aliases)
 
     if local_alias_data is not None:
         for _a, aliases in local_alias_data.items():

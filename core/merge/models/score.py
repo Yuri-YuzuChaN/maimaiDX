@@ -65,15 +65,16 @@ class PlayedResult(Result):
 class RiseResult(Result):
     old_rating: int = 0
     old_achievements: float = 0
-    old_rate: str = "D"
+    old_rate: str = "d"
 
 
 class RatingTableResult(BaseModel):
     achievements: float
     level: str
     fc: FCType | None = None
+    fs: FSType | None = None
 
-    @field_validator("fc", mode="before")
+    @field_validator("fc", "fs", mode="before")
     @classmethod
     def fc_to_none(cls, v: str):
         if v == "":

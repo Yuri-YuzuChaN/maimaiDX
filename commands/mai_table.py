@@ -8,7 +8,14 @@ from hoshino import priv
 from hoshino.typing import CQEvent, MessageSegment
 
 from ..config import sv
-from ..constants import COMBO_PLUS, LEVEL_LIST, PLATE_CN, RANK_PLUS, SYNC_PLUS
+from ..constants import (
+    CB_SYNC_MAP,
+    COMBO_PLUS,
+    LEVEL_LIST,
+    PLATE_CN,
+    RANK_PLUS,
+    SYNC_PLUS,
+)
 from ..core.handler import (
     draw_level_progress,
     draw_level_score_list,
@@ -25,7 +32,7 @@ from .depend import GetUserAndAuth
 
 RATING_PATTERN = r"^([0-9]+\+?)((s+|ap|fc|fs|fdx)\+?)?\s?完成表$"
 TABLE_PATTERN = (
-    r"^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌星宙祭祝双宴镜彩])"
+    r"^([真超檄橙暁晓桃櫻樱紫菫堇白雪輝辉舞霸熊華华爽煌星宙祭祝双宴镜鏡彩])"
     r"([極极将舞神者]舞?){}表?\s?([0-9]+)?$"
 )
 LEVEL_PATTERN = r"^([0-9]+\+?)\s?((?:a+|b+|c|d|s+|ap|fc|fs|fdx)\+?)\s?([\u4e00-\u9fa5]+)?\s?进度\s?([0-9]+)?$"
@@ -76,11 +83,11 @@ async def _(bot: NoneBot, ev: CQEvent):
 @rating_table
 async def _(bot: NoneBot, ev: CQEvent):
     match: Match[str] = ev["match"]
-    rating = match.group(1).strip()
-    if rating in LEVEL_LIST[:6]:
+    level = match.group(1).strip()
+    if level in LEVEL_LIST[:6]:
         result = "只支持查询lv7-15的定数表。"
-    elif rating in LEVEL_LIST[6:]:
-        result = draw_rating_table_text(rating)
+    elif level in LEVEL_LIST[6:]:
+        result = draw_rating_table_text(level)
     else:
         result = "无法识别的定数。"
     await bot.send(ev, result, at_sender=True)
@@ -90,20 +97,12 @@ async def _(bot: NoneBot, ev: CQEvent):
 async def _(bot: NoneBot, ev: CQEvent):
     user = await GetUserAndAuth(bot, ev)
     match: Match[str] = ev["match"]
-    ra = match.group(1)
-    plan = match.group(2)
-    if ra in LEVEL_LIST[:6]:
-        await bot.finish(ev, "只支持查询lv7-15的完成表。", at_sender=True)
-    elif ra in LEVEL_LIST[6:]:
-        if plan and plan.lower() not in COMBO_PLUS:
-            await bot.finish(
-                ev,
-                "完成表目前仅支持「fc」「ap」计划，例如「13fc完成表」「13ap完成表」。",
-                at_sender=True,
-            )
-        pic = await draw_rating_table(
-            user, ra, True if plan and plan.lower() in COMBO_PLUS else False
-        )
+    level = match.group(1)
+    plan = (match.group(2) or "").lower()
+    if level in LEVEL_LIST[:6]:
+        await rating_table_pfm.finish("只支持查询lv7-15的完成表。", reply_message=True)
+    elif level in LEVEL_LIST[6:]:
+        pic = await draw_rating_table(user, level, CB_SYNC_MAP.get(plan))
         await bot.send(ev, pic, at_sender=True)
     else:
         await bot.send(ev, "无法识别的表格。", at_sender=True)

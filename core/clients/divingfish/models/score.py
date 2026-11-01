@@ -1,15 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class RaMusic(BaseModel):
-    id: str
-    ds: float
-    lv: str
-    lvp: str
-    type: str
-
-
-class PlayInfo(BaseModel):
+class Record(BaseModel):
     achievements: float
     fc: str = ""
     fs: str = ""
@@ -21,19 +13,16 @@ class PlayInfo(BaseModel):
     dxScore: int = 0
     ra: int = 0
     rate: str = ""
-
-
-class ChartInfo(PlayInfo):
     level_label: str
     song_id: int
 
 
 class Charts(BaseModel):
-    sd: list[ChartInfo] = []
-    dx: list[ChartInfo] = []
+    sd: list[Record] = []
+    dx: list[Record] = []
 
 
-class _UserInfo(BaseModel):
+class BaseUser(BaseModel):
     additional_rating: int | None
     nickname: str | None
     plate: str | None = None
@@ -41,21 +30,8 @@ class _UserInfo(BaseModel):
     username: str | None
 
 
-class UserInfo(_UserInfo):
+class UserInfo(BaseUser):
     charts: Charts
-
-
-class PlayInfoDefault(PlayInfo):
-    song_id: int = Field(alias="id")
-    table_level: list[int] = []
-
-
-class PlayInfoDev(ChartInfo): ...
-
-
-class PlanInfo(BaseModel):
-    completed: PlayInfoDefault | PlayInfoDev = None
-    unfinished: PlayInfoDefault | PlayInfoDev = None
 
 
 class RiseScore(BaseModel):
@@ -72,12 +48,10 @@ class RiseScore(BaseModel):
     oldachievements: float = 0
 
 
-##### Dev
-class UserInfoDev(_UserInfo):
-    records: list[PlayInfoDev] = []
+class UserAllRecords(BaseUser):
+    records: list[Record] = []
 
 
-##### Rank
 class UserRanking(BaseModel):
     username: str
     ra: int

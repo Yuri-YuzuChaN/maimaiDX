@@ -1,6 +1,8 @@
-from ..clients.divingfish.models.score import ChartInfo, UserInfo
+from ...constants import DX_CN_VERSION
+from ..clients.divingfish.models import Record, UserAllRecords, UserInfo
 from ..clients.lxns.models.score import Best50 as b50
 from ..clients.lxns.models.score import Score
+from ..service import mai
 from .models import Best50, PlayedResult, Player
 from .play_result import lxns_format_result
 
@@ -29,7 +31,7 @@ def df_to_player(userinfo: UserInfo) -> Player:
     )
 
 
-def df_total_play_list(chart: list[ChartInfo]) -> tuple[int, list[PlayedResult]]:
+def df_total_play_list(chart: list[Record]) -> tuple[int, list[PlayedResult]]:
     total = 0
     play_list = []
     for v in chart:
@@ -55,9 +57,24 @@ def df_total_play_list(chart: list[ChartInfo]) -> tuple[int, list[PlayedResult]]
     return total, play_list
 
 
-def df_to_best50(userinfo: UserInfo) -> Best50:
-    sd_total, sd_play_list = df_total_play_list(userinfo.charts.sd)
-    dx_total, dx_play_list = df_total_play_list(userinfo.charts.dx)
+def df_to_best50(userinfo: UserInfo | UserAllRecords) -> Best50:
+    if isinstance(userinfo, UserAllRecords):
+        new_version = list(DX_CN_VERSION.values())[-1][0]
+        new_records = sorted(
+            userinfo.records,
+            key=lambda record: (record.ra, record.achievements),
+            reverse=True,
+        )
+        song_id_list = mai.total_plate_id_list[new_version]
+        song_ids = set(song_id_list)
+        dx = [record for record in new_records if record.song_id in song_ids][:15]
+        sd = [record for record in new_records if record.song_id not in song_ids][:35]
+
+        sd_total, sd_play_list = df_total_play_list(sd)
+        dx_total, dx_play_list = df_total_play_list(dx)
+    else:
+        sd_total, sd_play_list = df_total_play_list(userinfo.charts.sd)
+        dx_total, dx_play_list = df_total_play_list(userinfo.charts.dx)
     return Best50(
         sd_total=sd_total, dx_total=dx_total, sd=sd_play_list, dx=dx_play_list
     )

@@ -1,5 +1,4 @@
 import random
-import re
 from re import Match
 
 from httpx import HTTPError as HTTPXError
@@ -21,7 +20,6 @@ from ..core.clients.divingfish.exceptions import (
 from ..core.clients.divingfish.oauth import REVOKE_URL, binding_label
 from ..core.clients.exceptions import HTTPError, UnknownError
 from ..core.database.qq import User, update_user
-from ..core.divingfish_oauth import extract_confirmation_code
 from ..core.handler import (
     bind_divingfish,
     bind_lxns,
@@ -32,19 +30,8 @@ from ..core.handler import (
     get_mai_what,
 )
 from ..core.image.tools import image_to_base64, song_chart
-from ..core.lxns_oauth import (
-    extract_authorization_code,
-)
 from ..core.merge.models import ServiceName, Theme
-from ..core.pending_binding import PendingBindingStore
-from ..core.service import mai
-from ..core.tool import qqhash
-from .depend import (
-    GetOrCreateSender,
-    GetOrCreateUser,
-    GetUserAndAuthOrNone,
-)
-from .oauth_message import (
+from ..core.oauth import (
     BINDING_TEMPORARY_FAILED_MSG,
     DIVINGFISH_AUTHORIZE_MSG,
     DIVINGFISH_BIND_FAILED_MSG,
@@ -60,10 +47,18 @@ from .oauth_message import (
     LXNS_AUTHORIZE_MSG,
     LXNS_ERROR,
     OAUTH_FAILED_MSG,
+    PendingBindingStore,
+    extract_authorization_code,
+    extract_confirmation_code,
 )
-
-CODE_PATTERN = re.compile(r"^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
-
+from ..core.service import mai
+from ..core.tool import qqhash
+from .depend import (
+    GetOrCreateSender,
+    GetOrCreateUser,
+    GetUserAndAuth,
+    GetUserAndAuthOrNone,
+)
 
 pending_bindings = PendingBindingStore()
 
@@ -140,9 +135,7 @@ my_rating_ranking = sv.on_fullmatch("我的排名")
 async def _(bot: NoneBot, ev: CQEvent):
     if not priv.check_priv(ev, priv.SUPERUSER):
         return
-    await mai.get_music()
-    await mai.get_music_alias()
-    await mai.get_plate_json()
+    await mai.update()
     await bot.send(ev, "maimai数据更新完成")
 
 
@@ -384,7 +377,7 @@ async def _(bot: NoneBot, ev: CQEvent):
 
 @rise_score
 async def _(bot: NoneBot, ev: CQEvent):
-    user = await GetOrCreateUser(bot, ev)
+    user = await GetUserAndAuth(bot, ev)
     match: Match[str] = ev["match"]
     if not match:
         rating = None

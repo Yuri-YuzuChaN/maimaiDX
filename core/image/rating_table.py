@@ -10,6 +10,7 @@ from ...constants import (
     RANK_SP,
     STATISTICS_KEYS,
     SYNC_D_SP,
+    SYNC_MAP,
 )
 from ...resources import (
     FOTNEWRODIN,
@@ -53,26 +54,26 @@ class DrawRatingTable(AssetsImage):
 
     def __init__(
         self,
-        rating: str,
+        level: str,
         *,
         service: ServiceName | None = None,
         play_result: list[PlayedResult] | None = None,
-        plan: bool = False,
+        plan: tuple[str, ...] | None = None,
         level_text: bool = False,
     ):
         """
         Params:
-            `rating`: 定数
+            `level`: 定数等级
             `service`: 数据源
             `play_result`: 游玩数据列表
             `plan`: 可选，是否指定目标
-            `level_text`: 可选，是否只画定数标题，例如：`Level.13+`
+            `level_text`: 可选，是否只画定数等级标题，例如：`Level.13+`
         """
         super().__init__()
-        self.rating = rating
+        self.level = level
         self.service = service
         self.result = play_result
-        self.plan = plan
+        self.plan = plan if plan else None
         self.level_text = level_text
 
         self._rank_cache: dict[str, Image.Image] = {}
@@ -88,23 +89,29 @@ class DrawRatingTable(AssetsImage):
 
     def _get_fc_icon(self, fc: str) -> Image.Image:
         if fc not in self._fc_cache:
-            path = pic_dir / f"UI_MSS_MBase_Icon_{COMBO_MAP[fc]}.png"
+            path = pic_dir / f"UI_MSS_MBase_Icon_{(COMBO_MAP | SYNC_MAP)[fc]}.png"
             if path.exists():
                 self._fc_cache[fc] = self._open_image(path).resize((50, 50))
         return self._fc_cache.get(fc)
 
     def _get_big_fc_icon(self, fc: str) -> Image.Image:
         if fc not in self._fc_cache:
-            path = pic_dir / f"UI_CHR_PlayBonus_{COMBO_MAP[fc]}.png"
+            path = pic_dir / f"UI_CHR_PlayBonus_{(COMBO_MAP | SYNC_MAP)[fc]}.png"
             if path.exists():
                 self._fc_cache[fc] = self._open_image(path).resize((200, 200))
         return self._fc_cache.get(fc)
 
+    def _get_plan_status(self, record: RatingTableResult) -> str | None:
+        if not self.plan:
+            return None
+        status = record.fs if self.plan[0] in SYNC_D_SP else record.fc
+        return status if status in self.plan else None
+
     def _calc_achievements_fc(
-        self, score_list: list[float] | list[str], lvlist_num: int
+        self, score_list: list[float | int], lvlist_num: int
     ) -> int:
         r = -1
-        thresholds = range(4) if self.plan else ACHIEVEMENT_LIST[-6:]
+        thresholds = range(len(self.plan)) if self.plan else ACHIEVEMENT_LIST[-6:]
         for _t in thresholds:
             count = sum(1 for s in score_list if s >= _t)
             if count == lvlist_num:
@@ -122,10 +129,10 @@ class DrawRatingTable(AssetsImage):
         rank_sp = RANK_SP[-6:]
 
         for _d in self.result:
-            if _d.level != self.rating:
+            if _d.level != self.level:
                 continue
             played_map[_d.song_id][_d.level_index] = RatingTableResult(
-                achievements=_d.achievements, level=_d.level, fc=_d.fc
+                achievements=_d.achievements, level=_d.level, fc=_d.fc, fs=_d.fs
             )
             rate = compute_rating(
                 _d.level_value, _d.achievements, onlyrate=True
@@ -157,7 +164,7 @@ class DrawRatingTable(AssetsImage):
         Returns:
             `base64 str`
         """
-        im = Image.open(rating_table_dir / f"{self.rating}.png").convert("RGBA")
+        im = Image.open(rating_table_dir / f"{self.level}.png").convert("RGBA")
         dr = ImageDraw.Draw(im)
         tb = DrawText(dr, TBFONT)
         fot = DrawText(dr, FOTNEWRODIN)
@@ -170,7 +177,7 @@ class DrawRatingTable(AssetsImage):
                 750,
                 220,
                 100,
-                self.rating,
+                self.level,
                 self._font_color,
                 "ld",
                 8,
@@ -182,12 +189,12 @@ class DrawRatingTable(AssetsImage):
             495, 160, 70, "Level.", self._font_color, "ld", 8, (255, 255, 255, 255)
         )
         fot.draw(
-            750, 160, 100, self.rating, self._font_color, "ld", 8, (255, 255, 255, 255)
+            750, 160, 100, self.level, self._font_color, "ld", 8, (255, 255, 255, 255)
         )
 
         statistics, played_map = self._process_rating_table_data()
 
-        lv_data = mai.total_level_data.get(self.rating)
+        lv_data = mai.total_level_data.get(self.level)
         total_songs_count = sum(len(v) for v in lv_data.values())
         achievements_or_fc_list: list[float | int] = []
 
@@ -224,7 +231,7 @@ class DrawRatingTable(AssetsImage):
                 (255, 255, 255, 255),
             )
 
-        if self.rating == "15":
+        if self.level == "15":
             for num, song in enumerate(lv_data["15.0"]):
                 row, col = divmod(num, 3)
                 x = 100 + col * 425
@@ -249,16 +256,15 @@ class DrawRatingTable(AssetsImage):
                     im.alpha_composite(self._get_rank_icon(rate), (x + 55, y + 115))
                     continue
 
-                if record.fc:
-                    achievements_or_fc_list.append(COMBO_SP.index(record.fc))
-                    im.alpha_composite(
-                        self._get_big_fc_icon(record.fc), (x + 75, y + 80)
-                    )
+                status = self._get_plan_status(record)
+                if status:
+                    achievements_or_fc_list.append(self.plan.index(status))
+                    im.alpha_composite(self._get_big_fc_icon(status), (x + 75, y + 80))
 
         else:
             current_y = RatingGridConfig.start_y
-            for ra, songs in lv_data.items():
-                for num, song in enumerate(lv_data[ra]):
+            for songs in lv_data.values():
+                for num, song in enumerate(songs):
                     row, col = divmod(num, RatingGridConfig.row_count)
                     x = RatingGridConfig.start_x + col * RatingGridConfig.gap
                     y = current_y + row * RatingGridConfig.gap
@@ -290,12 +296,11 @@ class DrawRatingTable(AssetsImage):
                         )
                         continue
 
-                    if record.fc:
-                        achievements_or_fc_list.append(COMBO_SP.index(record.fc))
+                    status = self._get_plan_status(record)
+                    if status:
+                        achievements_or_fc_list.append(self.plan.index(status))
                         im.alpha_composite(self._rating_complete_bg, (x + 1, y + 1))
-                        im.alpha_composite(
-                            self._get_fc_icon(record.fc), (x + 15, y + 13)
-                        )
+                        im.alpha_composite(self._get_fc_icon(status), (x + 13, y + 13))
 
                 group_rows = (len(songs) - 1) // RatingGridConfig.row_count + 1
                 current_y += group_rows * RatingGridConfig.gap + 30
@@ -303,7 +308,11 @@ class DrawRatingTable(AssetsImage):
         if len(achievements_or_fc_list) == total_songs_count:
             r = self._calc_achievements_fc(achievements_or_fc_list, total_songs_count)
             if r != -1:
-                pic = COMBO_MAP[COMBO_SP[r]] if self.plan else RANK_MAP[RANK_SP[-6:][r]]
+                pic = (
+                    (COMBO_MAP | SYNC_MAP)[self.plan[r]]
+                    if self.plan
+                    else RANK_MAP[RANK_SP[-6:][r]]
+                )
                 im.alpha_composite(
                     Image.open(pic_dir / f"UI_MSS_Allclear_Icon_{pic}.png"), (40, 40)
                 )

@@ -12,7 +12,7 @@ from .exceptions import (
     DivingFishUserDisabledQueryError,
     DivingFishUserNotFoundError,
 )
-from .models import PlayInfoDefault, PlayInfoDev, UserInfo, UserInfoDev, UserRanking
+from .models import RecordsQueryRequest, UserAllRecords, UserInfo, UserRanking
 from .oauth import get_access_token
 
 
@@ -21,14 +21,8 @@ class DivingFishAPI(ApiClient):
     base_url = "https://maimai.diving-fish.com/api/maimaidxprober"
 
     def __init__(self, qqid: int | None = None, username: str | None = None):
-        #: 授权模式下查谁由令牌决定，请求里不再携带 `qq`，也不需要开发者 token
         self.oauth = dfconfig.oauth_enabled and qqid is not None and not username
-        super().__init__(
-            base_url=self.base_url,
-            headers=None
-            if self.oauth or not dfconfig.divingfish_token
-            else {"developer-token": dfconfig.divingfish_token},
-        )
+        super().__init__(base_url=self.base_url)
         self.qqid = qqid
         self._retried = False
         self.json = {}
@@ -36,7 +30,6 @@ class DivingFishAPI(ApiClient):
             self.json["qq"] = qqid
         if username:
             self.json["username"] = username
-            self.json.pop("qq", None)
 
     def _handle_error(self, resp: Response):
         if resp.status_code == 200:
@@ -113,67 +106,18 @@ class DivingFishAPI(ApiClient):
         result = await self._request_data("POST", "/query/player", json=self.json)
         return UserInfo.model_validate(result)
 
-    async def query_user_plate(self, version: list[str]) -> list[PlayInfoDefault]:
-        """
-        请求用户数据
-
-        Params:
-            `version`: 版本
-        Returns:
-            `List[PlayInfoDefault]` 数据列表
-        """
-        if self.oauth:
-            result = await self._request_oauth(
-                "POST", "/player/plate", json={"version": version}
-            )
-        else:
-            self.json["version"] = version
-            result = await self._request_data("POST", "/query/plate", json=self.json)
-
-        return [PlayInfoDefault.model_validate(d) for d in result["verlist"]]
-
-    async def query_user_records(self) -> UserInfoDev:
+    async def query_user_records(
+        self, query: RecordsQueryRequest | None = None
+    ) -> UserAllRecords:
         """
         获取用户所有成绩
 
         Returns:
-            `UserInfoDev` 用户信息
+            `UserAllRecords` 用户信息
         """
-        if self.oauth:
-            result = await self._request_oauth("GET", "/player/records")
-        else:
-            result = await self._request_data(
-                "GET", "/dev/player/records", params=self.json
-            )
-        return UserInfoDev.model_validate(result)
-
-    async def query_user_record(
-        self, *, song_id: str | int | list[str | int]
-    ) -> list[PlayInfoDev]:
-        """
-        获取用户指定曲目成绩
-
-        Params:
-            `song_id`: 曲目id，可以为单个ID或者列表
-        Returns:
-            `List[PlayInfoDev]` 成绩列表
-        """
-        if not isinstance(song_id, list):
-            song_id = [song_id]
-
-        if self.oauth:
-            result = await self._request_oauth(
-                "POST", "/player/record", json={"music_id": song_id}
-            )
-        else:
-            self.json["music_id"] = song_id
-            result = await self._request_data(
-                "POST", "/dev/player/record", json=self.json
-            )
-        if result == {}:
-            return []
-
-        return [PlayInfoDev.model_validate(d) for k, v in result.items() for d in v]
+        params = query.model_dump(exclude_none=True) if query is not None else None
+        result = await self._request_oauth("GET", "/player/records", params=params)
+        return UserAllRecords.model_validate(result)
 
     async def rating_ranking(self) -> list[UserRanking]:
         """

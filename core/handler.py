@@ -10,7 +10,6 @@ from ..constants import (
     COMBO_PLUS,
     COMBO_SP,
     DX_CN_VERSION,
-    LEVEL_INDEX_MAP,
     RANK_PLUS,
     SYNC_D_SP,
     SYNC_PLUS,
@@ -22,7 +21,7 @@ from .clients.divingfish.exceptions import (
     DivingFishBindingMismatchError,
     DivingFishNotAuthorizedError,
 )
-from .clients.divingfish.models import DeviceAuthorization
+from .clients.divingfish.models import DeviceAuthorization, RecordsQueryRequest
 from .clients.divingfish.oauth import (
     DivingFishOAuth,
     get_access_token,
@@ -181,14 +180,18 @@ async def get_best50(
     Params:
         `user`: 用户 `User` 模型
         `username`: 用户名（仅Diving-Fish）
-        `all_perfect`: 绘制AP（仅LXNS）
+        `all_perfect`: 绘制AP
     Returns:
         `tuple[Player, Best50]`
     """
-
-    if username or user.service == ServiceName.DIVINGFISH:
+    if user.service == ServiceName.DIVINGFISH:
         api = DivingFishAPI(user.qqid, username)
-        userinfo = await api.query_user_b50()
+        if all_perfect:
+            userinfo = await api.query_user_records(
+                RecordsQueryRequest(fullcombo=["ap", "app"])
+            )
+        else:
+            userinfo = await api.query_user_b50()
         player = df_to_player(userinfo)
         best50 = df_to_best50(userinfo)
     elif user.service == ServiceName.LXNS:
@@ -207,24 +210,21 @@ async def get_best50(
 
 
 async def get_player_result(
-    user: User, version: list[str] | None = None
+    user: User, query: RecordsQueryRequest | None = None
 ) -> list[PlayedResult]:
     """
     获取游玩成绩
 
     Params:
         `user`: 用户 `User` 模型
-        `version`: 版本列表（仅DivingFish）
+        `plate`: 牌子
     Returns:
         `list[PlayedResult]`
     """
     if user.service == ServiceName.DIVINGFISH:
         api = DivingFishAPI(user.qqid)
-        if version is not None:
-            data = await api.query_user_plate(version)
-        else:
-            result = await api.query_user_records()
-            data = result.records
+        result = await api.query_user_records(query)
+        data = result.records
         play_result = df_to_playresult(data)
     elif user.service == ServiceName.LXNS:
         token = get_token(user)
@@ -254,25 +254,16 @@ def get_rise_score_list(
     Returns:
         `Tuple[List[RiseScore], int]`
     """
-    if not play_result:
-        return [], 0
-
-    lowest_ra = play_result[-1].rating
-    lowest_level = play_result[-1].level
-
-    lowest_level_index = LEVEL_INDEX_MAP[lowest_level]
-    new_level_index = LEVEL_INDEX_MAP[level] if level else lowest_level_index
-
-    if lowest_level_index > new_level_index:
-        return [], 0
-
-    target_rise = score or 1
-
-    ignored_song_ids = {p.song_id for p in play_result if p.achievements >= 100.5}
+    capacity = 15 if type == SongType.DX else 35
+    lowest_ra = (
+        min(p.rating for p in play_result) if len(play_result) >= capacity else 0
+    )
+    best_records = {(p.song_id, p.level_index): p for p in play_result}
+    target_rise = max(score or 1, 1)
 
     max_ra_coefficient = ACHIEVEMENT_LIST[-1] / 100 * 22.4
     min_ds = math.ceil((lowest_ra + target_rise) / max_ra_coefficient * 10) / 10
-    ds = None if level is not None else (min_ds, min_ds + 1)
+    ds = None if level is not None or lowest_ra == 0 else (min_ds, min_ds + 1)
 
     new_version = list(DX_CN_VERSION.values())[-1][-1]
 
@@ -289,37 +280,28 @@ def get_rise_score_list(
 
     for song in songs:
         song_id = song.song_id
-        if song_id >= 100000 or song_id in ignored_song_ids:
+        if song_id >= 100000:
             continue
         for diff in song.difficulties:
-            if level and LEVEL_INDEX_MAP[diff.level] > new_level_index:
+            chart_key = (song_id, diff.level_index)
+            old_result = best_records.get(chart_key) or old_records.get(chart_key)
+            if old_result and old_result.achievements >= 100.5:
                 continue
 
-            old_result = old_records.get((song_id, diff.level_index))
-            old_ra = max(old_result.rating, lowest_ra) if old_result else 0
+            old_ra = (
+                best_records[chart_key].rating
+                if chart_key in best_records
+                else lowest_ra
+            )
 
             for achievements in RISE_ACHIEVEMENT_LIST:
                 new_ra, new_rate = compute_rating(
                     diff.level_value, achievements, israte=True
                 )
 
-                if old_result is None:
-                    if new_ra <= lowest_ra:
-                        continue
-                    rise = RiseResult(
-                        song_id=song_id,
-                        song_name=song.song_name,
-                        level_index=diff.level_index,
-                        type=song.type,
-                        rating=new_ra,
-                        achievements=achievements,
-                        rate=new_rate.lower(),
-                        level_value=diff.level_value,
-                    )
-                    rise_result.append(rise)
-                    break
-
                 if new_ra - old_ra < target_rise:
+                    continue
+                if old_result and new_ra <= old_result.rating:
                     continue
 
                 rise = RiseResult(
@@ -331,9 +313,11 @@ def get_rise_score_list(
                     achievements=achievements,
                     rate=new_rate.lower(),
                     level_value=diff.level_value,
-                    old_rating=old_result.rating,
-                    old_achievements=old_result.achievements,
-                    old_rate=old_result.rate.value if old_result.rate else "D",
+                    old_rating=old_result.rating if old_result else 0,
+                    old_achievements=old_result.achievements if old_result else 0,
+                    old_rate=(
+                        old_result.rate.value if old_result and old_result.rate else "D"
+                    ),
                 )
                 rise_result.append(rise)
                 break
@@ -358,16 +342,16 @@ async def draw_song_global_data(song: Song, level_index: int) -> MessageSegment:
     return MessageSegment.image(image)
 
 
-def draw_rating_table_text(rating: str) -> MessageSegment:
+def draw_rating_table_text(level: str) -> MessageSegment:
     """
-    绘制只有等级文本的定数表
+    绘制只有等级文本的等级定数表
 
     Params:
-        `rating`: 定数
+        `level`: 等级
     Returns:
         `MessageSegment`
     """
-    table = DrawRatingTable(rating, level_text=True)
+    table = DrawRatingTable(level, level_text=True)
     image = table.draw()
     return MessageSegment.image(image)
 
@@ -399,7 +383,7 @@ async def draw_best50(
         `user`: 用户 `User` 模型
         `username`: 用户名
         `icon`: 头像
-        `all_perfect`: 绘制AP（仅LXNS）
+        `all_perfect`: 绘制AP
     Returns:
         `MessageSegment`
     """
@@ -421,12 +405,12 @@ async def draw_play_data(user: User, song: Song) -> MessageSegment:
         `MessageSegment`
     """
     if user.service == ServiceName.DIVINGFISH:
-        api = DivingFishAPI(qqid=user.qqid)
-        data = await api.query_user_record(song_id=song.song_id)
-        if not data:
+        api = DivingFishAPI(user.qqid)
+        data = await api.query_user_records(RecordsQueryRequest(song_id=song.song_id))
+        if not data.records:
             raise MusicNotPlayError
 
-        play_result = df_to_playresult(data, song=song)
+        play_result = df_to_playresult(data.records, song=song)
     elif user.service == ServiceName.LXNS:
         token = get_token(user)
         api = LxnsAPI(user.qqid, token)
@@ -460,7 +444,7 @@ async def get_mai_what(user: User) -> Song | None:
     Returns:
         `Song | None`
     """
-    _player, best50 = await get_best50(user)
+    _, best50 = await get_best50(user)
     r = random.randint(0, 1)
     _ra = 0
     ignore = []
@@ -501,7 +485,7 @@ async def draw_chart_info(song: Song, user: User | None = None) -> MessageSegmen
             theme = user.theme
             try:
                 if user.service == ServiceName.DIVINGFISH:
-                    api = DivingFishAPI(qqid=user.qqid)
+                    api = DivingFishAPI(user.qqid)
                     userinfo = await api.query_user_b50()
                     best50 = df_to_best50(userinfo)
                     calc = True
@@ -533,21 +517,28 @@ async def draw_chart_info(song: Song, user: User | None = None) -> MessageSegmen
 
 @handle_errors
 async def draw_rating_table(
-    user: User, rating: str, plan: bool = False
+    user: User, level: str, plan: tuple[str, ...] | None = None
 ) -> MessageSegment:
     """
     绘制定数表
 
     Params:
         `user`: 用户 `User` 模型
-        `rating`: 定数
+        `level`: 定数
         `plan`: 指定计划
     Returns:
         `MessageSegment`
     """
-    play_result = await get_player_result(user)
+    fc, fs = None, None
+    if plan and "app" in plan:
+        fc = list(plan)
+    if plan and "fsdp" in plan:
+        fs = list(plan)
+    play_result = await get_player_result(
+        user, RecordsQueryRequest(level=level, fullcombo=fc, fullsync=fs)
+    )
     table = DrawRatingTable(
-        rating, service=user.service, play_result=play_result, plan=plan
+        level, service=user.service, play_result=play_result, plan=plan
     )
     image = table.draw()
     return MessageSegment.image(image)
@@ -572,7 +563,7 @@ async def draw_plate_table(
         `MessageSegment`
     """
     _version, version_name = VERSION_MAP.get(version)
-    play_result = await get_player_result(user, _version)
+    play_result = await get_player_result(user, RecordsQueryRequest(version=_version))
     table = DrawPlateTable(
         user.service,
         play_result,
@@ -604,7 +595,7 @@ async def draw_plate_progress(
         `MessageSegment`
     """
     _version, version_name = VERSION_MAP.get(version)
-    play_result = await get_player_result(user, _version)
+    play_result = await get_player_result(user, RecordsQueryRequest(version=_version))
     table = DrawPlateProgress(
         user.service,
         play_result,
@@ -634,7 +625,7 @@ async def draw_rise_score_list(
     Returns:
         `MessageSegment`
     """
-    _player, best50 = await get_best50(user)
+    _, best50 = await get_best50(user)
     play_result = await get_player_result(user)
 
     old_records = {(v.song_id, v.level_index): v for v in play_result}
@@ -666,14 +657,14 @@ async def draw_level_progress(
 
     Params:
         `user`: 用户 `User` 模型
-        `level`: 定数
+        `level`: 等级
         `plan`: 评价等级
         `category`: 指定进度
         `page`: 页数
     Returns:
         `MessageSegment`
     """
-    play_result = await get_player_result(user)
+    play_result = await get_player_result(user, RecordsQueryRequest(level=level))
     played_map: dict[tuple[int, int], PlayedResult] = {
         (r.song_id, r.level_index): r for r in play_result if r.level == level
     }
@@ -786,7 +777,12 @@ async def draw_level_score_list(
     Returns:
         `MessageSegment`
     """
-    play_result = await get_player_result(user)
+    query = RecordsQueryRequest()
+    if isinstance(rating, str):
+        query.level = rating
+    else:
+        query.level_value = rating
+    play_result = await get_player_result(user, query)
     new_play_result = sorted(
         filter(
             (lambda x: x.level == rating)

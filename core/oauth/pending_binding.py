@@ -14,7 +14,7 @@
 from collections.abc import Callable
 from time import monotonic
 
-from .merge.models import ServiceName
+from ..merge.models import ServiceName
 
 
 class PendingBindingStore:
@@ -65,9 +65,7 @@ class PendingBindingStore:
 
     def _clear_expired(self, now: float) -> None:
         expired = [
-            key
-            for key, (_, expires_at) in self._sessions.items()
-            if expires_at <= now
+            key for key, (_, expires_at) in self._sessions.items() if expires_at <= now
         ]
         for key in expired:
             del self._sessions[key]

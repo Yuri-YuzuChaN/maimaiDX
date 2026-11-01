@@ -34,6 +34,4 @@ def extract_confirmation_code(text: str) -> str | None:
     body = re.sub(r"[\s\-—_]", "", value).upper()
     if not _BODY_PATTERN.fullmatch(body):
         return None
-    return "-".join(
-        body[i:i + 4] for i in range(0, CONFIRMATION_CODE_LENGTH, 4)
-    )
+    return "-".join(body[i : i + 4] for i in range(0, CONFIRMATION_CODE_LENGTH, 4))

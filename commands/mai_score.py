@@ -8,7 +8,7 @@ from hoshino.typing import CQEvent, MessageSegment
 from ..config import log, sv
 from ..core.handler import draw_best50, draw_play_data, draw_song_global_data
 from ..core.image.tools import image_to_base64, text_to_image
-from ..core.merge.models import ServiceName
+from ..core.merge.models import Song
 from ..core.service import mai
 from .depend import GetUserAndAuth
 
@@ -25,36 +25,56 @@ score = sv.on_prefix(["分数线"])
 async def _(bot: NoneBot, ev: CQEvent):
     user = await GetUserAndAuth(bot, ev)
     username: str = ev.message.extract_plain_text().strip()
-
-    if (is_ap := ev.prefix.strip() in ap50) and user.service == ServiceName.DIVINGFISH:
-        await bot.finish(ev, "仅落雪查分器支持AP50指令", at_sender=True)
-    result = await draw_best50(user, username=username, all_perfect=is_ap)
+    result = await draw_best50(
+        user, username=username, all_perfect=ev.prefix.strip() in ap50
+    )
     await bot.send(ev, result, at_sender=True)
+
+
+async def search_song(bot: NoneBot, ev: CQEvent, data: str) -> Song | None:
+    if data.isdigit() and (by_id := mai.total_list.by_id(int(data))):
+        song = by_id
+    elif by_t := mai.total_list.by_name(data):
+        song = by_t
+    elif alias := mai.total_alias_list.by_alias(data):
+        if not alias:
+            await bot.finish(ev, "未找到曲目", at_sender=True)
+        elif len(alias) != 1:
+            msg = "找到相同别名的曲目，请使用以下ID查询：\n"
+            for songs in alias:
+                msg += f"{songs.song_id}：{songs.alias[0]}\n"
+            await bot.finish(ev, msg.strip(), at_sender=True)
+        else:
+            song = mai.total_list.by_id(alias[0].song_id)
+    else:
+        by_t = mai.total_list.filter(title=data)
+        if (tn := len(by_t)) == 1:
+            song = by_t[0]
+        elif tn <= 5 and tn > 1:
+            msg = f"未找到别名为「{data}」的歌曲，但找到「{tn}」个相似标题的曲目：\n"
+            for s in sorted(by_t, key=lambda x: int(x.song_id)):
+                msg += f"{f'「{s.song_id}」':<7} {s.song_name}\n"
+            msg += "※ 请使用「info xxxxx」查询指定曲目"
+            await bot.finish(ev, msg, at_sender=True)
+        elif tn > 5:
+            await bot.finish(ev, "查询相似的曲目过多，请缩小范围。", at_sender=True)
+        else:
+            song = None
+
+    return song
 
 
 @info
 async def _(bot: NoneBot, ev: CQEvent):
     user = await GetUserAndAuth(bot, ev)
-    data: str = ev.message.extract_plain_text().strip().lower()
-    if not data:
+    args: str = ev.message.extract_plain_text().strip().lower()
+    if not args:
         await bot.finish(ev, "请输入曲目id或曲名", at_sender=True)
 
-    if data.isdigit() and (by_id := mai.total_list.by_id(int(data))):
-        song = by_id
-    elif by_t := mai.total_list.by_name(data):
-        song = by_t
-    else:
-        aliases = mai.total_alias_list.by_alias(data)
-        if not aliases:
-            await bot.finish(ev, "未找到曲目", at_sender=True)
-        elif len(aliases) != 1:
-            msg = "找到相同别名的曲目，请使用以下ID查询：\n"
-            for alias in aliases:
-                msg += f"{alias.song_id}：{alias.alias[0]}\n"
-            await bot.finish(ev, msg.strip(), at_sender=True)
-        else:
-            song_id = aliases[0].song_id
-        song = mai.total_list.by_id(song_id)
+    song = await search_song(bot, ev, args)
+
+    if song is None:
+        await bot.finish("未找到曲目", at_sender=True)
 
     result = await draw_play_data(user, song)
     await bot.send(ev, result, at_sender=True)
@@ -73,21 +93,12 @@ async def _(bot: NoneBot, ev: CQEvent):
         args = args[1:].strip()
         if not args:
             await bot.finish(ev, "请输入曲目id或曲名", at_sender=True)
-    if args.isdigit() and (by_id := mai.total_list.by_id(int(args))):
-        song = by_id
-    elif by_t := mai.total_list.by_name(args):
-        song = by_t
-    else:
-        alias = mai.total_alias_list.by_alias(args)
-        if not alias:
-            await bot.finish(ev, "未找到曲目", at_sender=True)
-        elif len(alias) != 1:
-            msg = "找到相同别名的曲目，请使用以下ID查询：\n"
-            for songs in alias:
-                msg += f"{songs.song_id}：{songs.alias[0]}\n"
-            await bot.finish(ev, msg.strip(), at_sender=True)
-        else:
-            song = mai.total_list.by_id(alias[0].song_id)
+
+    song = await search_song(bot, ev, args)
+
+    if song is None:
+        await bot.finish("未找到曲目", at_sender=True)
+
     if song is None:
         await bot.finish(ev, "未找到曲目", at_sender=True)
     if level_index >= len(song.difficulties):

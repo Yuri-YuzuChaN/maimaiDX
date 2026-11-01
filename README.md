@@ -17,6 +17,19 @@
 
 ## 重要更新
 
+## 重要更新
+
+**2026-11-02**
+
+1. 新版本已完全废弃水鱼开发者Token，请前往水鱼 [开发者控制台](https://auth.diving-fish.com/console) 申请新应用，使用OAuth认证，未配置或者未授权仅可使用 `b50` 指令
+2. 修改了水鱼查分器的请求方式，移除废弃API端点
+3. 修复使用水鱼查分器查询b50无法显示 `镜` 牌的问题，牌子可自行修改 `plate_version` 文件夹内的所有 `镜` 牌为繁体字的 `鏡`。以下压缩包包含新的曲目 `魔法仕掛けのファンタジア` 曲绘，新的 `鏡` 牌和 `廻` 牌文件
+   - [cloudreve](https://cloud.yuzuchan.moe/f/x3f3/Resource%203.1.5%20UPDATE.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQBfiyOSmOXEQ6BU4NFfZdxmATlmua1cd1zGUlW3txCwTy8?e=uwrb3h)
+   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%203.1.5%20UPDATE.7z?sign=lpaSBMx8zCkfIYcyWWVVPu5ozDfs45_1-RMLVeAynH4=:0)
+4. 修复 `我要上分` 指令计算问题
+5. 修复合并别名的时，出现不存在的曲目ID
+
 **2026-08-20**
 
 1. 水鱼查分器新增 `OAuth` 认证，请根据 [配置](#配置) 示例填入相关 后续开发者Token将被废弃
@@ -24,41 +37,6 @@
 3. 使用 `SSE` 替代 `websocket` 推送
 4. 移除了申请别名通过和拒绝的推送
 5. 修改部分绘图
-
-**2026-06-30**
-
-1. 替换 `rating` 数字新素材，直接覆盖 `mai/pic` 目录，增量包：
-   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/Jvhl/Resource%20CN1.56%20UPDATE.7z)
-   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDS_RzM66klSqvHtUhfFPTfAfpJcbGlIbL-7Q6eSPxM4CA?e=xRPo7b)
-   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.56%20UPDATE.7z?sign=p6h2Q9f3u87vRO8yU6ZSvCoagq0BE-xnX4wlhM55s_U=:0)
-
-2. 恢复查询TA人成绩的功能
-3. 修复15完成表绘图偏移的问题
-4. 修复进度表完成时文字重叠的问题
-5. 优化部分绘图
-6. 修复部分bug
-
-**2026-06-09**
-
-### 现仅支持 `Python 3.10+` ！！！
-
-#### 最好在更新 `舞萌DX 2026` 后再使用该版本
-
-1. 更新支持 `舞萌DX2026`，应该是最后一次大改了
-2. 新支持了 `落雪查分器`
-3. 新功能：
-   - 新增 `舞`，`霸者` 牌子绘图
-   - 新增进度绘图
-   - 新增查询曲目过多时的绘图
-   - 新增切换主题功能
-   - 新增切换查分器功能
-   - 新增 `ap50` 指令（仅限落雪查分器）
-   - 新增 `lxbind`，`授权码`，`主题`，`数据源` 指令
-   - 新增 `牌子条件` 指令
-4. 新版本使用独立的 `log`
-5. 新版本使用 `.env` 文件进行配置
-6. 修改了别名推送的发送方式，防止刷屏
-7. 修复了非常多的 `BUG`
 
 ## 温馨提示
 
@@ -94,8 +72,8 @@
    DIVINGFISH_CLIENT_SECRET=            # OAuth 应用秘钥
    DIVINGFISH_SCOPE=""                  # OAuth 权限，根据应用权限进行填写，多个权限用空格隔开，默认值为 `"prober.profile.read"`
    DIVINGFISH_AUTH_URL=                 # 水鱼账号地址，一般不需要填写，默认为 `https://auth.diving-fish.com`
-   DIVINGFISH_TOKEN=                    # 开发者 token，已弃用，见下方说明
    DIVINGFISH_PROBER_PROXY=false        # 是否使用中转访问水鱼查分器，适用于境外服务器
+   DIVINGFISH_TOKEN=                    # 开发者 token，已弃用，见下方说明
 
    # lxns                               # 落雪查分器配置，均未填写将无法使用落雪查分器
    LXNS_DEV_TOKEN=                      # 开发者 token
@@ -104,29 +82,61 @@
    REDIRECT_URI=                        # OAuth 回调地址
    ```
 
-> [!NOTE]
-> 使用水鱼 OAuth 绑定时，用户发送 `dfbind`（或「绑定水鱼」），BOT 会返回一条授权链接，用户打开并确认页面上显示的绑定身份后点击「同意授权」即可，**不需要把授权码回贴给 BOT**。绑定关系与授权范围保存在水鱼服务端，BOT 只保管应用凭据，不保存任何用户令牌；用户可随时在 https://auth.diving-fish.com/apps 撤销授权。未绑定的用户仍可使用 `b50` 指令。
-
 > [!WARNING]
 > `DIVINGFISH_TOKEN`（开发者 token）已被水鱼查分器弃用：它能按 QQ 号读取任意用户的成绩，用户从未对 BOT 做过授权，也无法撤销。水鱼已停止签发新的开发者 token，并将在过渡期后关闭该鉴权方式。请改为申请 OAuth 应用并配置 `DIVINGFISH_CLIENT_ID` 与 `DIVINGFISH_CLIENT_SECRET`。两者同时配置时优先使用 OAuth 授权。
 
-4. 安装插件所需模块：`pip install -r requirements.txt`
-5. 安装 `chromium`，**相关依赖已安装，请直接使用该指令执行**
+1. 安装插件所需模块：`pip install -r requirements.txt`
+2. 安装 `chromium`，**相关依赖已安装，请直接使用该指令执行**
 
    ```shell
    playwright install --with-deps chromium
    ```
 
-6. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
-7. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
-8. 重启 `HoshinoBot`
-9. 使用 `更新定数表`，`更新完成表` 指令完成图片生成
-10. 开始使用
+3. 安装 `微软雅黑` 字体，解决使用 `ginfo` 指令字体不渲染的问题，例如 `ubuntu`：`apt install fonts-wqy-microhei`，`windows` 平台可跳过
+4. 在 `config/__bot__.py` 模块列表中添加 `maimaiDX`
+5. 重启 `HoshinoBot`
+6. 使用 `更新定数表`，`更新完成表` 指令完成图片生成
+7. 开始使用
+
+> [!NOTE]
+> 插件带有别名更新推送功能，默认开启全部群组推送，不需要请私聊Bot使用 `全局关闭别名推送` 指令关闭所有群组推送。群组需要单独使用请使用指令 `开启别名推送`。
 
 ## 更新说明
 
 <details>
 <summary>Version 3.0 更新日志</summary>
+
+**2026-11-02**
+
+1. 新版本已完全废弃水鱼开发者Token，请前往水鱼 [开发者控制台](https://auth.diving-fish.com/console) 申请新应用，使用OAuth认证，未配置或者未授权仅可使用 `b50` 指令
+2. 修改了水鱼查分器的请求方式，移除废弃API端点
+3. 修复使用水鱼查分器查询b50无法显示 `镜` 牌的问题，牌子可自行修改 `plate_version` 文件夹内的所有 `镜` 牌为繁体字的 `鏡`。以下压缩包包含新的曲目 `魔法仕掛けのファンタジア` 曲绘，新的 `鏡` 牌和 `廻` 牌文件
+   - [cloudreve](https://cloud.yuzuchan.moe/f/x3f3/Resource%203.1.5%20UPDATE.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQBfiyOSmOXEQ6BU4NFfZdxmATlmua1cd1zGUlW3txCwTy8?e=uwrb3h)
+   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%203.1.5%20UPDATE.7z?sign=lpaSBMx8zCkfIYcyWWVVPu5ozDfs45_1-RMLVeAynH4=:0)
+4. 修复 `我要上分` 指令计算问题
+5. 修复合并别名的时，出现不存在的曲目ID
+
+**2026-08-20**
+
+1. 水鱼查分器新增 `OAuth` 认证，请根据 [配置](#配置) 示例填入相关 后续开发者Token将被废弃
+2. 新增 `dfbind` 指令
+3. 使用 `SSE` 替代 `websocket` 推送
+4. 移除了申请别名通过和拒绝的推送
+5. 修改部分绘图
+
+**2026-06-30**
+
+1. 替换 `rating` 数字新素材，直接覆盖 `mai/pic` 目录，增量包：
+   - [Cloudreve私人云盘](https://cloud.yuzuchan.moe/f/Jvhl/Resource%20CN1.56%20UPDATE.7z)
+   - [onedrive](https://yuzuai-my.sharepoint.com/:u:/g/personal/yuzu_yuzuchan_moe/IQDS_RzM66klSqvHtUhfFPTfAfpJcbGlIbL-7Q6eSPxM4CA?e=xRPo7b)
+   - [openlist](https://share.yuzuchan.moe/d/downloads/Resource%20CN1.56%20UPDATE.7z?sign=p6h2Q9f3u87vRO8yU6ZSvCoagq0BE-xnX4wlhM55s_U=:0)
+
+2. 恢复查询TA人成绩的功能
+3. 修复15完成表绘图偏移的问题
+4. 修复进度表完成时文字重叠的问题
+5. 优化部分绘图
+6. 修复部分bug
 
 **2026-06-09**
 

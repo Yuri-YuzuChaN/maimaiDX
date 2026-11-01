@@ -1,14 +1,12 @@
 from typing import overload
 
-from ..clients.divingfish.models import PlayInfoDefault, PlayInfoDev
+from ..clients.divingfish.models import Record
 from ..clients.lxns.models import Score, SongType
 from ..service import mai
 from .models import NotPlayedResult, PlayedResult, Song
 
 
-def df_format_result(
-    v: PlayInfoDefault | PlayInfoDev, level_value: float = 0
-) -> PlayedResult:
+def df_format_result(v: Record, level_value: float = 0) -> PlayedResult:
     ds = v.ds if level_value == 0 else level_value
     return PlayedResult(
         song_id=v.song_id,
@@ -27,13 +25,13 @@ def df_format_result(
 
 
 @overload
-def df_to_playresult(data: list[Score]) -> list[PlayedResult]: ...
+def df_to_playresult(data: list[Record]) -> list[PlayedResult]: ...
 @overload
 def df_to_playresult(
-    data: list[Score], *, song: Song | None = None
+    data: list[Record], *, song: Song | None = None
 ) -> list[PlayedResult | NotPlayedResult]: ...
 def df_to_playresult(
-    data: list[PlayInfoDefault] | list[PlayInfoDev], *, song: Song | None = None
+    data: list[Record], *, song: Song | None = None
 ) -> list[PlayedResult | NotPlayedResult]:
     if song:
         r = [

@@ -44,7 +44,6 @@ class BaseConfig(Settings):
 
 class DivingFishConfig(Settings):
     divingfish_prober_proxy: bool = False
-    divingfish_token: str | None = None
     divingfish_client_id: str | None = None
     divingfish_client_secret: str | None = None
     divingfish_auth_url: str = "https://auth.diving-fish.com"

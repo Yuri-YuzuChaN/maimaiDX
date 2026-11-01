@@ -123,11 +123,17 @@ async def process_regex(bot: NoneBot, ev: CQEvent) -> tuple[list[Song], int]:
                 case [ds] if is_float(ds):
                     ds1 = ds2 = float(ds)
                 case [ds1_raw, ds2_raw] if is_float(ds1_raw) and is_float(ds2_raw):
-                    ds1, ds2 = float(ds1_raw), float(ds2_raw)
+                    # 帮助里的「定数」「页数」写法：第一个比第二个大时按页数处理
+                    if float(ds1_raw) > float(ds2_raw):
+                        ds1 = ds2 = float(ds1_raw)
+                        page = max(1, int(float(ds2_raw)))
+                    else:
+                        ds1, ds2 = float(ds1_raw), float(ds2_raw)
                 case [ds1_raw, ds2_raw, p_raw] if (
                     is_float(ds1_raw) and is_float(ds2_raw) and p_raw.isdigit()
                 ):
-                    ds1, ds2, page = float(ds1_raw), float(ds2_raw), int(p_raw)
+                    ds1, ds2 = float(ds1_raw), float(ds2_raw)
+                    page = max(1, int(p_raw))
                 case _:
                     await bot.finish(
                         ev,

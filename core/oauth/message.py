@@ -1,7 +1,7 @@
 from textwrap import dedent
 
-from ..config import lxnsconfig, maiconfig
-from ..core.lxns_oauth import (
+from ...config import lxnsconfig, maiconfig
+from .lxns_oauth import (
     build_authorize_url,
 )
 
