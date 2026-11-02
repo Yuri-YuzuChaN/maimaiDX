@@ -316,7 +316,7 @@ def get_rise_score_list(
                     old_rating=old_result.rating if old_result else 0,
                     old_achievements=old_result.achievements if old_result else 0,
                     old_rate=(
-                        old_result.rate.value if old_result and old_result.rate else "D"
+                        old_result.rate.value if old_result and old_result.rate else "d"
                     ),
                 )
                 rise_result.append(rise)
